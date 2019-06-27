@@ -1,0 +1,287 @@
+---
+title: "irAE Distribution"
+author: "Mitchell Muniak"
+date: "6/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(zoo)
+library(reshape2)
+```
+
+
+This script describes the process by which i pulled irAE data from Owen et al 2019 (full citation here) in order to estimate the frequency of irAEs with different timings.
+
+Here I input the Owen data as weeks
+
+```{r}
+
+irAE_weeks <- c(0, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 12, 12, 16, 16, 24, 24, 28, 32, 32, 44, 56, 56, 72, 72, 144, 168)
+
+```
+I created a histogram to visualize the distribution.
+
+
+I fiddled around with breaks and range to make a representative chart.
+
+```{r}
+
+hist(irAE_weeks, breaks=50, col="red", xlim = range(0,170)) 
+
+```
+
+I plugged in the percentile to view how many weeks will be needed to reach it.  I cotinued to return to this function and change the quantile based on what we decided for sample size.
+
+```{r}
+
+quantile(irAE_weeks, .5350)
+
+```
+
+
+The Owen data represented as a density graph.  A line is included on the X axis to represent the total follow-up time that we eventually decided on.
+
+```{r}
+df <- data.frame(weeks = irAE_weeks,
+                 patient = seq(length(irAE_weeks)))
+ggplot(df, aes(x = weeks)) +
+  geom_density(fill = "blue", alpha = 0.2) +
+  theme_bw() +
+  geom_vline(aes(xintercept = quantile(weeks, 0.5350)))
+
+```
+
+
+
+
+```{r}
+irAE_rate <- (27/91)
+timing_and_samplesize <- function(compliance, samplesize, irAE_number){
+  irAE_polulation_fraction <- irAE_number/(samplesize * compliance * irAE_rate)
+time <- quantile(irAE_weeks, irAE_polulation_fraction)
+
+out <- data.frame(compliance = compliance,
+                  ss = samplesize,
+                  irAE_number = irAE_number,
+                  time = time)
+
+return(out)
+}
+
+```
+Inital sample size calculation/time with 0.7 compliance and 8 irAEs as constants.
+
+```{r}
+
+ss <- seq(50, 60)
+newlist <- list()
+for (N in ss){
+  newlist[[N]] <- timing_and_samplesize(0.7, N, 8)
+}
+newlist <- dplyr::bind_rows(newlist)
+timing_and_samplesize(0.7, 60, 8)
+
+
+```
+
+Sample size/time calculation with compliance split into 3 groups (0.7, 0.8, and 0.9)
+
+Data is represented as a line graph.
+
+```{r}
+
+comp.series <- seq(0.7, 0.9, by = 0.1)
+comp.list <- list()
+for (c in 1:length(comp.series)) {
+  
+  newlist <- list()
+  
+  for (N in ss){
+    newlist[[N]] <- timing_and_samplesize(comp.series[c], N, 8)
+  }
+  
+  comp.list[[c]] <- dplyr::bind_rows(newlist)
+}
+
+out <- dplyr::bind_rows(comp.list)
+
+out %>%
+  mutate(compliance = factor(compliance)) %>%
+  ggplot(aes(x = time, y = ss)) +
+  geom_point(aes(color = compliance)) +
+  geom_line(aes(group= compliance, color = compliance))
+
+```
+The graph is reconsidered with sample size as the independent variable.  We found the graph easier to read and draw conclusions from.
+
+A line representing the average global min of the 3 compliance groups is added as a line.
+
+
+
+
+```{r}
+
+ss2 <- seq(50, 80)
+comp.series <- seq(0.7, 0.9, by = 0.1)
+comp.list <- list()
+for (c in 1:length(comp.series)) {
+  
+  newlist <- list()
+  
+  for (N in ss2){
+    newlist[[N]] <- timing_and_samplesize(comp.series[c], N, 8)
+  }
+  
+  comp.list[[c]] <- dplyr::bind_rows(newlist)
+}
+
+outall <- 
+  dplyr::bind_rows(comp.list) %>%
+  mutate(total.study.time = ss/3 + time)
+
+glomin <- outall %>%
+  group_by(compliance) %>%
+summarise(av_glo_min = min(total.study.time))  
+
+all_ave <- outall %>%
+  select(-time) %>%
+  spread(key = "compliance", value = "total.study.time") %>%
+  mutate(ave.tst = (`0.7` + `0.8` + `0.9`)/3)
+all_ave%>%
+  ggplot(aes(x = ss, y = ave.tst)) +
+  geom_line()
+
+
+outall %>%
+  mutate(compliance = factor(compliance)) %>%
+  ggplot(aes(x = ss, y = total.study.time)) +
+  geom_point(aes(color = compliance)) +
+  geom_line(aes(group= compliance, color = compliance))+
+  geom_hline(yintercept = mean(glomin$av_glo_min), color = "orange")
+```
+
+
+
+The geom_point function is removed for aesthetic purposes.  The average global min line is removed.
+
+A line representing the average point of each line is added.
+```{r}
+
+ss2 <- seq(50, 80)
+comp.series <- seq(0.7, 0.9, by = 0.1)
+comp.list <- list()
+for (c in 1:length(comp.series)) {
+  
+  newlist <- list()
+  
+  for (N in ss2){
+    newlist[[N]] <- timing_and_samplesize(comp.series[c], N, 8)
+  }
+  
+  comp.list[[c]] <- dplyr::bind_rows(newlist)
+}
+
+outall <- 
+  dplyr::bind_rows(comp.list) %>%
+  mutate(total.study.time = ss/3 + time)
+
+all_ave <- outall %>%
+  select(-time) %>%
+  spread(key = "compliance", value = "total.study.time") %>%
+  mutate(ave.tst = (`0.7` + `0.8` + `0.9`)/3)
+all_ave%>%
+  ggplot(aes(x = ss, y = ave.tst)) +
+  geom_line()
+allx2 <- all_ave %>%
+  gather(`0.7`, `0.8`, `0.9`, ave.tst, key = "compliance", value = "total.study.time")
+
+allx2 %>%
+  mutate(compliance = factor(compliance)) %>%
+  ggplot(aes(x = ss, y = total.study.time)) +
+  geom_line(aes(group= compliance, color = compliance))+
+  theme_bw()
+```
+The average point line is removed.
+
+A floor line is added.
+
+A vertical line is added to represent our targeted sample size.
+
+
+```{r}
+
+ss2 <- seq(50, 90)
+comp.series <- seq(0.7, 0.9, by = 0.1)
+comp.list <- list()
+for (c in 1:length(comp.series)) {
+  
+  newlist <- list()
+  
+  for (N in ss2){
+    newlist[[N]] <- timing_and_samplesize(comp.series[c], N, 8)
+  }
+  
+  comp.list[[c]] <- dplyr::bind_rows(newlist)
+}
+
+outall <- 
+  dplyr::bind_rows(comp.list) %>%
+  mutate(total.study.time = ss/3 + time)
+
+#all_ave <- outall %>%
+#  select(-time) %>%
+#  spread(key = "compliance", value = "total.study.time") %>%
+#  mutate(ave.tst = (`0.7` + `0.8` + `0.9`)/3)
+#all_ave%>%
+#  ggplot(aes(x = ss, y = ave.tst)) +
+#  geom_line()
+#allx2 <- all_ave %>%
+#  gather(`0.7`, `0.8`, `0.9`, ave.tst, key = "compliance", value = "total.study.time")
+
+outall %>%
+  mutate(compliance = factor(compliance)) %>%
+  mutate(floor = ss/3+12) %>%
+  mutate(total.t.floor = ifelse(total.study.time <= floor, floor, total.study.time))%>%
+  ggplot(aes(x = ss, y = total.t.floor)) +
+  geom_line(aes(x= ss, y= floor), color= 'gray') +
+  geom_line(aes(group= compliance, color = compliance))+
+  theme_bw()+
+  geom_vline(aes(xintercept = 63), color= 'tan')
+```
+Appropriate labels are added to axises.
+
+```{r}
+ss2 <- seq(50, 90)
+comp.series <- seq(0.7, 0.9, by = 0.1)
+comp.list <- list()
+for (c in 1:length(comp.series)) {
+  
+  newlist <- list()
+  
+  for (N in ss2){
+    newlist[[N]] <- timing_and_samplesize(comp.series[c], N, 8)
+  }
+  
+  comp.list[[c]] <- dplyr::bind_rows(newlist)
+}
+
+outall <- 
+  dplyr::bind_rows(comp.list) %>%
+  mutate(total.study.time = ss/3 + time)
+
+outall %>%
+  mutate(compliance = factor(compliance)) %>%
+  mutate(floor = ss/3+12) %>%
+  mutate(total.t.floor = ifelse(total.study.time <= floor, floor, total.study.time))%>%
+  ggplot(aes(x = ss, y = total.t.floor)) +
+  geom_line(aes(x= ss, y= floor), color= 'gray') +
+  geom_line(aes(group= compliance, color = compliance))+
+  theme_bw()+
+  geom_vline(aes(xintercept = 63), color= 'tan') +
+  labs(x = "Sample Size", y = "Total Study Time")
+  
+```
