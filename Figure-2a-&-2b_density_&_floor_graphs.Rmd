@@ -14,7 +14,11 @@ library(reshape2)
 ```
 
 
-This script describes the process by which i pulled irAE data from Owen et al 2019 (full citation here) in order to estimate the frequency of irAEs with different timings.
+This script describes the process by which i pulled irAE data from:
+
+>Owen DH, Wei L, Bertino EM, Edd T, Villalona-Calero MA, He K, Shields PG, Carbone DP, Otterson GA. Incidence, Risk Factors, and Effect on Survival of Immune-related Adverse Events in Patients With Non-Small-cell Lung Cancer. Clin Lung Cancer. 2018;19(6):e893–e900. PMID:  30197259
+
+ in order to estimate the frequency of irAEs with different timings.
 
 Here I input the Owen data as weeks
 
@@ -23,6 +27,7 @@ Here I input the Owen data as weeks
 irAE_weeks <- c(0, 4, 4, 4, 4, 4, 8, 8, 8, 8, 8, 12, 12, 16, 16, 24, 24, 28, 32, 32, 44, 56, 56, 72, 72, 144, 168)
 
 ```
+
 I created a histogram to visualize the distribution.
 
 
@@ -30,7 +35,7 @@ I fiddled around with breaks and range to make a representative chart.
 
 ```{r}
 
-hist(irAE_weeks, breaks=50, col="red", xlim = range(0,170)) 
+hist(irAE_weeks, breaks = 50, col = "red", xlim = range(0,170)) 
 
 ```
 
@@ -51,9 +56,9 @@ df <- data.frame(weeks = irAE_weeks,
 ggplot(df, aes(x = weeks)) +
   geom_density(fill = "blue", alpha = 0.2) +
   theme_bw() +
-  geom_vline(aes(xintercept = quantile(weeks, 0.5350)), color= "red", linetype= "dashed")+
-  labs(y = "Density of irAEs observed")+
-ggsave("Fig_2a_sample_size.png", width = 4, height = 3)
+  geom_vline(aes(xintercept = quantile(weeks, 0.5350)), color= "red", linetype= "dashed") +
+  labs(y = "Density of irAEs observed") +
+ggsave("Fig2A_irAE-density.png", width = 4, height = 3)
 
 ```
 
@@ -247,13 +252,14 @@ outall <-
 outall %>%
   mutate(compliance = factor(compliance)) %>%
   mutate(floor = ss/3+12) %>%
-  mutate(total.t.floor = ifelse(total.study.time <= floor, floor, total.study.time))%>%
+  mutate(total.t.floor = ifelse(total.study.time <= floor, floor, total.study.time)) %>%
   ggplot(aes(x = ss, y = total.t.floor)) +
-  geom_line(aes(x= ss, y= floor), color= 'gray') +
-  geom_line(aes(group= compliance, color = compliance))+
-  theme_bw()+
-  geom_vline(aes(xintercept = 63), color= 'tan')
+  geom_line(aes(x = ss, y= floor), color= 'gray') +
+  geom_line(aes(group = compliance, color = compliance)) +
+  theme_bw() +
+  geom_vline(aes(xintercept = 63), color = 'tan')
 ```
+
 Appropriate labels are added to axises.
 
 ```{r}
@@ -278,13 +284,32 @@ outall <-
 outall %>%
   mutate(compliance = factor(compliance)) %>%
   mutate(floor = ss/3+12) %>%
-  mutate(total.t.floor = ifelse(total.study.time <= floor, floor, total.study.time))%>%
+  mutate(total.t.floor = ifelse(total.study.time <= floor, floor, total.study.time)) %>%
   ggplot(aes(x = ss, y = total.t.floor)) +
   geom_line(aes(x= ss, y= floor), color= 'gray') +
-  geom_line(aes(group= compliance, color = compliance))+
+  geom_line(aes(group= compliance, color = compliance)) +
   theme_bw()+
   geom_vline(aes(xintercept = 63), color= 'tan') +
-  labs(x = "Sample Size", y = "Total Study Duration")+
-  ggsave("Fig_2b_sample_size.png", width = 4, height = 3)
+  labs(x = "Sample Size", y = "Total Study Duration") +
+  ggsave("Fig2B_sample-size_trial-duration.png", width = 4, height = 3)
   
 ```
+
+
+
+```{r}
+ss <- 63
+accrual.rate <- 3
+
+accr.time <- ss / accrual.rate
+
+fu.time <- 37 - accr.time
+```
+
+Choosing a samples size of 63 patients and a total study duration of 37 weeks leads to `r accr.time` weeks of accruing patients and `r fu.time` weeks of follow up. 
+
+```{r}
+frac.irAE <- sum(irAE_weeks <= fu.time) / 91 # Owen's cohort size
+```
+
+That means we should expect to observe irAEs in `r frac.irAE` of participants, or `r 63 * frac.irAE` participants. With an 80% compliance this results in `r 63 * frac.irAE * 0.8` irAE samples.
