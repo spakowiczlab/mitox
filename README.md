@@ -9,7 +9,7 @@ Power calculations associated with microbiome sample collection
     year         = 2019,
     doi          = {},
     version      = {1.0},
-    publisher    = {spakowiczlab},
-    url          = {}
+    publisher    = {GitHub},
+    url          = {https://github.com/spakowiczlab/miTox-protocol}
     }
 ```
