@@ -7,6 +7,6 @@ Power calculations and sample size estimates associated with the clinical trial 
 The goal of the study is to predict which melanoma patients will respond to immunotherapy or experience immune-related adverse events using microbiome samples and other biomarkers. 
 
 This work is supported by Pelotonia
-<img src="mitox-pelotonia-1.png" width="700" height="700">
+<img src="mitox-pelotonia-1.png" width="400" height="400">
 
 Background image credit: Image Credit: Darryl Leja, NHGRI
