@@ -8,3 +8,5 @@ The goal of the study is to predict which melanoma patients will respond to immu
 
 This work is supported by Pelotonia
 ![mitox arrow](mitox-pelotonia-1.png)
+
+Background image credit: Image Credit: Darryl Leja, NHGRI
