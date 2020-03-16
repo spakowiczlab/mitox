@@ -10,7 +10,7 @@
 library(lubridate)
 
 estimatedCompletion <- function(todays.date, 
-                                weekly.consent.rate, 
+                                weeks.open, 
                                 accrual.target, 
                                 current.accrual,
                                 study.duration) {
@@ -19,7 +19,7 @@ estimatedCompletion <- function(todays.date,
   
   patients.to.go <- accrual.target - current.accrual
   
-  weeks.to.full.accrual <- ceiling(patients.to.go / weekly.consent.rate)
+  weeks.to.full.accrual <- ceiling(patients.to.go / (current.accrual / weeks.open))
   
   weeks.to.completion <- weeks.to.full.accrual + study.duration
   
@@ -32,7 +32,7 @@ estimatedCompletion <- function(todays.date,
 }
 
 estimatedCompletion(todays.date = "2020-03-13",
-                    weekly.consent.rate = 1.25,
+                    weeks.open = 5,
                     accrual.target = 63,
                     current.accrual = 5,
                     study.duration = 16)
