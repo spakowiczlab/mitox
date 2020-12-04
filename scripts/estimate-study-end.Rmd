@@ -1,0 +1,125 @@
+---
+title: "Estimate Study End"
+author: "Nyelia Williams and Dan Spakowicz"
+date: "10/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(broom)
+```
+
+The goal of this document is to estimate full study enrollment using localized fits to accommodate delays due to COVID.
+
+# Load data
+
+```{r}
+# Read in data table (Created by Nye, updated 2020-11-05)
+x <- read_xlsx("../data/derived/mitox-patient-consent-dates.xlsx")
+
+tail(x)
+```
+
+# Create vars
+
+```{r}
+xm <- 
+  x %>%
+  drop_na() %>%
+  rename(date = "Consent Date") %>%
+  arrange(date) %>%
+  mutate(date = as.Date(date)) %>%
+  mutate(n.consented = seq(from = 1, to = nrow(.))) %>%
+  mutate(date.num = as.numeric(date)) %>%
+  mutate(origin = "data")
+
+head(xm)
+```
+
+# Plot
+
+```{r}
+xm %>%
+  ggplot(aes(x = date, y = n.consented)) +
+  geom_point() +
+  stat_smooth() +
+  theme_bw() +
+  labs(y = "Number Consented")
+```
+
+# Model
+
+```{r}
+n.entries <- 5
+start <- nrow(xm) - n.entries
+tmp <- xm[start:nrow(xm),]
+
+xm.lm <- lm(formula = n.consented ~ as.numeric(date),
+               data = tmp)
+
+# Define the prediction time window
+new.data <- data.frame(date = as.numeric(seq.Date(from = Sys.Date(),
+                                                  to = as.Date("2023-01-01"), 
+                                                  by = "days")
+                                         )
+                       )
+
+pred <- predict(object = xm.lm, 
+                newdata = new.data,
+                interval = "prediction") %>%
+  data.frame
+
+
+model.out <- data.frame(n.consented = pred$fit,
+                        lwr.fit = pred$lwr,
+                        upr.fit = pred$upr,
+                        date = as.Date(new.data$date, 
+                                       origin = as.Date("1970-01-01")),
+                        origin = "prediction")
+
+head(model.out)
+```
+
+```{r}
+dm <- 
+  xm %>%
+  bind_rows(model.out)
+
+head(dm)
+```
+
+Plot the consents with the appended model.
+
+```{r}
+dm %>%
+  ggplot(aes(x = date, y = n.consented)) +
+  geom_point(aes(color = origin)) +
+  theme_bw() +
+  geom_hline(yintercept = 63, linetype = "dotted", color = "red") +
+  geom_vline(xintercept = dm$date[min(grep("^63.", dm$n.consented))],
+             linetype = "dotted",
+             color = "red") +
+  geom_ribbon(aes(ymin = lwr.fit, ymax = upr.fit), fill = "cyan", alpha = 0.3) +
+  geom_text(x = as.Date("2021-01-10"),
+            y = 5,
+            label = paste0("Estimated full enrollment on\n", dm$date[min(grep("^63.", dm$n.consented))])) +
+  labs(y = "Number Consented", x = "Date",
+       subtitle = "Predicted full enrollment by local linear regression") +
+  ggsave("../figures/consent-prediction.png")
+```
+
+# Time until full enrollment
+
+```{r}
+dm$date[min(grep("^63.", dm$n.consented))] - Sys.Date()
+```
+
+# Estimated study completion (assuming no holiday breaks)
+
+```{r}
+dm$date[min(grep("^63.", dm$n.consented))] + lubridate::weeks(16)
+```
