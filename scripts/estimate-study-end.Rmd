@@ -51,10 +51,67 @@ xm %>%
   labs(y = "Number Consented")
 ```
 
-# Model
+# Local Polynomial Model
 
 ```{r}
-n.entries <- 5
+xm.lo <- loess(formula = n.consented ~ as.numeric(date),
+               data = xm,
+               control = loess.control(surface = "direct"))
+
+# Define the prediction time window
+new.data <- data.frame(date = as.numeric(seq.Date(from = Sys.Date(),
+                                                  to = as.Date("2021-01-01"), 
+                                                  by = "days")
+                                         )
+                       )
+                             
+pred <- predict(object = xm.lo, 
+                newdata = new.data,
+                se = TRUE)
+
+model.out <- data.frame(n.consented = pred$fit,
+                        se.fit = pred$se.fit,
+                        date = as.Date(new.data$date, 
+                                       origin = as.Date("1970-01-01")),
+                        origin = "prediction")
+
+head(model.out)
+```
+
+```{r}
+model.out %>%
+  ggplot(aes(x = date, y = n.consented)) +
+  geom_point() +
+  theme_bw()
+```
+
+```{r}
+dm <- 
+  xm %>%
+  bind_rows(model.out)
+
+head(dm)
+```
+
+```{r}
+dm %>%
+  ggplot(aes(x = date, y = n.consented)) +
+  geom_point(aes(color = origin)) +
+  stat_smooth() +
+  theme_bw() +
+  geom_hline(yintercept = 42, linetype = "dotted", color = "red") +
+  geom_vline(xintercept = dm$date[min(grep("^63.", dm$n.consented))],
+             linetype = "dotted",
+             color = "red") +
+  geom_text(x = as.Date("2020-10-10"),
+            y = 5,
+            label = paste0("Estimated full enrollment on\n", dm$date[min(grep("^42.", dm$n.consented))]))
+```
+
+# Local Linear Model
+
+```{r}
+n.entries <- 6
 start <- nrow(xm) - n.entries
 tmp <- xm[start:nrow(xm),]
 
