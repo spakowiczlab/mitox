@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readxl)
 library(tidyverse)
 library(broom)
+
+source("00-paths.R")
 ```
 
 The goal of this document is to estimate full study enrollment using localized fits to accommodate delays due to COVID.
@@ -19,7 +21,7 @@ The goal of this document is to estimate full study enrollment using localized f
 
 ```{r}
 # Read in data table (Created by Nye, updated 2020-11-05)
-x <- read_xlsx("../data/derived/mitox-patient-consent-dates.xlsx")
+x <- read_xlsx(file.path(paths$box, "protocols", "mitox-protocol", "templates", "mitox-patient-consent-dates.xlsx"))
 
 tail(x)
 ```
@@ -60,7 +62,7 @@ xm.lo <- loess(formula = n.consented ~ as.numeric(date),
 
 # Define the prediction time window
 new.data <- data.frame(date = as.numeric(seq.Date(from = Sys.Date(),
-                                                  to = as.Date("2021-01-01"), 
+                                                  to = as.Date("2022-01-01"), 
                                                   by = "days")
                                          )
                        )
@@ -88,24 +90,27 @@ model.out %>%
 ```{r}
 dm <- 
   xm %>%
-  bind_rows(model.out)
+  bind_rows(model.out) %>%
+  mutate(n.consented = round(n.consented))
 
 head(dm)
 ```
 
 ```{r}
+n.enroll <- 89
+
 dm %>%
   ggplot(aes(x = date, y = n.consented)) +
   geom_point(aes(color = origin)) +
   stat_smooth() +
   theme_bw() +
-  geom_hline(yintercept = 42, linetype = "dotted", color = "red") +
+  geom_hline(yintercept = n.enroll, linetype = "dotted", color = "red") +
   geom_vline(xintercept = dm$date[min(grep("^63.", dm$n.consented))],
              linetype = "dotted",
              color = "red") +
   geom_text(x = as.Date("2020-10-10"),
-            y = 5,
-            label = paste0("Estimated full enrollment on\n", dm$date[min(grep("^42.", dm$n.consented))]))
+            y = 90,
+            label = paste0("Estimated full enrollment on\n", dm$date[min(grep(n.enroll, dm$n.consented))]))
 ```
 
 # Local Linear Model
@@ -120,7 +125,7 @@ xm.lm <- lm(formula = n.consented ~ as.numeric(date),
 
 # Define the prediction time window
 new.data <- data.frame(date = as.numeric(seq.Date(from = Sys.Date(),
-                                                  to = as.Date("2023-01-01"), 
+                                                  to = as.Date("2022-01-01"), 
                                                   by = "days")
                                          )
                        )
@@ -144,7 +149,9 @@ head(model.out)
 ```{r}
 dm <- 
   xm %>%
-  bind_rows(model.out)
+  bind_rows(model.out) %>%
+  mutate(n.consented = round(n.consented)) %>%
+  mutate(lwr.int = round(lwr.fit))
 
 head(dm)
 ```
@@ -156,27 +163,34 @@ dm %>%
   ggplot(aes(x = date, y = n.consented)) +
   geom_point(aes(color = origin)) +
   theme_bw() +
-  geom_hline(yintercept = 63, linetype = "dotted", color = "red") +
+  geom_hline(yintercept = n.enroll, linetype = "dotted", color = "red") +
   geom_vline(xintercept = dm$date[min(grep("^63.", dm$n.consented))],
              linetype = "dotted",
              color = "red") +
   geom_ribbon(aes(ymin = lwr.fit, ymax = upr.fit), fill = "cyan", alpha = 0.3) +
   geom_text(x = as.Date("2021-01-10"),
             y = 5,
-            label = paste0("Estimated full enrollment on\n", dm$date[min(grep("^63.", dm$n.consented))])) +
+            label = paste0("Estimated full enrollment on\n", dm$date[min(grep(n.enroll, dm$n.consented))])) +
   labs(y = "Number Consented", x = "Date",
-       subtitle = "Predicted full enrollment by local linear regression") +
+       subtitle = "Predicted full enrollment by local linear regression") 
   ggsave("../figures/consent-prediction.png")
 ```
+
+# Date of full enrollment with 95% confidence
+
+```{r}
+dm$date[min(grep(n.enroll, dm$lwr.int))]
+```
+
 
 # Time until full enrollment
 
 ```{r}
-dm$date[min(grep("^63.", dm$n.consented))] - Sys.Date()
+dm$date[min(grep(n.enroll, dm$n.consented))] - Sys.Date()
 ```
 
 # Estimated study completion (assuming no holiday breaks)
 
 ```{r}
-dm$date[min(grep("^63.", dm$n.consented))] + lubridate::weeks(16)
+dm$date[min(grep(n.enroll, dm$n.consented))] + lubridate::weeks(16)
 ```
