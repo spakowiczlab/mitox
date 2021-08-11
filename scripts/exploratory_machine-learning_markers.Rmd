@@ -1,0 +1,252 @@
+---
+title: 'Exploratory: machine learning markers'
+author: "Rebecca Hoyd"
+date: "8/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(vegan)
+library(randomForest)
+library(ROCR)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+
+# Functions
+
+```{r}
+inputvar_config_test <- function(trainmat, testmat, trainclin, testclin, topredict){
+  model.training <- randomForest(x = trainmat, y = as.factor(trainclin[[topredict]]))
+  test.preds <- predict(model.training, testmat)
+  testpred.mat <- table(observed = testclin[[topredict]], predicted = test.preds)
+  
+  prediction_for_roc_curve <- predict(model.training,testmat,type="prob")
+  
+  # Specify the different classes 
+  classes <- levels(as.factor(testclin[[topredict]]))
+  
+  perf.list <- list()
+  # For each class
+  for (i in 1:length(classes)){
+    # Define which observations belong to class[i]
+    true_values <- ifelse(testclin[[topredict]]==classes[i],1,0)
+    # Assess the performance of classifier for class[i]
+    pred <- prediction(prediction_for_roc_curve[,i],true_values)
+    perf <- performance(pred, "tpr", "fpr")
+    perf.list[[i]] <- as.data.frame(cbind(x = perf@x.values[[1]], y = perf@y.values[[1]],
+                                          predicted.var = classes[i]))
+    
+    # auc.perf <- performance(pred, measure = "auc")
+    # auclist[[i]] <- auc.perf@y.values
+  }
+  
+  out.dat <- list(model.training, testpred.mat, bind_rows(perf.list))
+  names(out.dat) <- c("rForest.mod", "tested.predictions", "model.performance")
+  return(out.dat)
+}
+```
+
+# Load data
+
+```{r}
+raw.combined.obj <- read_excel("T:/Labs/Spakowicz/mitox/data/clinical/raw/Adjuvant Endpoint data for Lianbo.xlsx",
+                               sheet = "Treatment duration")
+```
+
+# Format
+
+## Make all columns
+
+I'm looking for all the columns we need for the predictor variables, then we'll format the predicted variable. We want the marker columns and all the reasonable clinical variables too.
+```{r}
+test <- colnames(raw.combined.obj)
+test
+
+# Markers start at column 26, we want to make sure we keep all those
+
+marker.cols <- test[26:104]
+
+check <- raw.combined.obj[1:25]
+
+# I've selected these based on completeness and just glancing to see if there's a spread in the variables. I could add all the 
+# lymphocyte information too.
+clin.cols <- c("Sex", "Age", "Stage (7th edition prior to starting therapy)", "BMI", "Smoking Status")
+```
+
+```{r}
+limited.obj <- raw.combined.obj %>%
+  select(`Sample  (n=58)`, clin.cols, marker.cols) %>%
+  mutate(`Smoking Status` = ifelse(is.na(`Smoking Status`), "Unknown", `Smoking Status`),
+         YWHAZ = ifelse(is.na(YWHAZ), median(YWHAZ, na.rm = T), YWHAZ)) %>%
+  mutate_at(.vars = clin.cols, ~ as.numeric(as.factor(.)))
+
+```
+
+Now let's make the predicted variable. We were given these tests:
+
+1)      Completed vs. Discontinuation for any other reason
+
+2)      Completed vs Recurrence
+
+3)      Completed vs Toxicity
+
+But it looks like the later two do not have a good spread between the categories.
+```{r}
+table(raw.combined.obj$`Reason for discontinuation`)
+
+therapy.continuance <- raw.combined.obj %>%
+  select(`Sample  (n=58)`, `Reason for discontinuation`) %>%
+  mutate(any.discontinuation = ifelse(`Reason for discontinuation` == "Completed therapy", 0, 1),
+         recurrences = ifelse(`Reason for discontinuation` == "Completed therapy", 0, 
+                              ifelse(`Reason for discontinuation` == "Recurrence", 1, NA)),
+         toxicity = ifelse(`Reason for discontinuation` == "Completed therapy", 0, 
+                              ifelse(`Reason for discontinuation` == "Toxicity" | `Reason for discontinuation` == "Toxixity",
+                                     1, NA)))
+  
+```
+
+## Make model input dataframes
+
+````{r}
+# Any discontinuation
+set.seed(112358)
+disc.ntest <- round(nrow(therapy.continuance)*.25)
+disc.tsamps <- sample(therapy.continuance$`Sample  (n=58)`, disc.ntest, replace = F)
+
+disc.trainmat <- limited.obj %>%
+  filter(!`Sample  (n=58)` %in% disc.tsamps) %>%
+  select(-`Sample  (n=58)`)
+
+disc.testmat <- limited.obj %>%
+  filter(`Sample  (n=58)` %in% disc.tsamps) %>%
+  select(-`Sample  (n=58)`)
+
+disc.trainclin <- therapy.continuance %>%
+  filter(!`Sample  (n=58)` %in% disc.tsamps) %>%
+  select(-`Sample  (n=58)`)
+
+disc.testclin <- therapy.continuance %>%
+  filter(`Sample  (n=58)` %in% disc.tsamps) %>%
+  select(-`Sample  (n=58)`)
+
+# Recurrence
+
+reccurence.clin <- therapy.continuance %>%
+  drop_na(recurrences)
+
+set.seed(112358)
+rec.ntest <- round(nrow(reccurence.clin)*.25)
+rec.tsamps <- sample(reccurence.clin$`Sample  (n=58)`, rec.ntest, replace = F)
+
+rec.trainclin <- reccurence.clin %>%
+  filter(!`Sample  (n=58)` %in% rec.tsamps) 
+
+rec.testclin <- reccurence.clin %>%
+  filter(`Sample  (n=58)` %in% rec.tsamps) 
+rec.trainmat <- limited.obj %>%
+  filter(`Sample  (n=58)` %in% rec.trainclin$`Sample  (n=58)`) %>%
+  select(-`Sample  (n=58)`)
+
+rec.testmat <- limited.obj %>%
+  filter(`Sample  (n=58)` %in% rec.testclin$`Sample  (n=58)`) %>%
+  select(-`Sample  (n=58)`)
+
+# Toxicity
+
+toxicity.clin <- therapy.continuance %>%
+  drop_na(toxicity)
+
+set.seed(112358)
+tox.ntest <- round(nrow(toxicity.clin)*.25)
+tox.tsamps <- sample(toxicity.clin$`Sample  (n=58)`, tox.ntest, replace = F)
+
+tox.trainclin <- toxicity.clin %>%
+  filter(!`Sample  (n=58)` %in% tox.tsamps)
+
+tox.testclin <- toxicity.clin %>%
+  filter(`Sample  (n=58)` %in% tox.tsamps) 
+
+tox.trainmat <- limited.obj %>%
+  filter(`Sample  (n=58)` %in% tox.trainclin$`Sample  (n=58)`) %>%
+  select(-`Sample  (n=58)`)
+
+tox.testmat <- limited.obj %>%
+  filter(`Sample  (n=58)` %in% tox.testclin$`Sample  (n=58)`) %>%
+  select(-`Sample  (n=58)`)
+```
+
+# Tests
+
+## Any discontinuation
+```{r}
+disc.res <- inputvar_config_test(disc.trainmat, disc.testmat, disc.trainclin, disc.testclin, "any.discontinuation")
+
+disc.res$rForest.mod$importance %>%
+  as.data.frame() %>%
+  arrange(desc(MeanDecreaseGini))%>%
+  head()
+
+disc.res$model.performance %>%
+  mutate(x =as.numeric(x),
+         y = as.numeric(y)) %>%
+  filter(predicted.var == 0) %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_abline(slope = 1, intercept = 0, color = "grey") +
+  geom_path() +
+  labs(x = "False Positive Rate", y = "True Positive Rate") +
+  theme_bw() +
+  theme(axis.text= element_blank(),
+        axis.ticks = element_blank()) 
+```
+
+## Recurrences
+
+```{r}
+rec.res <- inputvar_config_test(rec.trainmat, rec.testmat, rec.trainclin, rec.testclin, "recurrences")
+
+rec.res$rForest.mod$importance %>%
+  as.data.frame() %>%
+  arrange(desc(MeanDecreaseGini))%>%
+  head()
+
+rec.res$model.performance %>%
+  mutate(x =as.numeric(x),
+         y = as.numeric(y)) %>%
+  filter(predicted.var == 1) %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_abline(slope = 1, intercept = 0, color = "grey") +
+  geom_path() +
+  labs(x = "False Positive Rate", y = "True Positive Rate") +
+  theme_bw() +
+  theme(axis.text= element_blank(),
+        axis.ticks = element_blank())
+```
+
+## Toxicity
+
+```{r}
+tox.res <- inputvar_config_test(tox.trainmat, tox.testmat, tox.trainclin, tox.testclin, "toxicity")
+
+tox.res$rForest.mod$importance %>%
+  as.data.frame() %>%
+  arrange(desc(MeanDecreaseGini)) %>%
+  head()
+
+tox.res$model.performance %>%
+  mutate(x =as.numeric(x),
+         y = as.numeric(y)) %>%
+  filter(predicted.var == 1) %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_abline(slope = 1, intercept = 0, color = "grey") +
+  geom_path() +
+  labs(x = "False Positive Rate", y = "True Positive Rate") +
+  theme_bw() +
+  theme(axis.text= element_blank(),
+        axis.ticks = element_blank())
+```
