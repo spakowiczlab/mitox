@@ -15,6 +15,8 @@ library(ROCR)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(glmm)
+library(glmnet)
 ```
 
 
@@ -76,15 +78,18 @@ check <- raw.combined.obj[1:25]
 
 # I've selected these based on completeness and just glancing to see if there's a spread in the variables. I could add all the 
 # lymphocyte information too.
-clin.cols <- c("Sex", "Age", "Stage (7th edition prior to starting therapy)", "BMI", "Smoking Status")
+clin.cols <- c("Sex", "Age", "Stage (7th edition prior to starting therapy)", "BMI", "Smoking Status",
+               "Relative Lymphocytes", "Relative Eosinophils")
+clin.fac <- c("Sex", "Stage (7th edition prior to starting therapy)", "Smoking Status")
 ```
 
 ```{r}
+# Add relative eosinophils + relative lymphocytes
 limited.obj <- raw.combined.obj %>%
   select(`Sample  (n=58)`, clin.cols, marker.cols) %>%
   mutate(`Smoking Status` = ifelse(is.na(`Smoking Status`), "Unknown", `Smoking Status`),
          YWHAZ = ifelse(is.na(YWHAZ), median(YWHAZ, na.rm = T), YWHAZ)) %>%
-  mutate_at(.vars = clin.cols, ~ as.numeric(as.factor(.)))
+  mutate_at(.vars = clin.fac, ~ as.numeric(as.factor(.)))
 
 ```
 
@@ -187,6 +192,8 @@ tox.testmat <- limited.obj %>%
 ```{r}
 disc.res <- inputvar_config_test(disc.trainmat, disc.testmat, disc.trainclin, disc.testclin, "any.discontinuation")
 
+hist(disc.res$rForest.mod$importance)
+
 disc.res$rForest.mod$importance %>%
   as.data.frame() %>%
   arrange(desc(MeanDecreaseGini))%>%
@@ -195,10 +202,11 @@ disc.res$rForest.mod$importance %>%
 disc.res$model.performance %>%
   mutate(x =as.numeric(x),
          y = as.numeric(y)) %>%
-  filter(predicted.var == 0) %>%
+  # arrange(predicted.var, x) %>%
+  filter(predicted.var == 1) %>%
   ggplot(aes(x = x, y = y)) +
   geom_abline(slope = 1, intercept = 0, color = "grey") +
-  geom_path() +
+  geom_line() +
   labs(x = "False Positive Rate", y = "True Positive Rate") +
   theme_bw() +
   theme(axis.text= element_blank(),
@@ -221,7 +229,7 @@ rec.res$model.performance %>%
   filter(predicted.var == 1) %>%
   ggplot(aes(x = x, y = y)) +
   geom_abline(slope = 1, intercept = 0, color = "grey") +
-  geom_path() +
+  geom_line() +
   labs(x = "False Positive Rate", y = "True Positive Rate") +
   theme_bw() +
   theme(axis.text= element_blank(),
@@ -244,9 +252,29 @@ tox.res$model.performance %>%
   filter(predicted.var == 1) %>%
   ggplot(aes(x = x, y = y)) +
   geom_abline(slope = 1, intercept = 0, color = "grey") +
-  geom_path() +
+  geom_line() +
   labs(x = "False Positive Rate", y = "True Positive Rate") +
   theme_bw() +
   theme(axis.text= element_blank(),
         axis.ticks = element_blank())
+```
+
+# Try LASSO
+
+```{r}
+disc.allclin <- bind_rows(disc.trainclin,disc.testclin)
+disc.allmat <- as.matrix(bind_rows(disc.trainmat, disc.testmat))
+```
+
+```{r}
+set.seed(112358)
+cv.lasso <- cv.glmnet(disc.allmat, disc.allclin$any.discontinuation, family = "binomial", alpha = 1)
+
+model <- glmnet(disc.allmat, disc.allclin$any.discontinuation, alpha = 1, family = "binomial",
+                lambda = cv.lasso$lambda.min)
+# Display regression coefficients
+coef(model)
+
+coef(cv.lasso, cv.lasso$lambda.1se)
+
 ```
