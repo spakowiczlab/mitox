@@ -17,14 +17,16 @@ library(tidyr)
 library(ggplot2)
 library(glmm)
 library(glmnet)
+library(tibble)
+library(brms)
 ```
 
 
 # Functions
 
 ```{r}
-inputvar_config_test <- function(trainmat, testmat, trainclin, testclin, topredict){
-  model.training <- randomForest(x = trainmat, y = as.factor(trainclin[[topredict]]))
+inputvar_config_test <- function(trainmat, testmat, trainclin, testclin, topredict, m, n){
+  model.training <- randomForest(x = trainmat, y = as.factor(trainclin[[topredict]]), mtry = m, ntree = n)
   test.preds <- predict(model.training, testmat)
   testpred.mat <- table(observed = testclin[[topredict]], predicted = test.preds)
   
@@ -51,6 +53,46 @@ inputvar_config_test <- function(trainmat, testmat, trainclin, testclin, topredi
   out.dat <- list(model.training, testpred.mat, bind_rows(perf.list))
   names(out.dat) <- c("rForest.mod", "tested.predictions", "model.performance")
   return(out.dat)
+}
+
+check_many_mtry <- function(trainmat, testmat, trainclin, testclin, topredict, mtry.range){
+  
+  auc.res <- list()
+  for(m in mtry.range){
+    model.training <- randomForest(x = trainmat, y = as.factor(trainclin[[topredict]]), mtry = m)
+    test.preds <- predict(model.training, testmat)
+    testpred.mat <- table(observed = testclin[[topredict]], predicted = test.preds)
+    
+    prediction_for_roc_curve <- predict(model.training,testmat,type="prob")
+    true_values = testclin[[topredict]]
+    pred <- prediction(prediction_for_roc_curve[,2],true_values)
+    
+    auc.perf <- performance(pred, measure = "auc")
+    auc.res[[m]] <- auc.perf@y.values[[1]]
+  }
+  
+  return(auc.res)
+  
+}
+
+check_many_ntre <- function(trainmat, testmat, trainclin, testclin, topredict, m, ntree.range){
+    auc.res <- list()
+  for(n in  ntree.range){
+    model.training <- randomForest(x = trainmat, y = as.factor(trainclin[[topredict]]), mtry = m, ntree = n)
+    test.preds <- predict(model.training, testmat)
+    testpred.mat <- table(observed = testclin[[topredict]], predicted = test.preds)
+    
+    prediction_for_roc_curve <- predict(model.training,testmat,type="prob")
+    true_values = testclin[[topredict]]
+    pred <- prediction(prediction_for_roc_curve[,2],true_values)
+    
+    auc.perf <- performance(pred, measure = "auc")
+    
+    index.name <- paste0("ntree.", n)
+    auc.res[[index.name]] <- auc.perf@y.values[[1]]
+  }
+  
+  return(auc.res)
 }
 ```
 
@@ -190,27 +232,49 @@ tox.testmat <- limited.obj %>%
 
 ## Any discontinuation
 ```{r}
-disc.res <- inputvar_config_test(disc.trainmat, disc.testmat, disc.trainclin, disc.testclin, "any.discontinuation")
+
+disc.checkm <- check_many_mtry(disc.trainmat, disc.testmat, disc.trainclin, disc.testclin, "any.discontinuation", 1:10)
+hist(unlist(disc.checkm))
+
+disc.checkn <- check_many_ntre(disc.trainmat, disc.testmat, disc.trainclin, disc.testclin, "any.discontinuation",
+                                 4, c(250,500,750,1000,1250,1500,2000))
+
+disc.res <- inputvar_config_test(disc.trainmat, disc.testmat, disc.trainclin, disc.testclin, "any.discontinuation",
+                                 4,1000)
 
 hist(disc.res$rForest.mod$importance)
 
-disc.res$rForest.mod$importance %>%
+varimp.data <- disc.res$rForest.mod$importance %>%
   as.data.frame() %>%
   arrange(desc(MeanDecreaseGini))%>%
-  head()
+  mutate(x = row_number()) %>%
+  rownames_to_column(var = "marker") %>%
+  filter(x <= 20) 
+  
+varimp.data$factor.mark <- fct_relevel(varimp.data$marker, rev(varimp.data$marker))
+  
+varimp.data %>%
+  ggplot(aes(x = factor.mark, y = MeanDecreaseGini)) +
+  geom_point() +
+  coord_flip() +
+  ylim(c(0,1)) +
+  theme_bw() +
+  labs(x = "") +
+  ggsave("../figures/variable-importance_any-discontinuation.png")
 
 disc.res$model.performance %>%
   mutate(x =as.numeric(x),
          y = as.numeric(y)) %>%
   # arrange(predicted.var, x) %>%
-  filter(predicted.var == 1) %>%
+  filter(predicted.var == 0) %>%
   ggplot(aes(x = x, y = y)) +
   geom_abline(slope = 1, intercept = 0, color = "grey") +
   geom_line() +
   labs(x = "False Positive Rate", y = "True Positive Rate") +
   theme_bw() +
   theme(axis.text= element_blank(),
-        axis.ticks = element_blank()) 
+        axis.ticks = element_blank()) +
+  ggsave("../figures/ROC_any-discontinuation.png")
 ```
 
 ## Recurrences
@@ -277,4 +341,24 @@ coef(model)
 
 coef(cv.lasso, cv.lasso$lambda.1se)
 
+```
+
+# Try Bayesian
+
+```{r}
+limited.obj$any.discontinuation <- therapy.continuance$any.discontinuation
+# for(m in marker.cols){
+#   bayes.form <- as.formula(paste0("any.discontinuation ~ Sex + Age + `Stage (7th edition prior to starting therapy)` + BMI + `Smoking Status` + `Relative Lymphocytes` + `Relative Eosinophils` + `", m, "`"))
+# }
+
+names(limited.obj) <- make.names(names(limited.obj))
+all.markers.form <- as.formula(paste0("any.discontinuation ~ ", paste(make.names(marker.cols), collapse = " + ")))
+
+brm_allmarks <- brm(formula = all.markers.form,
+                    data = limited.obj,
+                    family = bernoulli(link = "logit"),
+                    iter = 5000
+                    )
+
+summary(brm_allmarks)
 ```
