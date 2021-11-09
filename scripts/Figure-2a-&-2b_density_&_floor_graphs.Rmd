@@ -39,7 +39,7 @@ hist(irAE_weeks, breaks = 50, col = "red", xlim = range(0,170))
 
 ```
 
-I plugged in the percentile to view how many weeks will be needed to reach it.  I cotinued to return to this function and change the quantile based on what we decided for sample size.
+I plugged in the percentile to view how many weeks will be needed to reach it.  I continued to return to this function and change the quantile based on what we decided for sample size.
 
 ```{r}
 
@@ -57,8 +57,8 @@ ggplot(df, aes(x = weeks)) +
   geom_density(fill = "blue", alpha = 0.2) +
   theme_bw() +
   geom_vline(aes(xintercept = quantile(weeks, 0.5350)), color= "red", linetype= "dashed") +
-  labs(y = "Density of irAEs observed") +
-ggsave("Fig2A_irAE-density.png", width = 4, height = 3)
+  labs(y = "Density of irAEs observed") 
+ggsave("../figures/Fig2A_irAE-density.png", width = 4, height = 3)
 
 ```
 
@@ -257,7 +257,7 @@ outall %>%
   geom_line(aes(x = ss, y= floor), color= 'gray') +
   geom_line(aes(group = compliance, color = compliance)) +
   theme_bw() +
-  geom_vline(aes(xintercept = 63), color = 'tan')
+  geom_vline(aes(xintercept = 89), color = 'tan')
 ```
 
 Appropriate labels are added to axises.
@@ -289,9 +289,9 @@ outall %>%
   geom_line(aes(x= ss, y= floor), color= 'gray') +
   geom_line(aes(group= compliance, color = compliance)) +
   theme_bw()+
-  geom_vline(aes(xintercept = 63), color= 'tan') +
-  labs(x = "Sample Size", y = "Total Study Duration") +
-  ggsave("Fig2B_sample-size_trial-duration.png", width = 4, height = 3)
+  geom_vline(aes(xintercept = 89), color= 'tan') +
+  labs(x = "Sample Size", y = "Total Study Duration") 
+  ggsave("../figures/Fig2B_sample-size_trial-duration.png", width = 4, height = 3)
   
 ```
 

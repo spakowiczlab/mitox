@@ -68,10 +68,18 @@ mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
 
 months.of.enrollment <- mondf(min(x$`Consent Date`), max(x$`Consent Date`))
 
-nrow(x) / months.of.enrollment
-
+months.of.enrollment
 ```
 
+We have been enrolling pts for `r months.of.enrollment` months.
+
+```{r}
+
+enrolled.per.mo <- nrow(x) / months.of.enrollment
+enrolled.per.mo
+```
+
+That's an average of `r enrolled.per.mo` per month.
 
 # Local Polynomial Model
 
