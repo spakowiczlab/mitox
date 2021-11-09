@@ -30,7 +30,6 @@ runh2o <- function(s,m) {
     eva <- data.frame(seeds = s,
                       max_model = m,
                       auc = r$metrics$metrics[,1])
-    rm(r)
     
     return(eva)
 }
@@ -41,8 +40,10 @@ runh2o <- function(s,m) {
 
 ```{r}
 # Create a table with every combination between s and m
-s <- 1:2
-m <- 1:2
+s <- 12345
+
+m <- 15
+
 var <- expand.grid(s,m) %>%
   rename("s" = "Var1", "m" ="Var2")
 
@@ -55,3 +56,18 @@ for (i in 1:nrow(var)){
 
 ```
 
+```{r}
+r <- h2o_automl(df, 
+                y = toxicity, 
+                max_models = 35, 
+                impute = FALSE, 
+                target = "True",
+                split = 0.7, 
+                seed = 12345, 
+                start_clean = TRUE)
+
+```
+
+```{r}
+saveRDS(r, file = "../data/derived/h2o-model.RDS")
+```
