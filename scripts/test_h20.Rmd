@@ -1,0 +1,45 @@
+---
+title: "Mitox PCA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(lares)
+library(dplyr)
+```
+
+
+
+```{r cars}
+df <- read.csv("C:/Users/Leste/Desktop/mitox_gene.csv") %>%
+  select(-X)
+
+#create a table with every combination between s and m
+s <- 1:2
+m <- 1:2
+var <- expand.grid(s,m) %>%
+  rename("s" = "Var1", "m" ="Var2")
+
+#function of extracting s, m, and AUC from H2O output
+runh2o <- function(s,m) {
+    r <- h2o_automl(df, y = toxicity, max_models = m, impute = FALSE, 
+                    target = "True", split = 0.7, seed = s, start_clean = TRUE)
+    
+    #store input parameters and auc
+    eva <- data.frame(seeds = s,
+                      max_model = m,
+                      auc = r$metrics$metrics[,1])
+    rm(r)
+    
+    return(eva)
+}
+
+# use for loop to run function above with every combination between s and m 
+h2ores <- list()
+for (i in 1:nrow(var)){
+  f <- var[i,]
+  h2ores[[i]] <- do.call(runh2o,f)
+}
+
+```
+
