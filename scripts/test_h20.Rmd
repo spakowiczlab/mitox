@@ -1,0 +1,51 @@
+---
+title: "Mitox PCA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(lares)
+library(dplyr)
+```
+
+
+
+```{r cars}
+df <- read.csv("~/mitox_gene.csv") %>%
+  select(-X)
+
+s <- 1:10
+m <- 1:10
+var <- expand.grid(s,m) %>%
+  rename("s" = "Var1", "m" ="Var2")
+#########################1########################
+runh2o <- function(s,m) {
+    r <- h2o_automl(df, y = toxicity, max_models = m, impute = FALSE, 
+                    target = "True", split = 0.7, seed = s, start_clean = TRUE)
+    
+    #store input parameters and auc
+    eva <- data.frame(seeds = s,
+                      max_model = m,
+                      auc = r$metrics$metrics[,1])
+    rm(r)
+    
+    return(eva)
+}
+h2ores <- list()
+for (i in 1:length(var)){
+  f <- var[i,]
+  h2ores[[i]] <- do.call(runh2o,f)
+}
+
+```
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
