@@ -41,8 +41,14 @@ runh2o <- function(s,m) {
 
 ```{r}
 # Create a table with every combination between s and m
-s <- 1:2
-m <- 1:2
+n.models <- 10
+
+s <- sample(x = 1e6,
+            size = n.models, 
+            replace = FALSE)
+
+m <- seq(1, n.models, by = 1)
+
 var <- expand.grid(s,m) %>%
   rename("s" = "Var1", "m" ="Var2")
 
