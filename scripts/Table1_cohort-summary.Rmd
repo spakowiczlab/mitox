@@ -19,8 +19,9 @@ library(readxl)
 
 # safest to start by selecting only those variables you need e.g. age, gender, treatment, ppi, etc
 
-CoRR <- read_csv("T:/Labs/Spakowicz/ppiio/data/raw/CoRR4684/2021-01-27/CoRR4684ARetrospecti_DATA_2021-01-27_1430.csv", stringsAsFactors = F) %>%
-  select()
+x <- read_csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/deidentified/P841APilotStudyOfThe_DATA_LABELS_2021-11-18_1152.csv")
+
+
 ```
 
 # Format to cleaned
