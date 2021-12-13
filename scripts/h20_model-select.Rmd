@@ -6,6 +6,7 @@ output: html_document
 ```{r setup, include=FALSE}
 library(lares)
 library(dplyr)
+library(h2o)
 ```
 
 

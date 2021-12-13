@@ -1,0 +1,97 @@
+---
+title: "model-exploration"
+author: "Dan Spakowicz"
+date: "12/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(lares)
+library(dplyr)
+library(h2o)
+```
+
+```{r data}
+df <- read.csv("../data/derived/mitox_gene.csv")
+```
+
+```{r}
+h2o.init()
+```
+
+```{r}
+df <- h2o.importFile("../data/derived/mitox_gene.csv")
+```
+
+
+```{r}
+r <- h2o_automl(df, 
+                y = toxicity, 
+                max_models = 35, 
+                impute = FALSE, 
+                target = "True",
+                split = 0.7, 
+                seed = 12345, 
+                start_clean = TRUE)
+
+```
+
+```{r}
+y <- "toxicity"
+x <- setdiff(names(df), y)
+
+r <- h2o.automl(x = x, y = y,
+                training_frame = df, 
+                max_models = 35, 
+                seed = 12345)
+
+```
+
+
+```{r}
+lb <- r@leaderboard
+```
+
+```{r}
+m <- h2o.get_best_model(r)
+```
+
+```{r}
+exp <- h2o.explain(r, df)
+```
+
+```{r}
+library(h2o)
+
+h2o.init()
+
+# Import wine quality dataset
+f <- "../data/derived/mitox_gene.csv"
+df <- h2o.importFile(f)
+
+# Response column
+y <- "toxicity"
+
+# Split into train & test
+splits <- h2o.splitFrame(df, ratios = 0.8, seed = 1)
+train <- splits[[1]]
+test <- splits[[2]]
+
+# Run AutoML for 1 minute
+aml <- h2o.automl(y = y, training_frame = train,  max_models = 35, seed = 1234)
+
+# Explain leader model & compare with all AutoML models
+exa <- h2o.explain(aml, test)
+exa
+
+# Explain a single H2O model (e.g. leader model from AutoML)
+exm <- h2o.explain(aml@leader, test)
+exm
+```
+
+```{r}
+h2o.shutdown()
+```
+
