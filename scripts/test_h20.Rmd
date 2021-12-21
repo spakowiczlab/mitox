@@ -1,0 +1,63 @@
+---
+title: "Mitox PCA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(lares)
+library(dplyr)
+```
+
+
+# Read in data
+
+```{r data}
+df <- read.csv("../data/derived/mitox_gene.csv") %>%
+  select(-X)
+```
+
+# Create function
+
+```{r}
+
+# Function to run H20 given a seed and max number of models
+# Output is the AUROC value
+runh2o <- function(s,m) {
+    r <- h2o_automl(df, y = toxicity, max_models = m, impute = FALSE, 
+                    target = "True", split = 0.7, seed = s, start_clean = TRUE)
+    
+    #store input parameters and auc
+    eva <- data.frame(seeds = s,
+                      max_model = m,
+                      auc = r$metrics$metrics[,1])
+    rm(r)
+    
+    return(eva)
+}
+
+```
+
+
+
+```{r}
+# Create a table with every combination between s and m
+n.models <- 10
+
+s <- sample(x = 1e6,
+            size = n.models, 
+            replace = FALSE)
+
+m <- seq(1, n.models, by = 1)
+
+var <- expand.grid(s,m) %>%
+  rename("s" = "Var1", "m" ="Var2")
+
+# use for loop to run function above with every combination between s and m 
+h2ores <- list()
+for (i in 1:nrow(var)){
+  f <- var[i,]
+  h2ores[[i]] <- do.call(runh2o,f)
+}
+
+```
+

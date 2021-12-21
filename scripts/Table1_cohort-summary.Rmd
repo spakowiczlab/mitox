@@ -1,0 +1,75 @@
+---
+title: "table_one"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tableone)
+library(readxl)
+```
+
+
+# load data
+## This is a level 2 header 
+
+```{r data}
+
+#[[[[these contain PHI -- no output to console that shows MRNS or dates, particularly if you're going to knit the Rmd]]]]
+
+# safest to start by selecting only those variables you need e.g. age, gender, treatment, ppi, etc
+
+x <- read_csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/deidentified/P841APilotStudyOfThe_DATA_LABELS_2021-11-18_1152.csv")
+
+
+```
+
+# Format to cleaned
+
+```{r}
+
+# ppi_corr <- CoRR %>%
+#   rename("MRN"="record_id") %>%
+#   mutate(vitalstatus = ifelse(vitalstatus == 1, 1, 0))%>%
+#   mutate(deathdate = ifelse(deathdate == "", NA, deathdate),
+#          lastcontact = ifelse(lastcontact == "", NA, lastcontact)) %>%
+#   mutate(date = coalesce(deathdate, lastcontact),
+#          date = as.Date(date),
+#          iostart = as.Date(iostart),
+#          dob = as.Date(dob))%>%
+#   mutate(age=as.numeric(as.character(floor((date-dob)/365))))%>%
+#   filter(!is.na(iostart))%>%
+#   mutate(follow_up = as.numeric(as.character(date- iostart)))%>%
+#   filter(immunotherapy != 11)
+#   mutate(`ECOG PS` = fct_relevel(ifelse(ecog > 2, ">2", ecog), "0","1","2",">2"),
+#          Staging  = ifelse(staging == 5, "Unknown", staging),
+#          BMI = bmi,
+#          Age = age,
+#          follow_up_time=follow_up,
+#          # Cancer = cancer.name, 
+#          # CCI = ifelse(comorb.score <= 1, "0-1", ">2"),
+#          Sex = sex,
+#          Therapy = ifelse(line_of_therapy == 1,"1",">1"),
+#          Chemo_prior = chemo_prior)
+```
+
+# Create Table 1
+
+```{r}
+# listVars <- c("Age", "Sex", "vitalstatus","ECOG PS","Cancer", "Staging", "Immunotherapy","Chemo_prior","follow_up_time")
+# catVars <- c("Sex", "Cancer", "vitalstatus","Immunotherapy", "ECOG PS","Staging")
+# table1 <- CreateTableOne(vars = listVars,
+#                          data = coxdf,
+#                          factorVars = catVars,
+#                          strata = c("ppi","Therapy"))
+# tbl1.ppi.therapy <- print(table1, nonnormal = "follow_up_time")
+
+```
+
+# Write table to files.
+```{r write}
+# write.csv(tbl1.ppi.therapy, "../tables/table1_ppi-lotherapy.csv")
+```
+
+
+

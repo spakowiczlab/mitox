@@ -53,6 +53,34 @@ xm %>%
   labs(y = "Number Consented")
 ```
 
+# Number of patients per month
+
+```{r}
+max(x$`Consent Date`) - min(x$`Consent Date`)
+
+
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"))
+                          lt$year*12 + lt$mon } 
+
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+# take it for a spin
+
+months.of.enrollment <- mondf(min(x$`Consent Date`), max(x$`Consent Date`))
+
+months.of.enrollment
+```
+
+We have been enrolling pts for `r months.of.enrollment` months.
+
+```{r}
+
+enrolled.per.mo <- nrow(x) / months.of.enrollment
+enrolled.per.mo
+```
+
+That's an average of `r enrolled.per.mo` per month.
+
 # Local Polynomial Model
 
 ```{r}
