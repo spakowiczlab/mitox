@@ -1,0 +1,152 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(stats)
+library(ggfortify)
+library(M3C)
+library(umap)
+library(gridExtra)
+```
+
+```{r cars}
+mitox_raw <- read_excel("T:/Labs/Spakowicz/mitox/data/clinical/raw/Adjuvant Endpoint data for Lianbo.xlsx",
+                               sheet = "Treatment duration") %>%
+  rename("CDKN2A_ARF" = "CDKN2A (ARF)", "CDKN2A_p16" = "CDKN2A (p16)")
+colnames(mitox_raw) <- gsub("-","_",colnames(mitox_raw)) 
+```
+
+## PCA
+```{r pressure, echo=FALSE}
+
+##########some discontinuation says "Paient preference" x5. How to categorize it?################
+########## "Treatment Complete" in the any.discontinuation? ##############
+mitox_new<- mitox_raw %>%
+  mutate(YWHAZ = ifelse(is.na(YWHAZ), median(YWHAZ, na.rm = T), YWHAZ),
+         any.discontinuation = ifelse(`Reason for discontinuation` == "Completed therapy" | `Reason for discontinuation` == "Treatment Complete", 0, 1),
+         recurrences = ifelse(`Reason for discontinuation` == "Completed therapy", 0, 
+                              ifelse(`Reason for discontinuation` == "Recurrence", 1, NA)),
+         toxicity = ifelse(`Reason for discontinuation` == "Completed therapy", 0, 
+                              ifelse(`Reason for discontinuation` == "Toxicity" | `Reason for discontinuation` == "Toxixity",
+                                     1, NA)))
+gene.cols <- colnames(mitox_raw[26:104])
+
+mitox_pca <- prcomp(select(mitox_new, gene.cols),center = TRUE,scale. = TRUE)
+mitox_plot <- mitox_new %>%
+  cbind(mitox_pca$x[,1:2])
+
+dis <- ggplot(mitox_plot)+
+  geom_point(aes(x=PC1, y = PC2, color = as.factor(any.discontinuation)))+
+  labs(color = "discontinuation")+
+  ggtitle("Mitox PCA")
+
+rec <- ggplot(mitox_plot)+
+  geom_point(aes(x=PC1, y = PC2, color = as.factor(recurrences)))+
+  labs(color = "recurrences")
+
+tox <- ggplot(mitox_plot)+
+  geom_point(aes(x=PC1, y = PC2, color = as.factor(toxicity)))+
+  labs(color = "toxicity")
+gridExtra::grid.arrange(dis,rec,tox, nrow = 3 )
+```
+
+## tSNE
+```{r}
+mitox_tsne <- tsne(data.frame(t(select(mitox_new, gene.cols))))
+tsne_plot <- mitox_new %>%
+  cbind(mitox_tsne$data)
+
+a <- ggplot(tsne_plot)+
+  geom_point(aes(x=X1, y = X2, color = as.factor(any.discontinuation)))+
+  ggtitle("Mitox tSNE")
+
+b <- ggplot(tsne_plot)+
+  geom_point(aes(x=X1, y = X2, color = as.factor(recurrences)))
+
+c <- ggplot(tsne_plot)+
+  geom_point(aes(x=X1, y = X2, color = as.factor(toxicity)))
+gridExtra::grid.arrange(a,b,c, nrow = 3 )
+```
+
+
+##univariate
+```{r}
+uni_dis <-lapply(gene.cols, function(var) {
+           formula <- as.formula(paste("any.discontinuation ~", var))
+           glm(formula, data = mitox_plot, family = binomial)
+       })
+names(uni_dis) <- gene.cols
+p_dis <- t(sapply(gene.cols, function(var) coef(summary(uni_dis[[var]]))[2,3:4])) %>%
+  data.frame() %>%
+  arrange(Pr...z..)
+top_gene_dis <- row.names(p_dis[1:5,])
+
+
+uni_rec <-lapply(gene.cols, function(var) {
+           formula <- as.formula(paste("recurrences ~", var))
+           temp <- mitox_plot %>% filter(!is.na(recurrences))
+           glm.rec <- glm(formula, data = temp, family = binomial)
+       })
+names(uni_rec) <- gene.cols
+p_rec <- t(sapply(gene.cols, function(var) coef(summary(uni_rec[[var]]))[2,3:4])) %>%
+  data.frame() %>%
+  arrange(Pr...z..)
+top_gene_rec <- row.names(p_rec[1:5,])
+
+uni_tox <-lapply(gene.cols, function(var) {
+           formula <- as.formula(paste("toxicity ~", var))
+           temp <- mitox_plot %>% filter(!is.na(toxicity))
+           glm.tox<- glm(formula, data = temp, family = binomial)
+       })
+names(uni_tox) <- gene.cols
+p_tox <- t(sapply(gene.cols, function(var) coef(summary(uni_tox[[var]]))[2,3:4])) %>%
+  data.frame() %>%
+  arrange(Pr...z..)
+top_gene_tox <- row.names(p_tox[1:5,])
+
+############################## New PCA #######################################
+
+dis_new <- prcomp(select(mitox_new, c(top_gene_dis)),center = TRUE,scale. = TRUE)
+dis_pca <- mitox_new %>%
+  cbind(dis_new$x[,1:2])
+
+A <- ggplot(dis_pca)+
+  geom_point(aes(x=PC1, y = PC2, color = as.factor(any.discontinuation)))+
+  labs(color = "discontinuation")+
+  ggtitle("Mitox PCA (processed)")
+
+
+rec_new <- prcomp(select(mitox_new, c(top_gene_rec)),center = TRUE,scale. = TRUE)
+rec_pca <- mitox_new %>%
+  cbind(rec_new$x[,1:2])
+  # filter(!is.na(recurrences))
+
+B <- ggplot(rec_pca)+
+  geom_point(aes(x=PC1, y = PC2, color = as.factor(recurrences)))+
+  labs(color = "recurrences")
+
+
+
+tox_new <- prcomp(select(mitox_new, c(top_gene_tox)),center = TRUE,scale. = TRUE)
+tox_pca <- mitox_new %>%
+  cbind(tox_new$x[,1:2])
+  # filter(!is.na(toxicity))
+
+C <- ggplot(tox_pca)+ 
+  geom_point(aes(x=PC1, y = PC2, color = as.factor(toxicity)))+
+  labs(color = "toxicity")
+gridExtra::grid.arrange(dis,rec,tox, nrow = 3 )
+
+```
+##ROC 
+```{r}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
