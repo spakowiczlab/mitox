@@ -21,6 +21,11 @@ library(ggplot2)
 readcounts <- read_excel("/fs/ess/PAS1695/projects/mitox/data/One Codex Results (2021-12-21 15_28).xlsx")
 mpa <- read.csv("/fs/ess/PAS1695/projects/mitox/data/mpa_aggregated_long.csv",
                 stringsAsFactors = F)
+
+sample.translate <- read.csv("/fs/ess/PAS1695/projects/mitox/data/One Codex Sample Sheet.csv") %>%
+  mutate(sampleID = Name,
+         fastqID = External.Sample.ID) %>%
+  select(sampleID, fastqID)
 ```
 
 # Check read counts
@@ -31,8 +36,21 @@ names(allreads) <- readcounts[3, 3:32]
 
 t(allreads) %>%
   as.data.frame() %>%
-  mutate(V1 = as.numeric(V1)) %>%
+  rownames_to_column(var = "sampleID") %>%
+  mutate(readCounts = as.numeric(V1),
+         ) %>%
   filter(V1 < 500000)
+
+readcntQC <- readcounts %>%
+  select(-`All Samples`) %>%
+  column_to_rownames(var = "Name") %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(sampleID = `Sample Name`,
+         readCounts = as.numeric(`Total Reads`),
+         mappedReads = `Mapped Reads`,
+         readsGrt500k = readCounts > 500000) %>%
+  select(sampleID, readCounts, mappedReads, readsGrt500k)
 ```
 
 # Check pca
@@ -68,8 +86,8 @@ QC_PCA_pruning <- function(prcomp.obj){
   # Grab necessary info from prcomp
   tmp <- prcomp.obj$x %>%
     as.data.frame() %>%
-    rownames_to_column(var = "sample") %>%
-    select(sample, PC1, PC2)
+    rownames_to_column(var = "sampleID") %>%
+    select(sampleID, PC1, PC2)
   
   # Find most dense point
   kdensity<- MASS::kde2d(x = tmp$PC1, y = tmp$PC2)
@@ -81,30 +99,32 @@ QC_PCA_pruning <- function(prcomp.obj){
   tmp2 <- tmp %>%
     mutate(xdist = (maxx - PC1)^2,
            ydist = (maxy - PC2)^2,
-           dist = sqrt(xdist + ydist))
+           distFromHighestDensity = sqrt(xdist + ydist))
 
-  hist(tmp2$dist)
-  boxplot(tmp2$dist)
+  hist(tmp2$distFromHighestDensity)
+  boxplot(tmp2$distFromHighestDensity)
   
   # Get IQR and use to determine QC pass/fail
-  distsum <- summary(tmp2$dist)
+  distsum <- summary(tmp2$distFromHighestDensity)
   IQR <- (distsum[5] - distsum[2]) * 1.5
   min.dist = distsum[2] - IQR
   max.dist = distsum[5] + IQR
   
   tmp3 <- tmp2 %>%
-    mutate(QCpass = ifelse(dist >= min.dist & dist <= max.dist, T,F)) %>%
-    select(sample, QCpass)
+    mutate(PCAoutlier = ifelse(distFromHighestDensity >= min.dist & 
+                             distFromHighestDensity <= max.dist, F,T)) %>%
+    select(sampleID, PC1, PC2, distFromHighestDensity, PCAoutlier)
   
   return(tmp3)
 }
 ```
 
 ```{r}
-test <- QC_PCA_pruning(pca.out)
+PCA.QC <- QC_PCA_pruning(pca.out) %>%
+  rename(fastqID = sampleID)
 
 
-table(test$QCpass)
+table(PCA.QC$PCAoutlier)
 ```
 
 ```{r}
@@ -122,6 +142,28 @@ ggplot(tmp2, aes(x = PC1, y = PC2)) +
   ggsave("../figures/test_QC-with-density.png")
 
 test <- MASS::kde2d(tmp2$PC1, tmp2$PC2)
+```
+
+# QC output table
+
+```{r}
+qc.tab <- sample.translate %>%
+  left_join(readcntQC) %>%
+  left_join(PCA.QC) %>%
+  mutate(QCpass = ifelse(PCAoutlier == F & readsGrt500k == T, T, F)) %>%
+  arrange(desc(distFromHighestDensity))
+
+write.csv(qc.tab, "../data/QC_microbiome.csv", row.names = F) 
+```
+
+# Wait, does our sample size match? 
+
+It does not match.
+```{r}
+length(readcntQC$sampleID)
+length(sample.translate$sampleID)
+
+nrow(pca.in)
 ```
 
 
