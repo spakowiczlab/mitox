@@ -138,3 +138,10 @@ AE.mods.res %>%
   head()
 ```
 
+```{r}
+mods.for.save <- AE.mods.res %>%
+  filter(term != "(Intercept)")
+
+write.csv(mods.for.save, "../data/modelling_AE-with-mics_baseline.csv", row.names = F)
+```
+
