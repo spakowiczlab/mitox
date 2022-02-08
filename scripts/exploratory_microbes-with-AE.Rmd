@@ -26,7 +26,7 @@ AEassign <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/2022-
 redcap <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-02-08/P841APilotStudyOfThe_DATA_2022-02-08_0749.csv",
                     stringsAsFactors = F)
 
-sampdat <- read_excel(file.path(paths$box, "data", "Mitox Sample List.xlsx"), col_types = c("text", "date", "skip", "skip", "skip", "skip"))
+# sampdat <- read_excel(file.path(paths$box, "data", "Mitox Sample List.xlsx"), col_types = c("text", "date", "skip", "skip", "skip", "skip"))
 OCtrans <- read_excel(file.path(paths$box, "data", "onecodex", "mitox_One Codex Sample Registration (Autosaved).xlsx"))
 ```
 
@@ -57,14 +57,14 @@ OCtrans.form <- OCtrans %>%
          sample = `Barcode ID`) %>%
   select(sample, Name)
 
-grabbaselin <- sampdat %>%
-  filter(!is.na(`Baseline Sample`)) %>%
-  mutate(patient_id = `Record ID`,
-         date = as.character(`Baseline Sample`)) %>%
-  separate(date, into = c("year", "month", "day")) %>%
-  mutate(year = str_sub(year, 3,4),
-         Name = paste0(patient_id, "_", year,month,day)) %>%
-  left_join(OCtrans.form)
+# grabbaselin <- sampdat %>%
+#   filter(!is.na(`Baseline Sample`)) %>%
+#   mutate(patient_id = `Record ID`,
+#          date = as.character(`Baseline Sample`)) %>%
+#   separate(date, into = c("year", "month", "day")) %>%
+#   mutate(year = str_sub(year, 3,4),
+#          Name = paste0(patient_id, "_", year,month,day)) %>%
+#   left_join(OCtrans.form)
 
 
 OCtrans.mindate <- OCtrans.form %>%
@@ -84,16 +84,19 @@ basesamps.with.ae <- redcap %>%
   mutate(mrn = as.numeric(mrn)) %>%
   left_join(AEassign.sum) %>%
   left_join(OCtrans.mindate) %>%
-  filter(!is.na(sample))
+  filter(!is.na(sample)) %>%
+  mutate(any.yes = ifelse(is.na(any.yes), "no", any.yes))
   
 ```
 
 ```{r check sample sizes}
 basesamps.with.ae %>%
-  # filter(Confirmed == "yes") %>%
   filter(!is.na(any.yes)) %>%
   group_by(any.yes) %>%
   tally()
+
+write.csv(basesamps.with.ae, "T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv",
+          row.names = F)
 ```
 
 ```{r combine with microbes for model input}
@@ -143,5 +146,25 @@ mods.for.save <- AE.mods.res %>%
   filter(term != "(Intercept)")
 
 write.csv(mods.for.save, "../data/modelling_AE-with-mics_baseline.csv", row.names = F)
+```
+
+# Testing other MRN labels
+
+```{r}
+patdir <- "T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/"
+
+raw.ae.files <- list.files(patdir, pattern = "Mitoxstudy", full.names = T)
+testnames <- lapply(raw.ae.files, function(x) read_excel(x) %>% select(c("Patient Name", "MRN"))) %>%
+  bind_rows() %>%
+  filter(!is.na(MRN))
+
+testinit <- testnames %>%
+  mutate(patname = gsub(" \\w\\.", "", `Patient Name`)
+         # patnane = gsub(" \\w+\\.", "", patname)
+  )
+
+rednames <- paste(redcap$fname, redcap$lname)
+
+testinit$patname %in% rednames
 ```
 
