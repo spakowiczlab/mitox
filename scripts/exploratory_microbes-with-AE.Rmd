@@ -23,7 +23,7 @@ source("00-paths.R")
 mics <- read.csv("../data/2022-02-01_mpa_aggregated_long.csv", stringsAsFactors = F)
 
 AEassign <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/2022-02-07_ae-labels.xlsx")
-redcap <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-01-28/P841APilotStudyOfThe_DATA_2022-01-28_1246.csv",
+redcap <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-02-08/P841APilotStudyOfThe_DATA_2022-02-08_0749.csv",
                     stringsAsFactors = F)
 
 sampdat <- read_excel(file.path(paths$box, "data", "Mitox Sample List.xlsx"), col_types = c("text", "date", "skip", "skip", "skip", "skip"))
