@@ -1,0 +1,140 @@
+---
+title: "AE modelling"
+author: "Rebecca Hoyd"
+date: "2/7/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(glmm)
+library(broom)
+library(rlist)
+
+source("00-paths.R")
+```
+
+# Load data
+
+```{r}
+mics <- read.csv("../data/2022-02-01_mpa_aggregated_long.csv", stringsAsFactors = F)
+
+AEassign <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/2022-02-07_ae-labels.xlsx")
+redcap <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-01-28/P841APilotStudyOfThe_DATA_2022-01-28_1246.csv",
+                    stringsAsFactors = F)
+
+sampdat <- read_excel(file.path(paths$box, "data", "Mitox Sample List.xlsx"), col_types = c("text", "date", "skip", "skip", "skip", "skip"))
+OCtrans <- read_excel(file.path(paths$box, "data", "onecodex", "mitox_One Codex Sample Registration (Autosaved).xlsx"))
+```
+
+# Format
+
+```{r check sample size for confirmed}
+AEassign.patfill <- AEassign
+ae.row <- nrow(AEassign.patfill)
+
+for(i in 1:ae.row){
+  if(is.na(AEassign.patfill$mrn[i])){
+    AEassign.patfill$mrn[i] <- AEassign.patfill$mrn[i-1]
+  }
+}
+
+AEassign.sum <- AEassign.patfill %>%
+  mutate(Confirmed = ifelse(grepl("yes", Confirmed, ignore.case = T), "yes", "no")) %>%
+  group_by(mrn, Confirmed) %>%
+  mutate(any.yes = ifelse(any(grepl("yes", ae, ignore.case = T)), "yes", "no")) %>%
+  select(-ae) %>%
+  distinct() %>%
+  filter(!(mrn == 981742338 & Confirmed == "no"))
+```
+
+```{r ID manipulation and matching}
+OCtrans.form <- OCtrans %>%
+  mutate(Name = gsub("\\..*", "", Name),
+         sample = `Barcode ID`) %>%
+  select(sample, Name)
+
+grabbaselin <- sampdat %>%
+  filter(!is.na(`Baseline Sample`)) %>%
+  mutate(patient_id = `Record ID`,
+         date = as.character(`Baseline Sample`)) %>%
+  separate(date, into = c("year", "month", "day")) %>%
+  mutate(year = str_sub(year, 3,4),
+         Name = paste0(patient_id, "_", year,month,day)) %>%
+  left_join(OCtrans.form)
+
+
+OCtrans.mindate <- OCtrans.form %>%
+  separate(Name, into = c("patient_id", "squishdate")) %>%
+  mutate(date = paste0("20", str_sub(squishdate, 1,2), "/",
+                       str_sub(squishdate, 3,4), "/", str_sub(squishdate, 5,6)),
+         date = as.Date(date)) %>%
+  filter(!is.na(date)) %>%
+  group_by(patient_id) %>%
+  mutate(min.date = min(date)) %>%
+  ungroup() %>%
+  filter(date == min.date) %>%
+  select(patient_id, sample, date)
+
+basesamps.with.ae <- redcap %>%
+  select(patient_id, mrn) %>%
+  mutate(mrn = as.numeric(mrn)) %>%
+  left_join(AEassign.sum) %>%
+  left_join(OCtrans.mindate) %>%
+  filter(!is.na(sample))
+  
+```
+
+```{r check sample sizes}
+basesamps.with.ae %>%
+  # filter(Confirmed == "yes") %>%
+  filter(!is.na(any.yes)) %>%
+  group_by(any.yes) %>%
+  tally()
+```
+
+```{r combine with microbes for model input}
+mics.w <- mics %>%
+  select(sample, RelAbun, Taxonomy) %>%
+  mutate(Taxonomy = make.names(Taxonomy)) %>%
+  spread(key = Taxonomy, value = RelAbun, fill = 0)
+
+modelin <- basesamps.with.ae %>%
+  filter(!is.na(any.yes)) %>%
+  select(sample, any.yes) %>%
+  mutate(AE = ifelse(any.yes == "yes", 1, 0)) %>%
+  left_join(mics.w)
+```
+
+# Modeling
+
+```{r}
+capture.models.univ <- function(outcome, lfun){
+  mods.list <- lapply(microbes, function(x) try({glm(as.formula(paste0(outcome, " ~ `", x, "`")), 
+                                                     family = lfun, data = modelin) %>%
+                        tidy()})
+                      )
+                      
+  mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
+  mods.df <- bind_rows(mods.list.clean)
+  return(mods.df)
+}
+```
+
+```{r}
+microbes <- colnames(mics.w[,-1])
+
+AE.mods.res <- capture.models.univ("AE", "binomial")
+```
+# Results
+
+```{r}
+AE.mods.res %>%
+  arrange(p.value) %>%
+  filter(term != "(Intercept)") %>%
+  head()
+```
+
