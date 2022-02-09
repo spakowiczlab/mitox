@@ -1,0 +1,44 @@
+---
+title: "quick table 1 for AE"
+author: "Rebecca Hoyd"
+date: "2/9/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(tableone)
+```
+
+# Load data
+
+```{r}
+demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx")
+ae.stat <- read.csv("T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv")
+```
+
+# Format
+
+```{r}
+table.input <- ae.stat %>%
+  select(patient_id, any.yes) %>%
+  mutate(`Patient Id` = patient_id,
+         AE = ifelse(any.yes == "yes", "AE", "no AE")) %>%
+  left_join(demo.dat) %>%
+  mutate(Sex = ifelse(Sex == 'F', 1, 0),
+         Metastatic = ifelse(Stage == 4, 1,0))
+```
+```{r}
+listVars <- c('Sex', 'Age', 'Metastatic', 'Treatment')
+```
+
+```{r}
+CreateTableOne(vars = listVars, strata = 'AE', data = table.input)
+```
+
+
+
+
