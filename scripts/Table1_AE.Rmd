@@ -29,7 +29,10 @@ table.input <- ae.stat %>%
          AE = ifelse(any.yes == "yes", "AE", "no AE")) %>%
   left_join(demo.dat) %>%
   mutate(Sex = ifelse(Sex == 'F', 1, 0),
-         Metastatic = ifelse(Stage == 4, 1,0))
+         Metastatic = ifelse(Stage == 4, 1,0)) %>%
+  select(patient_id, AE, Sex, Metastatic, Treatment, Age) %>%
+  filter(!(patient_id == 'M005' & AE == "no AE")) %>%
+  distinct()
 ```
 ```{r}
 listVars <- c('Sex', 'Age', 'Metastatic', 'Treatment')
