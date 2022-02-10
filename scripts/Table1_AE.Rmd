@@ -31,7 +31,7 @@ table.input <- ae.stat %>%
   mutate(Sex = ifelse(Sex == 'F', 1, 0),
          Metastatic = ifelse(Stage == 4, 1,0)) %>%
   select(patient_id, AE, Sex, Metastatic, Treatment, Age) %>%
-  filter(!(patient_id == 'M005' & AE == "no AE")) %>%
+  filter(!((patient_id == 'M005' | patient_id == "M042" | patient_id == "M056") & AE == "no AE")) %>%
   distinct()
 ```
 ```{r}

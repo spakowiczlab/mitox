@@ -85,7 +85,8 @@ basesamps.with.ae <- redcap %>%
   left_join(AEassign.sum) %>%
   left_join(OCtrans.mindate) %>%
   filter(!is.na(sample)) %>%
-  mutate(any.yes = ifelse(is.na(any.yes), "no", any.yes))
+  mutate(any.yes = ifelse(is.na(any.yes), "no", any.yes)) %>%
+  filter(!((patient_id == 'M005' | patient_id == "M042" | patient_id == "M056") & any.yes == "no"))
   
 ```
 
@@ -107,9 +108,11 @@ mics.w <- mics %>%
 
 modelin <- basesamps.with.ae %>%
   filter(!is.na(any.yes)) %>%
+  filter(!(patient_id == "M029" & is.na(Confirmed))) %>%
   select(sample, any.yes) %>%
   mutate(AE = ifelse(any.yes == "yes", 1, 0)) %>%
-  left_join(mics.w)
+  left_join(mics.w) %>%
+  distinct()
 ```
 
 # Modeling
