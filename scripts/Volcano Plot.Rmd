@@ -1,0 +1,21 @@
+---
+title: "Volcano Plot"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+```{r}
+```
+
+
+```{r}
+DF <-read.csv("/Users/mari/Desktop/mitox/data/modelling_AE-with-mics_baseline.csv")
+```
+
+```{r}
+ggplot(data=DF,aes(x=estimate, y=-log(p.value))) + geom_point()
+```
+
