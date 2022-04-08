@@ -1,25 +1,44 @@
 ---
 title: "Volcano Plot"
 output: html_document
+author: Mari Lynn (Caroline Wheeler)
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 library(ggplot2)
 library(tidyverse)
-```
-```{r}
+library(ggrepel)
 ```
 
 ```{r}
-DF <-read.csv("/Users/mari/Desktop/mitox/data/modelling_AE-with-mics_baseline.csv")
+#DF <- read.csv("/Users/mari/Desktop/mitox/data/modelling_AE-with-mics_baseline.csv")
+DF <- read.csv("../data/modelling_AE-with-mics_baseline.csv")
 ```
+
+# check adjusted p-value
+# decide to use normal p-value since adjusted are all equal to 1
+```{r}
+p <- DF$p.value
+p.adjust(p, method = "bonferroni")
+```
+
+# log estimate value to handle outliers
 ```{r}
 DF <-DF %>%
-  mutate(new.estimate=ifelse(estimate>0,log(estimate),log(abs(estimate))*-1))
+  mutate(new.estimate = ifelse(estimate > 0, log(estimate), log(abs(estimate))*-1))
 ```
 
+# Create label
 ```{r}
-ggplot(data=DF,aes(x=new.estimate, y=-log10(p.value))) + geom_point()+theme_bw()+labs(x="log(estimate"))
+# filter labels to p.value < 0.06
+DF <- DF %>%
+  mutate(taxa = ifelse(p.value < 0.1 & (new.estimate < -1.5 | new.estimate > 1.5), sub("^.+\\.", "", term), NA))
 ```
 
+# plot
+```{r}
+ggplot(data = DF, aes(x = new.estimate, y = -log10(p.value), label=taxa)) + geom_point() + theme_bw() + labs(x="log(estimate)") + geom_text() + geom_text_repel()
+```
+ 
