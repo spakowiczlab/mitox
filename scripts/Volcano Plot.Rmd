@@ -63,5 +63,7 @@ ggplot(data = DF, aes(x = new.estimate, y = -log10(p.value), label=taxa)) +
   labs(x="log(estimate)") + 
   geom_text_repel() +
   geom_point(data = DF_color, aes(x = new.estimate, y = -log10(p.value), label=taxa, color=`Taxonmic Level`))
+ggsave("../figures/mitoxvolcanoplot.png",device = "png",height=5,width = 7,dpi=400)
+
 ```
  
