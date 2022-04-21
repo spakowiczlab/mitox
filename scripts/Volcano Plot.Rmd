@@ -36,9 +36,22 @@ DF <-DF %>%
 DF <- DF %>%
   mutate(taxa = ifelse(p.value < 0.1 & (new.estimate < -1.5 | new.estimate > 1.5), sub("^.+\\.", "", term), NA))
 ```
+```{r}
+DF_color <- DF %>%
+  filter(!is.na(taxa))%>%
+  mutate(level = substr(taxa, 1,1),
+         color = ifelse(level == "k", "Kingdom", 
+                        ifelse(level == "p", "Phylum",
+                               ifelse(level == "c", "Class", 
+                                      ifelse(level == "o", "Order",
+                                             ifelse(level == "f", "Family",
+                                                    ifelse(level == "g", "Genus",
+                                                           ifelse(level == "s", "Species",
+                                                                  level))))))))
+```
 
 # plot
 ```{r}
-ggplot(data = DF, aes(x = new.estimate, y = -log10(p.value), label=taxa)) + geom_point() + theme_bw() + labs(x="log(estimate)") + geom_text() + geom_text_repel()
+ggplot(data = DF, aes(x = new.estimate, y = -log10(p.value), label=taxa)) + geom_point(color="honeydew4") + theme_bw() + labs(x="log(estimate)") + geom_text() + geom_text_repel()+geom_point(data=DF_color,aes(x=new.estimate, y = -log10(p.value)),color=color)
 ```
  
