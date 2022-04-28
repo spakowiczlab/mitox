@@ -67,4 +67,51 @@ geom_vline(xintercept=c(-1.5, 1.5), linetype="dotted") +
 geom_hline(yintercept=0.99, linetype="dotted")
 ggsave("../figures/mitoxvolcanoplot.png",device = "png",height=5,width = 7,dpi=400)
 ```
+
+```{r}
+DF <-DF %>%
+  mutate(new.estimate = ifelse(estimate > 0, log(estimate), log(abs(estimate))*-1))
+```
+
+# Create label
+```{r}
+# filter labels to p.value < 0.06
+DF <- DF %>%
+  mutate(taxa.est = ifelse(p.value < 0.1 & (estimate < -0.15 | estimate > 0.15), sub("^.+\\.", "", term), NA))
+```
+
+```{r}
+DF <- DF %>%
+  mutate(level.est = substr(taxa.est, 1,1),
+         'Taxonmic Level' = ifelse(level.est == "k", "Kingdom", 
+                        ifelse(level.est == "p", "Phylum",
+                               ifelse(level.est == "c", "Class", 
+                                      ifelse(level.est == "o", "Order",
+                                             ifelse(level.est == "f", "Family",
+                                                    ifelse(level.est == "g", "Genus",
+                                                           ifelse(level.est == "s", "Species",
+                                                                  level.est))))))))
+```
+
+```{r}
+DF_color <- DF %>% filter(!is.na(level.est))
+```
+
+
+# plot
+```{r}
+ggplot(data = DF, aes(x = estimate, y = -log10(p.value), label=taxa.est)) + 
+  geom_point(color="honeydew4") + 
+  theme_bw() + 
+  labs(x="Effect Size") + 
+  geom_text_repel() +
+  geom_point(data = DF_color, aes(x = estimate, y = -log10(p.value), label=taxa.est, color=`Taxonmic Level`))+
+geom_vline(xintercept=c(-0.15, 0.15), linetype="dotted") +
+geom_hline(yintercept=1, linetype="dotted") +
+  xlim(-2.5, 2.5)
+ggsave("../figures/mitox_volcanoplot_estimate.png",
+       height = 5,
+       width = 6,
+       dpi=400)
+```
  
