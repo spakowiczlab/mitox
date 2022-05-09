@@ -24,60 +24,61 @@ p <- DF$p.value
 p.adjust(p, method = "bonferroni")
 ```
 
-# log estimate value to handle outliers
-```{r}
-DF <-DF %>%
-  mutate(new.estimate = ifelse(estimate > 0, log(estimate), log(abs(estimate))*-1))
-```
+<!-- # log estimate value to handle outliers -->
+<!-- ```{r} -->
+<!-- DF <-DF %>% -->
+<!--   mutate(new.estimate = ifelse(estimate > 0, log(estimate), log(abs(estimate))*-1)) -->
+<!-- ``` -->
+
+<!-- # Create label -->
+<!-- ```{r} -->
+<!-- # filter labels to p.value < 0.1 -->
+<!-- DF <- DF %>% -->
+<!--   mutate(taxa = ifelse(p.value < 0.1 & (new.estimate < -1.5 | new.estimate > 1.5), sub("^.+\\.", "", term), NA)) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- DF <- DF %>% -->
+<!--   mutate(level = substr(taxa, 1,1), -->
+<!--          'Taxonmic Level' = ifelse(level == "k", "Kingdom",  -->
+<!--                         ifelse(level == "p", "Phylum", -->
+<!--                                ifelse(level == "c", "Class",  -->
+<!--                                       ifelse(level == "o", "Order", -->
+<!--                                              ifelse(level == "f", "Family", -->
+<!--                                                     ifelse(level == "g", "Genus", -->
+<!--                                                            ifelse(level == "s", "Species", -->
+<!--                                                                   level)))))))) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- DF_color <- DF %>% filter(!is.na(level)) -->
+<!-- ``` -->
+
+
+<!-- # plot -->
+<!-- ```{r} -->
+<!-- ggplot(data = DF, aes(x = new.estimate, y = -log10(p.value), label=taxa)) + -->
+<!--   geom_point(color="honeydew4") + -->
+<!--   theme_bw() + -->
+<!--   labs(x="log(estimate)") + -->
+<!--   geom_text_repel() + -->
+<!--   geom_point(data = DF_color, aes(x = new.estimate, y = -log10(p.value), label=taxa, color=`Taxonmic Level`))+ -->
+<!-- geom_vline(xintercept=c(-1.5, 1.5), linetype="dotted") + -->
+<!-- geom_hline(yintercept=0.99, linetype="dotted") -->
+<!-- ggsave("../figures/mitoxvolcanoplot.png",device = "png",height=5,width = 7,dpi=400) -->
+<!-- ``` -->
+
+Log mistake
+# ```{r}
+# DF <-DF %>%
+#   mutate(new.estimate = ifelse(estimate > 0, log(estimate), log(abs(estimate))*-1))
+# ```
 
 # Create label
 ```{r}
-# filter labels to p.value < 0.06
+# filter labels to p.value < 0.1
 DF <- DF %>%
-  mutate(taxa = ifelse(p.value < 0.1 & (new.estimate < -1.5 | new.estimate > 1.5), sub("^.+\\.", "", term), NA))
-```
-
-```{r}
-DF <- DF %>%
-  mutate(level = substr(taxa, 1,1),
-         'Taxonmic Level' = ifelse(level == "k", "Kingdom", 
-                        ifelse(level == "p", "Phylum",
-                               ifelse(level == "c", "Class", 
-                                      ifelse(level == "o", "Order",
-                                             ifelse(level == "f", "Family",
-                                                    ifelse(level == "g", "Genus",
-                                                           ifelse(level == "s", "Species",
-                                                                  level))))))))
-```
-
-```{r}
-DF_color <- DF %>% filter(!is.na(level))
-```
-
-
-# plot
-```{r}
-ggplot(data = DF, aes(x = new.estimate, y = -log10(p.value), label=taxa)) + 
-  geom_point(color="honeydew4") + 
-  theme_bw() + 
-  labs(x="log(estimate)") + 
-  geom_text_repel() +
-  geom_point(data = DF_color, aes(x = new.estimate, y = -log10(p.value), label=taxa, color=`Taxonmic Level`))+
-geom_vline(xintercept=c(-1.5, 1.5), linetype="dotted") +
-geom_hline(yintercept=0.99, linetype="dotted")
-ggsave("../figures/mitoxvolcanoplot.png",device = "png",height=5,width = 7,dpi=400)
-```
-
-```{r}
-DF <-DF %>%
-  mutate(new.estimate = ifelse(estimate > 0, log(estimate), log(abs(estimate))*-1))
-```
-
-# Create label
-```{r}
-# filter labels to p.value < 0.06
-DF <- DF %>%
-  mutate(taxa.est = ifelse(p.value < 0.1 & (estimate < -0.15 | estimate > 0.15), sub("^.+\\.", "", term), NA))
+  mutate(taxa.est = ifelse(p.value < 0.1 & (estimate < -0.3 | estimate > 0.3), sub("^.+\\.", "", term), NA))
 ```
 
 ```{r}
@@ -95,8 +96,10 @@ DF <- DF %>%
 
 ```{r}
 DF_color <- DF %>% filter(!is.na(level.est))
-```
 
+#specify legend order
+DF_color$`Taxonmic Level` <- factor(DF_color$`Taxonmic Level`, levels = c("Class", "Order", "Family", "Genus", "Species"))
+```
 
 # plot
 ```{r}
@@ -106,12 +109,27 @@ ggplot(data = DF, aes(x = estimate, y = -log10(p.value), label=taxa.est)) +
   labs(x="Effect Size") + 
   geom_text_repel() +
   geom_point(data = DF_color, aes(x = estimate, y = -log10(p.value), label=taxa.est, color=`Taxonmic Level`))+
-geom_vline(xintercept=c(-0.15, 0.15), linetype="dotted") +
+geom_vline(xintercept=c(-0.3, 0.3), linetype="dotted") +
 geom_hline(yintercept=1, linetype="dotted") +
   xlim(-2.5, 2.5)
 ggsave("../figures/mitox_volcanoplot_estimate.png",
        height = 5,
-       width = 6,
+       width = 10,
+       dpi=400)
+```
+```{r}
+ggplot(data = DF, aes(x = estimate, y = -log10(p.value), label=taxa.est)) + 
+  geom_point(color="honeydew4") + 
+  theme_bw() + 
+  labs(x="Effect Size") + 
+  #geom_text_repel() +
+  geom_point(data = DF_color, aes(x = estimate, y = -log10(p.value), label=taxa.est, color=`Taxonmic Level`))+
+geom_vline(xintercept=c(-0.3, 0.3), linetype="dotted") +
+geom_hline(yintercept=1, linetype="dotted") +
+  xlim(-2.5, 2.5)
+ggsave("../figures/mitox_volcanoplot_estimate_wo_labels.png",
+       height = 5,
+       width = 7,
        dpi=400)
 ```
  
