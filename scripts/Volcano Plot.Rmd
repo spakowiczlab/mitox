@@ -1,7 +1,7 @@
 ---
 title: "Volcano Plot"
 output: html_document
-author: Mari Lynn (Caroline Wheeler)
+author: Mari Lynn and Caroline Wheeler
 ---
 
 ```{r setup, include=FALSE}
@@ -115,6 +115,10 @@ geom_hline(yintercept=1, linetype="dotted") +
 ggsave("../figures/mitox_volcanoplot_estimate.png",
        height = 5,
        width = 10,
+       dpi=400)
+ggsave("../figures/mitox_volcanoplot_estimate_ASCO22.png",
+       height = 8,
+       width = 9,
        dpi=400)
 ```
 ```{r}
