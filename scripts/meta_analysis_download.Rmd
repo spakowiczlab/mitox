@@ -1,0 +1,42 @@
+---
+title: "meta analysis download"
+author: "Caroline Wheeler"
+date: '2022-06-29'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(curatedMetagenomicData)
+library(ExperimentHub)
+library(tidyverse)
+```
+
+```{r}
+suppressPackageStartupMessages(library(ExperimentHub))
+myquery = query(ExperimentHub(), "curatedMetagenomicData")
+```
+
+identify studies with stool samples processed via metaphlan
+```{r}
+studies <- as.data.frame(grep("(?=.*stool)(?=.*metaphlan)", myquery$title, perl=TRUE, val=TRUE))
+```
+
+Try to get relative abundance data from one study 
+```{r}
+suppressPackageStartupMessages(library(curatedMetagenomicData))
+matson = MatsonV_2018.metaphlan_bugs_list.stool()
+experimentData(matson)
+taxa <- exprs(matson)
+
+write.csv(taxa, "/Users/wheeler.1017/Desktop/meta_analysis/matson2018_ra.csv")
+```
+
+get combined meta data
+```{r}
+meta <- curatedMetagenomicData::combined_metadata
+```
+
+
+
