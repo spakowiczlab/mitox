@@ -10,21 +10,24 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(readxl)
 library(tidyverse)
+
+load()
 ```
 
 read in keys
 ```{r}
-mdsc <- readxl::read_xlsx("/Users/wheeler.1017/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversityWexnerMedicalCenter/Williams, Nyelia - mitox/data/MDSC/mitox_pt_ID_MDSC.xlsx") %>%
+mdsc <- readxl::read_xlsx(file.path(paths$oneDrive, "/data/MDSC/mitox_pt_ID_MDSC.xlsx")) %>%
   select(-`...1`) %>%
   rename(record_id = "MitoxPatient ID")
 
-timepoints <- read.csv("/Users/wheeler.1017/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversityWexnerMedicalCenter/Williams, Nyelia - mitox/data/Labii Export/labii_samples_export_2022-08-19.tsv", sep = "\t") 
+timepoints <- read.csv(file.path(paths$oneDrive, "/data/Labii Export/labii_samples_export_2022-08-19.tsv"), sep = "\t") 
 
-samps <- read_xlsx("/Users/wheeler.1017/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversityWexnerMedicalCenter/Williams, Nyelia - mitox/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx") %>%
+samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx")) %>%
   select("Barcode ID", "Name") %>%
   mutate(sample_id = gsub("_", ".", Name)) %>%
   mutate(sample_id = gsub(" ", ".", sample_id)) %>%
-  select(-Name)
+  select(-Name) %>%
+  rename("sample" = "Barcode ID")
 ```
 
 fix time point table
@@ -32,9 +35,10 @@ fix time point table
 timepoints <- timepoints %>%
   select(sample_id, record_id, Type.of.Sample, Date.Sample.Collected) %>%
   filter(!(is.na(sample_id) | sample_id==""), ) %>%
-  mutate(record_id = ifelse(record_id=="", substr(sample_id, 0, 4), record_id)) %>%
+ # mutate(record_id = ifelse(record_id=="", substr(sample_id, 0, 4), record_id)) %>%
   filter(!(is.na(Type.of.Sample) | Type.of.Sample==""), ) %>%
-  mutate(sample_id = gsub(" ", ".", sample_id))
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  mutate(Type.of.Sample = ifelse(Type.of.Sample == "12Wk", "12wk", Type.of.Sample))
 
 # fix two sample ID's entered wrong
 timepoints <- timepoints %>%
@@ -46,8 +50,11 @@ combine
 left with 106 samples - same number as the first batch of metaphlan fastqs
 need to confirm that they match
 ```{r}
-samples <- merge(samps, timepoints)
-samples <- merge(samples, mdsc)
+samples <- left_join(samps, timepoints) %>%
+  mutate(record_id = ifelse((record_id=="" | is.na(record_id)), substr(sample_id, 0, 4), record_id))
+
+
+samples <- left_join(samples, mdsc)
 ```
 
 save datafram
