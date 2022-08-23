@@ -1,0 +1,23 @@
+---
+title: "redcap submission"
+author: "Caroline Wheeler"
+date: '2022-07-27'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+read in data
+```{r}
+adj <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Adj_Datasheet.csv")
+jason <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Jason_Met_Cohort.csv")
+master <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Master_List.csv")
+met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Met_Datasheet.csv")
+metAdj <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Met&Adj_Lists.csv")
+sched <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Patient_Schedule.csv")
+```
+

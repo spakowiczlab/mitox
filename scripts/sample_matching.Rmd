@@ -1,0 +1,63 @@
+---
+title: "sample match"
+author: "Caroline Wheeler"
+date: '2022-08-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+```
+
+read in keys
+```{r}
+mdsc <- readxl::read_xlsx("/Users/wheeler.1017/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversityWexnerMedicalCenter/Williams, Nyelia - mitox/data/MDSC/mitox_pt_ID_MDSC.xlsx") %>%
+  select(-`...1`) %>%
+  rename(record_id = "MitoxPatient ID")
+
+timepoints <- read.csv("/Users/wheeler.1017/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversityWexnerMedicalCenter/Williams, Nyelia - mitox/data/Labii Export/labii_samples_export_2022-08-19.tsv", sep = "\t") 
+
+samps <- read_xlsx("/Users/wheeler.1017/Library/CloudStorage/OneDrive-SharedLibraries-TheOhioStateUniversityWexnerMedicalCenter/Williams, Nyelia - mitox/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx") %>%
+  select("Barcode ID", "Name") %>%
+  mutate(sample_id = gsub("_", ".", Name)) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-Name)
+```
+
+fix time point table
+```{r}
+timepoints <- timepoints %>%
+  select(sample_id, record_id, Type.of.Sample, Date.Sample.Collected) %>%
+  filter(!(is.na(sample_id) | sample_id==""), ) %>%
+  mutate(record_id = ifelse(record_id=="", substr(sample_id, 0, 4), record_id)) %>%
+  filter(!(is.na(Type.of.Sample) | Type.of.Sample==""), ) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id))
+
+# fix two sample ID's entered wrong
+timepoints <- timepoints %>%
+  mutate(sample_id = ifelse(sample_id == "4028.201204.1", "M028.201204.1", 
+                            ifelse(sample_id == "4028.201204.2", "M028.201204.2", sample_id)))
+```
+
+combine
+left with 106 samples - same number as the first batch of metaphlan fastqs
+need to confirm that they match
+```{r}
+samples <- merge(samps, timepoints)
+samples <- merge(samples, mdsc)
+```
+
+save datafram
+```{r}
+write.csv(samples, "../data/mitox_sample_matching.csv")
+```
+
+
+find dropped samples - not present in timepoints
+```{r}
+samps %>% filter(!(`Barcode ID` %in% test$`Barcode ID`))
+```
+

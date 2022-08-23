@@ -36,6 +36,7 @@ write.csv(taxa, "/Users/wheeler.1017/Desktop/meta_analysis/matson2018_ra.csv")
 get combined meta data
 ```{r}
 meta <- curatedMetagenomicData::combined_metadata
+write.csv(meta, "../data/meta_anlysis_meta_data.csv")
 ```
 
 
