@@ -1,0 +1,77 @@
+---
+title: "Available sample data"
+author: "Rebecca Hoyd"
+date: '2022-08-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+```
+
+# Load data
+
+```{r}
+onedrive <-"C:/Users/hoyd02/OneDrive - The Ohio State University Wexner Medical Center/mitox"
+blood <- read_excel("T:/Labs/Spakowicz/mitox/data/clinical/raw/All Sample Data CEB 8_6_21.xlsx")
+clin <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-03-07/P841APilotStudyOfThe_DATA_2022-03-07_1255.csv", stringsAsFactors = F)
+stool <- read_excel(file.path(onedrive, "data", "onecodex", "2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx"))
+mdsckey <- read_excel(file.path(onedrive, "data", "MDSC", "mitox_pt_ID_MDSC.xlsx"))
+
+burdclin <- read_excel("T:/Labs/Spakowicz/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx",
+                       sheet = "ALL ADJ DATA")[1:117,]
+```
+
+```{r}
+test <- read_excel("C:/Users/hoyd02/OneDrive - The Ohio State University Wexner Medical Center/mitox/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx")
+
+test2 <- test %>%
+  separate(Name, into = "patient_id") %>%
+  select(patient_id) %>%
+  distinct() %>%
+  mutate(stool = 1)
+```
+
+# Format 
+
+```{r}
+clinpats <- clin %>% 
+  select(patient_id) %>%
+  distinct() %>%
+  mutate(clin = 1)
+
+stoolpats <- stool %>%
+  separate(Name, into = "patient_id") %>%
+  select(patient_id) %>%
+  distinct() %>%
+  mutate(stool = 1) %>%
+  bind_rows(test2) %>%
+  distinct()
+
+bloodpats <- mdsckey %>%
+  select(-...1) %>%
+  rename("Sample" = "MDSC #") %>%
+  filter(Sample != "N/A") %>%
+  full_join(blood) %>%
+  rename("patient_id" = "MitoxPatient ID") %>%
+  mutate(flow.PBMC = `PBMC for Flow`) %>%
+  select(patient_id, Nanostring, flow.PBMC) %>%
+  distinct() %>%
+  drop_na(patient_id)
+```
+
+```{r}
+allpats <- clinpats %>%
+  full_join(stoolpats) %>%
+  full_join(bloodpats) %>%
+  filter(patient_id != "") %>%
+  mutate(clin = replace_na(clin, 0),
+         stool = replace_na(stool, 0))
+```
+
+# Count
+
+
