@@ -64,5 +64,5 @@ fittab <- fitness %>%
 overlapping.patients <- burdtab %>%
   inner_join(fittab)
 
-write.csv(overlapping.patients, "../data/exploratory_overla-with-fitness.csv", row.names = F)
+write.csv(overlapping.patients, "../data/exploratory_overlap-with-fitness.csv", row.names = F)
 ```
