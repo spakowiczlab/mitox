@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(readxl)
 library(tidyverse)
-
-load()
 ```
 
 read in keys
@@ -28,7 +26,43 @@ samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_O
   mutate(sample_id = gsub(" ", ".", sample_id)) %>%
   select(-Name) %>%
   rename("sample" = "Barcode ID")
+
+samps2 <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx")) %>%
+  select("Barcode ID", "Name") %>%
+  mutate(sample_id = gsub("_", ".", Name)) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-Name) %>%
+  rename("sample" = "Barcode ID")
+
+samps <- rbind(samps, samps2)
 ```
+read in 
+```{r}
+adj <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = "ALL ADJ DATA") %>%
+  select(Sample) %>%
+  mutate(Category = "adjuvant")
+
+dis <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = "MET DIS. DATA") %>%
+  select(Sample) %>%
+  mutate(Category = "dis")
+
+
+val <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = "MET VAL. DATA") %>%
+    select(Sample) %>%
+  mutate(Category = "val")
+
+
+ipi_nivo_met <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = "IPI NIVO MET DATA") %>%
+    select(Sample) %>%
+  mutate(Category = "ipi_nivo_met")
+
+  
+temp <- rbind(adj, dis, val, ipi_nivo_met) %>%
+  mutate(Sample = gsub(" ", "-", Sample)) %>%
+  filter(!is.na(Sample)) %>%
+  rename("MDSC #" = Sample)
+```
+
 
 fix time point table
 ```{r}
@@ -53,8 +87,10 @@ need to confirm that they match
 samples <- left_join(samps, timepoints) %>%
   mutate(record_id = ifelse((record_id=="" | is.na(record_id)), substr(sample_id, 0, 4), record_id))
 
-
 samples <- left_join(samples, mdsc)
+adj_count <- merge(samples, temp)
+
+table(adj_count$Category)
 ```
 
 save datafram
@@ -66,5 +102,19 @@ write.csv(samples, "../data/mitox_sample_matching.csv")
 find dropped samples - not present in timepoints
 ```{r}
 samps %>% filter(!(`Barcode ID` %in% test$`Barcode ID`))
+```
+```{r}
+#samples$Type.of.Sample <- factor(samples$Type.of.Sample, levels = c("Baseline", "12wk", "Control", "AE", NA))
+
+samples %>%
+  ggplot(aes(x=Date.Sample.Collected, y=record_id, color = Type.of.Sample)) + 
+  geom_point() +
+  xlab("Timepoint") +
+  ylab("Record ID") +
+  theme_bw() +
+  scale_y_discrete(limits=rev) +
+  theme(legend.position = "none")
+
+#ggsave("../figures/mitox_sample_timeline.png", height = 5, width = 3, dpi=300)
 ```
 
