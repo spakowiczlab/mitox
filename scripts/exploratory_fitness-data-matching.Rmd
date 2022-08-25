@@ -1,0 +1,68 @@
+---
+title: "FITNESS data matching"
+author: "Rebecca Hoyd"
+date: '2022-08-25'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+```
+
+# Load data
+
+```{r}
+fitness <- read.csv("T:/Labs/Presley/FITNESS-lung/Microbiome- Rebecca/clinical-OC-matched_resolved.csv", stringsAsFactors = F)
+
+burd <- read_excel("T:/Labs/Spakowicz/fitness/data/raw/nanostring/RoskoPresley_NanostringJune2022 (1).xlsx", sheet = "nSolver output")
+```
+
+# Format
+
+I still don't understand why these are in twice, but they do match
+
+```{r why double column ids}
+cols <- colnames(burd)[8:223]
+doubs <- unlist(burd[1, 8:223])
+
+all(cols == doubs)
+```
+
+```{r get pat ids}
+pats.burd <- gsub(".*_", "", 
+                  gsub("SV.*", "",
+                  gsub(".* ON", "", cols)))
+
+patids.burd <- as.character(as.numeric(pats.burd))
+
+burdtab <- as.data.frame(patids.burd) %>%
+  drop_na() %>%
+  group_by(patids.burd) %>%
+  tally() %>%
+  rename("n.nanostring" = "n",
+         "patient.id" = "patids.burd")
+```
+
+```{r}
+fittab <- fitness %>%
+  select(patient.id, sequence.id) %>%
+  mutate(patient.id = as.character(patient.id)) %>%
+  drop_na() %>%
+  group_by(patient.id) %>%
+  tally() %>%
+  rename("n.stool" = "n")
+```
+
+
+# Table
+
+
+```{r}
+overlapping.patients <- burdtab %>%
+  inner_join(fittab)
+
+write.csv(overlapping.patients, "../data/exploratory_overla-with-fitness.csv", row.names = F)
+```
