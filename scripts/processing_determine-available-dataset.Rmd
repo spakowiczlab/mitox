@@ -15,24 +15,27 @@ library(readxl)
 # Load data
 
 ```{r}
-onedrive <-"C:/Users/hoyd02/OneDrive - The Ohio State University Wexner Medical Center/mitox"
-blood <- read_excel("T:/Labs/Spakowicz/mitox/data/clinical/raw/All Sample Data CEB 8_6_21.xlsx")
-clin <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-03-07/P841APilotStudyOfThe_DATA_2022-03-07_1255.csv", stringsAsFactors = F)
-stool <- read_excel(file.path(onedrive, "data", "onecodex", "2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx"))
+onedrive <-"C:/Users/hoyd02/OneDrive - The Ohio State University Wexner Medical Center/mitox - Williams, Nyelia's files"
+stool <- read_excel(file.path(onedrive, "data", "onecodex", "mitox_One Codex Sample Registration.xlsx"))
 mdsckey <- read_excel(file.path(onedrive, "data", "MDSC", "mitox_pt_ID_MDSC.xlsx"))
+
+
+# blood <- read_excel("T:/Labs/Spakowicz/mitox/data/clinical/raw/All Sample Data CEB 8_6_21.xlsx")
+clin <- read.csv("T:/Labs/Spakowicz/mitox/data/redcap/raw/2022-03-07/P841APilotStudyOfThe_DATA_2022-03-07_1255.csv", stringsAsFactors = F)
+
 
 burdclin <- read_excel("T:/Labs/Spakowicz/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx",
                        sheet = "ALL ADJ DATA")[1:117,]
 ```
 
 ```{r}
-test <- read_excel("C:/Users/hoyd02/OneDrive - The Ohio State University Wexner Medical Center/mitox/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx")
-
-test2 <- test %>%
-  separate(Name, into = "patient_id") %>%
-  select(patient_id) %>%
-  distinct() %>%
-  mutate(stool = 1)
+# test <- read_excel("C:/Users/hoyd02/OneDrive - The Ohio State University Wexner Medical Center/mitox/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx")
+# 
+# test2 <- test %>%
+#   separate(Name, into = "patient_id") %>%
+#   select(patient_id) %>%
+#   distinct() %>%
+#   mutate(stool = 1)
 ```
 
 # Format 
