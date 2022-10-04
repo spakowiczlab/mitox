@@ -1,0 +1,61 @@
+---
+title: "t-cell senescense"
+author: "Caroline Wheeler"
+date: '2022-09-29'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(tmesig)
+library(data.table)
+```
+
+
+# Load data
+```{r}
+nanoAdj <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = 'ALL ADJ DATA', range = cell_rows(1:118)) %>% select(Sample, Cohort, "CDKN2A (p16)", "CDKN2A (ARF)", "B3GAT1", "KLRG1")
+nanoMetDis <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = 'MET DIS. DATA')  %>% select(Sample, Cohort, "CDKN2A (p16)", "CDKN2A (ARF)", "B3GAT1", "KLRG1")
+nanoMetVal <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = 'MET VAL. DATA')  %>% select(Sample, Cohort, "CDKN2A (p16)", "CDKN2A (ARF)", "B3GAT1", "KLRG1")
+nanoIpiNivo <- readxl::read_xlsx("/Volumes/spakowicz/mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx", sheet = 'IPI NIVO MET DATA')  %>% select(Sample, Cohort, "CDKN2A (p16)", "CDKN2A (ARF)", "B3GAT1", "KLRG1")
+
+samps <- read_csv("../data/mitox_sample_matching.csv")  %>%
+  select(sample, Type.of.Sample, `MDSC #`, Category)
+```
+
+# merge into one data table 
+```{r}
+nano <- rbind(nanoAdj, nanoMetDis, nanoMetVal, nanoIpiNivo)
+nano <- na.omit(nano)
+
+nanostring <- melt(setDT(nano), id.vars = c("Sample", "Cohort"), variable.name = "Gene.Symbol") %>%
+  select(-Cohort) %>%
+  spread(Sample, value)
+```
+
+# Calculate T cell senescence
+```{r}
+sensgenes <- c("CDKN2A (p16)", "CDKN2A (ARF)", "B3GAT1", "KLRG1")
+tsen <- calculateAvgZScore(nanostring, sensgenes) %>%
+  rename("Tcell.Senescence" = "avg_z_score") 
+```
+
+# Fix MDSC variable
+```{r}
+tsen <- tsen %>%
+  mutate('MDSC #' = str_replace(sample, " ", "-")) %>%
+  select(-sample)
+
+tsen_microSamps <- merge(tsen, samps)
+```
+
+
+# Save
+```{r}
+write.csv(tsen, "../data/Tcell-senescence.csv", row.names = F)
+write.csv(tsen_microSamps, "../data/Tcell-senescence_matchedToMicro.csv", row.names = F)
+```
+
