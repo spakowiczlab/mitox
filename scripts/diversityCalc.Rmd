@@ -1,0 +1,47 @@
+---
+title: "diversity calculation"
+author: "Caroline Wheeler"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(vegan)
+```
+
+# Load data 
+```{r}
+taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
+tcell <- read.csv("../data/Tcell-senescence_matchedToMicro.csv")
+```
+
+# Format
+```{r}
+taxa <- taxa %>%
+  select(Taxonomy, RelAbun, sample)
+
+taxa <- spread(taxa, Taxonomy, RelAbun) %>%
+  remove_rownames %>% column_to_rownames(var="sample")
+
+taxa[is.na(taxa)] <- 0
+```
+
+
+# Calculate diversity
+```{r}
+test <- as.data.frame(diversity(taxa, index = "simpson"))
+test$sample <- row.names(test)
+test <- test %>%
+  rename("diversity" = "diversity(taxa, index = \"simpson\")")
+```
+
+# save
+```{r}
+tcellDiv <- merge(tcell, test)
+
+write.csv(tcellDiv, "../data/diversityTcell.csv", row.names = F)
+```
+

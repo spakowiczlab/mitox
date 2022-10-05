@@ -1,0 +1,29 @@
+---
+title: "tcell sen div correlations"
+author: "Caroline Wheeler"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+# Load data
+```{r}
+mitox <- read.csv("../data/diversityTcell.csv")
+```
+
+# Correlation
+```{r}
+cor.test(mitox$Tcell.Senescence, mitox$diversity, method = "spearman")
+```
+Visualize?
+```{r}
+
+```
+
+
