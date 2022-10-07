@@ -15,15 +15,61 @@ library(ggplot2)
 # Load data
 ```{r}
 mitox <- read.csv("../data/diversityTcell.csv")
+fitnessDiv <- read.csv("/users/PAS1695/whee57/Github/fitness/exploratory/data/OC_simpson-diversity.csv")
+fitnessTcell <- read.csv("/users/PAS1695/whee57/Github/fitness/exploratory/data/Tcell-senescence.csv")
+
+fitness <- merge(fitnessDiv, fitnessTcell)
+```
+
+# Filter
+```{r}
+baseline <- mitox %>%
+  filter(Type.of.Sample == "Baseline")
+
+fitBase <- fitness %>%
+  filter(visit == "SV1")
 ```
 
 # Correlation
 ```{r}
-cor.test(mitox$Tcell.Senescence, mitox$diversity, method = "spearman")
+cor.test(baseline$Tcell.Senescence, baseline$diversity, method = "spearman")
 ```
-Visualize?
 ```{r}
-
+cor.test(fitBase$Tcell.Senescence, fitBase$Simpson.div, method = "spearman")
 ```
 
+```{r}
+fitBase <- fitBase %>%
+  select(Tcell.Senescence, Simpson.div) %>%
+  rename("diversity" = "Simpson.div")
 
+metastat <- metastat %>%
+  select(Tcell.Senescence, diversity)
+
+combo <- rbind(metastat, fitBase)
+
+cor.test(combo$Tcell.Senescence, combo$diversity, method = "spearman")
+```
+
+# Filter to metastatic baseline
+```{r}
+metastat <- baseline %>%
+  filter(Category != "adjuvant")
+
+cor.test(metastat$Tcell.Senescence, metastat$diversity, method = "spearman")
+```
+
+# mitox baseline 
+p-value = 0.4939
+
+# mitox metastatic baseline
+p-value = 0.3929
+
+# fitness SV1
+p-value = 0.1992
+
+# fitness SV1 + mitox baseline 
+p-value = 0.1336
+
+# mitox metastatic basleine + fitness SV1
+p-value = 0.07031

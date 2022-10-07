@@ -1,0 +1,24 @@
+---
+title: "pca plot"
+author: "Caroline Wheeler"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+# Load data
+```{r}
+taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
+clin <- read.csv()
+```
+
+# Format data
+```{r}
+
+```
+
