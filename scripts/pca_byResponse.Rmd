@@ -1,0 +1,62 @@
+---
+title: "pca"
+author: "Caroline Wheeler"
+date: '2022-10-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(ggfortify)
+```
+
+# Load data
+```{r}
+response <- read.csv("../data/MDSCresponse.csv") %>%
+  rename("MDSC #" = "MDSC..")
+taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
+
+samps <- read_csv("../data/mitox_sample_matching.csv")  %>%
+  select(sample,`MDSC #`,)
+```
+
+# Format
+```{r}
+response <- merge(samps, response) %>%
+  mutate(Response = ifelse((response == "CR" | response == "PR"), "Responder", "Non-Responder"))
+
+taxa <- taxa %>%
+  select(Taxonomy, RelAbun, sample)
+
+taxa <- spread(taxa, Taxonomy, RelAbun) %>%
+  remove_rownames %>% column_to_rownames(var="sample")
+
+taxa[is.na(taxa)] <- 0
+```
+
+# PCA
+```{r}
+taxa.pca <- prcomp(taxa, center = TRUE, scale. = TRUE)
+taxa.pca <- as.data.frame(taxa.pca$x)
+taxa.pca <- taxa.pca[1:2]
+taxa.pca$sample <- row.names(taxa.pca)
+
+pca.res <- merge(response, taxa.pca)
+```
+
+# Plot
+```{r}
+ggplot(pca.res, aes(x = PC1, y = PC2, color = Response)) +
+  geom_point() +
+  theme_bw() +
+  stat_ellipse()
+
+ggplot(pca.res, aes(x = PC1, y = PC2, color = response)) +
+  geom_point() +
+  theme_bw() + 
+  stat_ellipse()
+```
+

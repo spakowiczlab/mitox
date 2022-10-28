@@ -34,3 +34,19 @@ table(met_nivo_samps$...21)
 adj_samps <- merge(adj, clin)
 table(adj_samps$...21)
 table(adj_samps$RECIST)
+
+# get response data for all
+response <- samps %>%
+  select(record_id)
+
+response <- merge(response, clin) %>%
+  mutate(response = ifelse(RECIST == "CR", RECIST, ...21)) %>%
+  select(`MDSC #`, response) %>%
+  drop_na() %>%
+  distinct() %>%
+  filter(`MDSC #` != 'N/A')
+
+# save response variable
+write.csv(response, "./data/MDSCresponse.csv", row.names = F)
+
+

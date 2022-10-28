@@ -34,6 +34,7 @@ fitBase <- fitness %>%
 ```{r}
 cor.test(baseline$Tcell.Senescence, baseline$diversity, method = "spearman")
 ```
+
 ```{r}
 cor.test(fitBase$Tcell.Senescence, fitBase$Simpson.div, method = "spearman")
 ```
@@ -71,5 +72,5 @@ p-value = 0.1992
 # fitness SV1 + mitox baseline 
 p-value = 0.1336
 
-# mitox metastatic basleine + fitness SV1
+# mitox metastatic baseline + fitness SV1
 p-value = 0.07031

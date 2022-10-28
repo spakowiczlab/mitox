@@ -1,0 +1,154 @@
+---
+title: "tcellsen_control"
+author: "Caroline Wheeler"
+date: '2022-10-28'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(lmtest)
+```
+
+read in data
+```{r}
+clin_met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Met_Datasheet.csv", header = TRUE, skip = 1) %>%
+  select("Coded.Sample..", Cohort, "Age.When.Sample.Drawn..years.", "Sex..M.F.", "Smoker..current.former.non.secondhand.", "BMI..kg.m2.") %>%
+  rename(MDSC = "Coded.Sample..",
+         Category = Cohort,
+         Age = "Age.When.Sample.Drawn..years.",
+         Sex = "Sex..M.F.",
+         Smoking_Status = "Smoker..current.former.non.secondhand.",
+         BMI = "BMI..kg.m2.") %>%
+  drop_na() %>%
+  mutate(MDSC = strtrim(MDSC, 9),
+         #manually fix MDSC # that has space in the front
+         MDSC = ifelse(MDSC == " MDSC-182", "MDSC-182", MDSC))
+
+clin_adj <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Adj_Datasheet.csv", header = TRUE, skip = 1)  %>%
+  select("Coded.Sample..", Cohort, "Age.When.Sample.Drawn..years.", "Sex..M.F.","Smoker..current.former.never.second.hand.", "BMI..kg.m2.")  %>%
+  rename(MDSC = "Coded.Sample..",
+         Category = Cohort,
+         Age = "Age.When.Sample.Drawn..years.",
+         Sex = "Sex..M.F.",
+         Smoking_Status = "Smoker..current.former.never.second.hand.",
+         BMI = "BMI..kg.m2.") %>%
+  drop_na() %>%
+  mutate(MDSC = strtrim(MDSC, 9)) %>%
+  filter(MDSC != "")
+
+clin <- rbind(clin_adj, clin_met)
+
+mitox <- read.csv("../data/diversityTcell.csv") %>%
+  rename(MDSC = "MDSC..")
+
+#Include fitness data
+fitnessDiv <- read.csv("/Users/wheeler.1017/Documents/Github/fitness/exploratory/data/OC_simpson-diversity.csv")
+fitnessTcell <- read.csv("/Users/wheeler.1017/Documents/Github/fitness/exploratory/data/Tcell-senescence.csv")
+
+fitness <- merge(fitnessDiv, fitnessTcell) %>%
+  filter(visit == "SV1") %>%
+  select(patient.id, Tcell.Senescence, Simpson.div) %>%
+  rename("diversity" = "Simpson.div")
+
+fitnessClin <- read.csv("/Volumes/spakowicz/fitness/data/derived/clinical-OC-matched_resolved_limited.csv") %>%
+  filter(!is.na(study_enrollment_complete)) %>%
+  select(patient.id, age, sex) %>%
+    rename(Age = age,
+           Sex = sex)
+
+missing_clin <- read.csv("/Users/wheeler.1017/Desktop/fitness_bmi-tobacco-baseline.csv") %>%
+  rename(patient.id = "sid_2",
+         Smoking_Status = tobacco,
+         BMI = bmi)
+
+fitnessClin <- merge(fitnessClin, missing_clin)
+
+# Note BMI is missing from all fitness samples listed here
+
+fitnessBase <- merge(fitness, fitnessClin)
+```
+
+# filter to baseline
+```{r}
+baseline <- mitox %>%
+  filter(Type.of.Sample == "Baseline")
+```
+
+combine with clin vars
+```{r}
+# 3 samples are dropped - figure this out later?
+baseClin <- merge(baseline, clin, by="MDSC")
+
+#filter to metastatic
+baseClin_mitoxMet <- baseClin %>%
+    filter(Category.x != "adjuvant")
+```
+
+tcell.sen ~ alpha.div + age (+ bmi + sex + smoking status)
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity + Age, data = baseClin)
+
+summary(corr)
+```
+
+mitox baseline met only
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity + Age, data = baseClin_mitoxMet)
+
+summary(corr)
+```
+
+fitness SV1 
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity, data = fitnessBase)
+
+summary(corr)
+```
+
+fitness SV1 + age
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity + Age, data = fitnessBase)
+
+summary(corr)
+```
+
+fitness SV1 + sex
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity + Sex, data = fitnessBase)
+
+summary(corr)
+```
+
+fitness SV1 + age + sex
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity + Age + Sex , data = fitnessBase)
+
+summary(corr)
+```
+
+```{r}
+fitness_temp <- fitnessBase %>%
+  select("Tcell.Senescence","diversity","Age","Sex")
+
+mitox_temp <- baseClin_mitoxMet %>%
+  select("Tcell.Senescence","diversity","Age","Sex")
+
+combo <- rbind(fitness_temp, mitox_temp)
+```
+
+
+fitness + mitox (ALL baseline)
+```{r}
+corr <- lm(Tcell.Senescence ~ diversity + Sex, data = combo)
+
+summary(corr)
+```
+
+```{r}
+lrtest()
+```
+
