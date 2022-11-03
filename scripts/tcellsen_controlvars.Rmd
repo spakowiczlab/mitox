@@ -15,6 +15,7 @@ library(lmtest)
 
 read in data
 ```{r}
+### MITOX ###
 clin_met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Met_Datasheet.csv", header = TRUE, skip = 1) %>%
   select("Coded.Sample..", Cohort, "Age.When.Sample.Drawn..years.", "Sex..M.F.", "Smoker..current.former.non.secondhand.", "BMI..kg.m2.") %>%
   rename(MDSC = "Coded.Sample..",
@@ -45,11 +46,45 @@ clin <- rbind(clin_adj, clin_met)
 mitox <- read.csv("../data/diversityTcell.csv") %>%
   rename(MDSC = "MDSC..")
 
-#Include fitness data
+rm(clin_adj, clin_met)
+```
+
+```{r}
+### FITNESS ###
+
+# multiple diversity and tcellsen values for each patient
 fitnessDiv <- read.csv("/Users/wheeler.1017/Documents/Github/fitness/exploratory/data/OC_simpson-diversity.csv")
 fitnessTcell <- read.csv("/Users/wheeler.1017/Documents/Github/fitness/exploratory/data/Tcell-senescence.csv")
 
-fitness <- merge(fitnessDiv, fitnessTcell) %>%
+# to consult for matching purposes
+fitnessKey <- readxl::read_xlsx("/Users/wheeler.1017/Documents/GitHub/fitness/exploratory/data/cycle_study-visit-tracker_v3.xlsx")
+```
+
+fitness sample matching
+```{r}
+fitnessTcell <- fitnessTcell %>%
+  filter(patient.id %in% fitnessDiv$patient.id)
+
+# matching cycle and study visits - there should be 58 total matching 
+fitnessDiv <- fitnessDiv %>%
+  filter(patient.id %in% fitnessTcell$patient.id) %>%
+  mutate(visit = ifelse(redcap_event_name == "study_visit_1_arm_2", "SV1", 
+                        ifelse(redcap_event_name == "study_visit_2_arm_2", "SV2",
+                               ifelse(redcap_event_name == "study_visit_3_arm_2", "SV3",
+                                      ifelse(redcap_event_name == "study_visit_4_arm_2", "SV4", NA))))) %>%
+  # manual mutates
+  mutate(visit = ifelse((patient.id == "4015" & redcap_event_name == "cycle_visit_5_arm_2"),"SV2" ,visit)) %>%
+  mutate(visit = ifelse((patient.id == "4017" & redcap_event_name == "cycle_visit_5_arm_2"),"SV2" ,visit)) %>%
+  mutate(visit = ifelse((patient.id == "4017" & redcap_event_name == "cycle_visit_8_arm_2"),"SV3" ,visit)) 
+           
+
+# need to do a lot manually 
+fitness <- merge(fitnessDiv, fitnessTcell, by=c("patient.id","visit"))
+
+```
+
+```{r}
+fitness_base <- fitness %>%
   filter(visit == "SV1") %>%
   select(patient.id, Tcell.Senescence, Simpson.div) %>%
   rename("diversity" = "Simpson.div")
@@ -69,8 +104,10 @@ fitnessClin <- merge(fitnessClin, missing_clin)
 
 # Note BMI is missing from all fitness samples listed here
 
-fitnessBase <- merge(fitness, fitnessClin)
+fitness_base <- merge(fitness_base, fitnessClin)
+fitness <- merge(fitness, fitnessClin)
 ```
+
 
 # filter to baseline
 ```{r}
@@ -90,7 +127,7 @@ baseClin_mitoxMet <- baseClin %>%
 
 tcell.sen ~ alpha.div + age (+ bmi + sex + smoking status)
 ```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Age, data = baseClin)
+corr <- lm(Tcell.Senescence ~ diversity + Age + Sex + BMI, data = baseClin)
 
 summary(corr)
 ```
@@ -104,38 +141,30 @@ summary(corr)
 
 fitness SV1 
 ```{r}
-corr <- lm(Tcell.Senescence ~ diversity, data = fitnessBase)
+corr <- lm(Tcell.Senescence ~ diversity, data = fitness_base)
 
 summary(corr)
 ```
 
-fitness SV1 + age
-```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Age, data = fitnessBase)
-
-summary(corr)
-```
-
-fitness SV1 + sex
-```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Sex, data = fitnessBase)
-
-summary(corr)
-```
 
 fitness SV1 + age + sex
 ```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Age + Sex , data = fitnessBase)
+corr <- lm(Tcell.Senescence ~ diversity + Age + Sex, data = fitness_base)
 
 summary(corr)
 ```
 
 ```{r}
-fitness_temp <- fitnessBase %>%
-  select("Tcell.Senescence","diversity","Age","Sex")
+fitness_temp <- fitness_base %>%
+  select("Tcell.Senescence","diversity","Age","Sex", "BMI")
+
+fitness_temp$Cancer <- "lung"
+fitness_temp <- fitness_temp %>%
+  mutate(Sex = ifelse(Sex == 1, "M", "F"))
 
 mitox_temp <- baseClin_mitoxMet %>%
-  select("Tcell.Senescence","diversity","Age","Sex")
+  select("Tcell.Senescence","diversity","Age","Sex","BMI")
+mitox_temp$Cancer <- "melanoma"
 
 combo <- rbind(fitness_temp, mitox_temp)
 ```
@@ -143,12 +172,34 @@ combo <- rbind(fitness_temp, mitox_temp)
 
 fitness + mitox (ALL baseline)
 ```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Sex, data = combo)
+corr <- lm(Tcell.Senescence ~ diversity + Cancer + Sex + Age , data = combo)
 
 summary(corr)
 ```
 
+
 ```{r}
-lrtest()
+fitness %>% 
+  mutate(patient.id = as.factor(patient.id)) %>%
+  ggplot(aes(x=Tcell.Senescence, y=Simpson.div)) +
+  geom_point(aes(color = patient.id)) 
+```
+
+Controlling for confounding
+```{r}
+fitnessControl <- merge(fitness, fitnessClin, all = TRUE) %>%
+  filter(!is.na(Tcell.Senescence)) %>%
+  filter(!is.na(Age))
+
+corr <- lm(Tcell.Senescence ~ Simpson.div + Age + Sex, data = fitnessControl)
+Res <- residuals(corr) 
+
+fitnessControl$res <- Res
+
+fitnessControl %>%
+  mutate(patient.id = as.factor(patient.id)) %>%
+  ggplot(aes(x = res, y= Simpson.div)) +
+  geom_point(aes(color = patient.id)) +
+  geom_smooth(method = "lm")
 ```
 
