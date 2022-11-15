@@ -1,7 +1,7 @@
 ---
-title: "tcellsen_control"
+title: "format"
 author: "Caroline Wheeler"
-date: '2022-10-28'
+date: '2022-11-15'
 output: html_document
 ---
 
@@ -10,12 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(readxl)
-library(lmtest)
 ```
 
-read in data
+read in mitox data
 ```{r}
-### MITOX ###
 clin_met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Met_Datasheet.csv", header = TRUE, skip = 1) %>%
   select("Coded.Sample..", Cohort, "Age.When.Sample.Drawn..years.", "Sex..M.F.", "Smoker..current.former.non.secondhand.", "BMI..kg.m2.") %>%
   rename(MDSC = "Coded.Sample..",
@@ -45,31 +43,27 @@ clin <- rbind(clin_adj, clin_met)
 
 mitox <- read.csv("../data/diversityTcell.csv") %>%
   rename(MDSC = "MDSC..")
-
-rm(clin_adj, clin_met)
 ```
 
-### MITOX - species counts ######
+read in fitness data
 ```{r}
-taxa <- read.csv("../data/2022-02-01_mpa_aggregated_long.csv")
-
-# filter to species
-
-# long to wide
-
-# sum species counts 
-
-```
-
-```{r}
-### FITNESS ###
-
 # multiple diversity and tcellsen values for each patient
 fitnessDiv <- read.csv("/Users/wheeler.1017/Documents/Github/fitness/exploratory/data/OC_simpson-diversity.csv")
 fitnessTcell <- read.csv("/Users/wheeler.1017/Documents/Github/fitness/exploratory/data/Tcell-senescence.csv")
 
 # to consult for matching purposes
 fitnessKey <- readxl::read_xlsx("/Users/wheeler.1017/Documents/GitHub/fitness/exploratory/data/cycle_study-visit-tracker_v3.xlsx")
+
+fitnessClin <- read.csv("/Volumes/spakowicz/fitness/data/derived/clinical-OC-matched_resolved_limited.csv") %>%
+  filter(!is.na(study_enrollment_complete)) %>%
+  select(patient.id, age, sex) %>%
+    rename(Age = age,
+           Sex = sex)
+
+missing_clin <- read.csv("/Users/wheeler.1017/Desktop/fitness_bmi-tobacco-baseline.csv") %>%
+  rename(patient.id = "sid_2",
+         Smoking_Status = tobacco,
+         BMI = bmi)
 ```
 
 fitness sample matching
@@ -91,128 +85,33 @@ fitnessDiv <- fitnessDiv %>%
   mutate(visit = ifelse((patient.id == "4017" & redcap_event_name == "cycle_visit_8_arm_2"),"SV3" ,visit)) 
            
 
-# need to do a lot manually 
 fitness <- merge(fitnessDiv, fitnessTcell, by=c("patient.id","visit"))
-
 ```
 
+fitness set up
 ```{r}
-fitness_base <- fitness %>%
-  filter(visit == "SV1") %>%
-  select(patient.id, Tcell.Senescence, Simpson.div) %>%
-  rename("diversity" = "Simpson.div")
-
-fitnessClin <- read.csv("/Volumes/spakowicz/fitness/data/derived/clinical-OC-matched_resolved_limited.csv") %>%
-  filter(!is.na(study_enrollment_complete)) %>%
-  select(patient.id, age, sex) %>%
-    rename(Age = age,
-           Sex = sex)
-
-missing_clin <- read.csv("/Users/wheeler.1017/Desktop/fitness_bmi-tobacco-baseline.csv") %>%
-  rename(patient.id = "sid_2",
-         Smoking_Status = tobacco,
-         BMI = bmi)
-
 fitnessClin <- merge(fitnessClin, missing_clin)
-
-# Note BMI is missing from all fitness samples listed here
-
-fitness_base <- merge(fitness_base, fitnessClin)
-fitness <- merge(fitness, fitnessClin)
+fitness <- merge(fitness, fitnessClin) %>%
+  select(-redcap_event_name)
 ```
 
-
-# filter to baseline
+write fitness CSV
+fill in file path
 ```{r}
-baseline <- mitox %>%
-  filter(Type.of.Sample == "Baseline")
+write.csv(fitness, "fitness_tcellsen_div.csv")
 ```
 
-combine with clin vars
+mitox set up
 ```{r}
-# 3 samples are dropped - figure this out later?
-baseClin <- merge(baseline, clin, by="MDSC")
-
-#filter to metastatic
-baseClin_mitoxMet <- baseClin %>%
-    filter(Category.x != "adjuvant")
+#clin <- clin %>% select(-Category)
+mitox <- merge(mitox, clin, by="MDSC") %>%
+  rename(patient.id = MDSC,
+         visit = Type.of.Sample)
 ```
 
-tcell.sen ~ alpha.div + age (+ bmi + sex + smoking status)
+write mitox CSV
+fill in file path
 ```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Age + Sex + BMI, data = baseClin)
-
-summary(corr)
-```
-
-mitox baseline met only
-```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Age, data = baseClin_mitoxMet)
-
-summary(corr)
-```
-
-fitness SV1 
-```{r}
-corr <- lm(Tcell.Senescence ~ diversity, data = fitness_base)
-
-summary(corr)
-```
-
-
-fitness SV1 + age + sex
-```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Age + Sex, data = fitness_base)
-
-summary(corr)
-```
-
-```{r}
-fitness_temp <- fitness_base %>%
-  select("Tcell.Senescence","diversity","Age","Sex", "BMI")
-
-fitness_temp$Cancer <- "lung"
-fitness_temp <- fitness_temp %>%
-  mutate(Sex = ifelse(Sex == 1, "M", "F"))
-
-mitox_temp <- baseClin_mitoxMet %>%
-  select("Tcell.Senescence","diversity","Age","Sex","BMI")
-mitox_temp$Cancer <- "melanoma"
-
-combo <- rbind(fitness_temp, mitox_temp)
-```
-
-
-fitness + mitox (ALL baseline)
-```{r}
-corr <- lm(Tcell.Senescence ~ diversity + Cancer + Sex + Age , data = combo)
-
-summary(corr)
-```
-
-
-```{r}
-fitness %>% 
-  mutate(patient.id = as.factor(patient.id)) %>%
-  ggplot(aes(x=Tcell.Senescence, y=Simpson.div)) +
-  geom_point(aes(color = patient.id)) 
-```
-
-Controlling for confounding
-```{r}
-fitnessControl <- merge(fitness, fitnessClin, all = TRUE) %>%
-  filter(!is.na(Tcell.Senescence)) %>%
-  filter(!is.na(Age))
-
-corr <- lm(Tcell.Senescence ~ Simpson.div + Age + Sex, data = fitnessControl)
-Res <- residuals(corr) 
-
-fitnessControl$res <- Res
-
-fitnessControl %>%
-  mutate(patient.id = as.factor(patient.id)) %>%
-  ggplot(aes(x = res, y= Simpson.div)) +
-  geom_point(aes(color = patient.id)) +
-  geom_smooth(method = "lm")
+write.csv(mitox, "mitox_tcellsen_div.csv")
 ```
 
