@@ -1,0 +1,34 @@
+---
+title: "mitox get OTU's"
+author: "Caroline Wheeler"
+date: '2022-11-30'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+taxa <- read.csv("../data/2022-02-01_mpa_aggregated_long.csv")
+```
+
+split taxa column by taxonomic level
+```{r}
+taxa <- taxa %>%
+  separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"), '\\|') %>%
+  filter(!is.na(Species))
+
+otu <- taxa %>% 
+  select(sample, Species) %>%
+  group_by(sample) %>%
+  summarise(count = n())
+```
+
+```{r}
+write.csv(otu, "../data/mitox_speciesCounts.csv")
+```
+
+
