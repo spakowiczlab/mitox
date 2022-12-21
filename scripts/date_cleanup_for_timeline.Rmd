@@ -1,0 +1,123 @@
+---
+title: "timeline"
+author: "Caroline Wheeler"
+date: '2022-12-13'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+```
+
+read in data
+```{r}
+micSamp <- read.table(file = '/Volumes/spakowicz/mitox/data/labii/mitox-samples-export_2022-10-21.tsv', sep = '\t', header = TRUE, fill = NA)
+tx_start <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22.xlsm", skip = 3)
+redcap <- read.csv("/Volumes/spakowicz/mitox/data/redcap/raw/2022-12-02/P841APilotStudyOfThe_DATA_2022-12-02_1235.csv")
+irAE <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Copy of Mitoxstudy_patient_symptoms_AM_2.xlsx")
+scan_date <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx")
+```
+
+filter to desired values, rename for matching, clean up
+```{r}
+micSamp <- micSamp %>%
+  select(sample_id, Type.of.Sample, Date.Sample.Collected) %>%
+  mutate(patient_id = substr(sample_id, 0, 4)) %>%
+  select(-sample_id) %>%
+  rename(micSample_type = Type.of.Sample,
+         micSamp_date = Date.Sample.Collected) %>%
+  filter(micSamp_date != "") %>%
+  filter(patient_id != "")
+
+tx_start <- tx_start %>%
+  select(`Date of Draw`, MRN, `Cycle #`) %>%
+  rename(tx_date = `Date of Draw`,
+         mrn = MRN,
+         cycle_num = `Cycle #`)
+  
+redcap <- redcap %>%
+  select(mrn, patient_id)
+
+irAE <- irAE %>%
+  select(`Patient Id`, `Date(s)`, `irAE (AM)`) %>%
+  rename(patient_id = `Patient Id`,
+         irAE = `irAE (AM)`) %>%
+  fill(patient_id) %>%
+  mutate(date = openxlsx::convertToDate(`Date(s)`))
+
+scan_date <- scan_date %>%
+  select(`12th Week Scan`, `Baseline Scan`, `Patient Id`) %>%
+  rename(patient_id = `Patient Id`) %>%
+  mutate(baseline_scan = openxlsx::convertToDate(`Baseline Scan`),
+         "12week_scan" =  openxlsx::convertToDate(`12th Week Scan`)) %>%
+  filter(!is.na(patient_id))
+```
+
+further irAE date clean up
+```{r}
+# do we only want irAE == yes on the timeline, if so skip this
+
+# filter to irAE == yes
+irAE <- irAE %>%
+  filter(irAE == "Yes",
+         !is.na(date)) %>%
+  select(patient_id, date) %>%
+# manually fix date == "10/26/20 & 1/4/21" for M012
+  add_row(patient_id = "M012", date = as.Date("2020-10-26")) %>%
+  add_row(patient_id = "M012", date = as.Date("2021-01-04"))
+```
+
+further scan_date date clean up
+```{r}
+# unsure how to interpret 12week scan = "4/7/2022 (compares to 2/1/222)"
+
+scan_date <- scan_date %>%
+  mutate(baseline_scan = if_else(`Baseline Scan` == "5/23/2021 (CT chest)", as.Date("2021-05-23"), 
+                                  if_else(`Baseline Scan` == "9/29/2021(XR)", as.Date("2021-09-29"), baseline_scan)),
+         `12week_scan` = if_else(`12th Week Scan` == "1/25/22 (XR)", as.Date("2021-01-25"), 
+                                 if_else(`12th Week Scan` == "4/7/2022 (compares to 2/1/222)", as.Date("2022-04-07"), `12week_scan`))) %>%
+  select(patient_id, baseline_scan, `12week_scan`) 
+```
+
+reshape
+```{r}
+tx_start <- merge(tx_start, redcap, by="mrn") %>%
+  mutate(event = ifelse((cycle_num == "1" | cycle_num == "1 (before C1, consented early)"), "Cycle 1 Treatment Start", 
+                        ifelse((cycle_num == "2" | cycle_num == "2 Atezo"), "Cycle 2 Treatment Start", "Cycle 3 Treatment Start"))) %>%
+  rename("date" = tx_date) %>%
+  select(patient_id, date, event)
+ 
+irAE$event <- "irAE"
+
+scan_date <- scan_date %>%
+  gather(key = "event", value = "date",
+       baseline_scan, `12week_scan`) %>%
+  filter(!is.na(date)) %>%
+  mutate(event = ifelse(event == "baseline_scan", "Baseline Scan", "12 Week Scan"))
+
+micSamp <- micSamp %>%
+  rename("date" = micSamp_date,
+         "event" = micSample_type) %>%
+  #mutate(event = paste("Microbiome -", event))
+  mutate(event = "Microbiome Sample")
+```
+
+Combine dfs w/ time points 
+```{r}
+timepoints_long <- rbind(irAE, tx_start, micSamp, scan_date)
+timepoints_wide <- 
+
+```
+
+Plot timeline 
+```{r}
+timepoints %>%
+  ggplot(aes(x=date, y=patient_id, col =event, group=patient_id)) +
+  geom_point(aes(date, patient_id, col = event)) +
+  geom_line() +
+  theme_bw()
+```
+

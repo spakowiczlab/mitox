@@ -12,7 +12,7 @@ library(tidyverse)
 ```
 
 ```{r}
-taxa <- read.csv("../data/2022-02-01_mpa_aggregated_long.csv")
+taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
 ```
 
 split taxa column by taxonomic level
