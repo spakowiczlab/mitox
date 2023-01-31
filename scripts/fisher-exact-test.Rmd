@@ -1,0 +1,44 @@
+---
+title: "fisher-exact-test"
+author: "Nyelia Williams"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+```
+
+# Nye's script 
+
+To test whether mitox participants who developed an irAE were more likely to respond to tx.
+
+```{r}
+df <- readxl::read_xlsx("../data/filename")
+```
+
+The bottom script assumes that `df` has (at least these) 4 columns: ID, cohort, recist, and irAE.
+
+First, filter to the metastatic cohort. 
+
+```{r}
+x <- 
+  df %>%
+  filter(cohort == "metastatic")
+```
+
+
+
+```{r}
+table <- table(x$recist, x$irAE)
+table
+```
+
+
+```{r}
+fisher.test(table)
+```
+
