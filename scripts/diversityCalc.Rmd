@@ -14,13 +14,13 @@ library(vegan)
 
 # Load data 
 ```{r}
-taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
+tax_mtphln <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
 tcell <- read.csv("../data/Tcell-senescence_matchedToMicro.csv")
 ```
 
 # Format
 ```{r}
-taxa <- taxa %>%
+taxa <- tax_mtphln %>%
   select(Taxonomy, RelAbun, sample)
 
 taxa <- spread(taxa, Taxonomy, RelAbun) %>%
@@ -43,5 +43,30 @@ test <- test %>%
 tcellDiv <- merge(tcell, test)
 
 write.csv(tcellDiv, "../data/diversityTcell.csv", row.names = F)
+```
+
+```{r}
+tax_mtphln %>%
+  select(Taxonomy, RelAbun, sample) %>%
+  filter(grepl("|s__", Taxonomy, fixed = TRUE)) %>%
+  spread(sample, RelAbun) %>%
+  select(-Taxonomy) %>%  
+  summarise_all(funs(sum(is.na(.)))) %>%
+  gather(key = "sample", value = "n.species") %>%
+  ggplot(aes(x = n.species)) +
+  geom_histogram()
+
+
+```
+
+# Calculate diversity
+```{r}
+# Filter to species
+
+
+test <- as.data.frame(diversity(taxa, index = "simpson"))
+test$sample <- row.names(test)
+test <- test %>%
+  rename("diversity" = "diversity(taxa, index = \"simpson\")")
 ```
 
