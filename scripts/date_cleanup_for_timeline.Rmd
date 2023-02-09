@@ -10,15 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(readxl)
+library(lubridate)
 ```
 
 read in data
 ```{r}
 micSamp <- read.table(file = '/Volumes/spakowicz/mitox/data/labii/mitox-samples-export_2022-10-21.tsv', sep = '\t', header = TRUE, fill = NA)
-tx_start <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22.xlsm", skip = 3)
 redcap <- read.csv("/Volumes/spakowicz/mitox/data/redcap/raw/2022-12-02/P841APilotStudyOfThe_DATA_2022-12-02_1235.csv")
 irAE <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Copy of Mitoxstudy_patient_symptoms_AM_2.xlsx")
 scan_date <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx")
+pt_log <- readxl::read_xlsx("/Volumes/spakowicz/mitox/Patient Logs/OSU 19125 Patient Log.xlsx", skip = 3)
 ```
 
 filter to desired values, rename for matching, clean up
@@ -54,10 +55,7 @@ scan_date <- scan_date %>%
   mutate(baseline_scan = openxlsx::convertToDate(`Baseline Scan`),
          "12week_scan" =  openxlsx::convertToDate(`12th Week Scan`)) %>%
   filter(!is.na(patient_id))
-```
 
-further irAE date clean up
-```{r}
 # do we only want irAE == yes on the timeline, if so skip this
 
 # filter to irAE == yes
@@ -67,11 +65,9 @@ irAE <- irAE %>%
   select(patient_id, date) %>%
 # manually fix date == "10/26/20 & 1/4/21" for M012
   add_row(patient_id = "M012", date = as.Date("2020-10-26")) %>%
-  add_row(patient_id = "M012", date = as.Date("2021-01-04"))
-```
+  add_row(patient_id = "M012", date = as.Date("2021-01-04")) %>%
+  rename("irAE_date" = date)
 
-further scan_date date clean up
-```{r}
 # unsure how to interpret 12week scan = "4/7/2022 (compares to 2/1/222)"
 
 scan_date <- scan_date %>%
@@ -80,6 +76,27 @@ scan_date <- scan_date %>%
          `12week_scan` = if_else(`12th Week Scan` == "1/25/22 (XR)", as.Date("2021-01-25"), 
                                  if_else(`12th Week Scan` == "4/7/2022 (compares to 2/1/222)", as.Date("2022-04-07"), `12week_scan`))) %>%
   select(patient_id, baseline_scan, `12week_scan`) 
+
+# skip treatment start date for now 
+# there are multiple dates listed as treatment start for same patient and same cycle number....
+
+
+```
+patient log dates
+```{r}
+micSamp <- micSamp %>%
+  unique()
+
+pt_log <- pt_log %>%
+  select(`Patient Id`, `EOS Date`, `C1D1 date`) %>%
+  rename("patient_id" = `Patient Id`) 
+```
+
+combine
+```{r}
+temp <- merge(irAE, pt_log, all=TRUE)
+temp <- merge(temp, scan_date, all=TRUE)
+
 ```
 
 reshape
@@ -109,7 +126,6 @@ Combine dfs w/ time points
 ```{r}
 timepoints_long <- rbind(irAE, tx_start, micSamp, scan_date)
 timepoints_wide <- 
-
 ```
 
 Plot timeline 

@@ -1,0 +1,166 @@
+---
+title: "deseq2"
+author: "Caroline Wheeler"
+date: '2023-01-27'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(DESeq2)
+library(reshape2)
+library(data.table)
+```
+
+read in data
+```{r}
+clin <- read.csv("/Volumes/spakowicz/mitox/data/mitox_table_Recist_irae.csv") %>%
+  dplyr::rename("record_id" = Patient.ID,
+         "irAE" = Attribution..Final.)
+taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
+samp.match <- read.csv("../data/mitox_sample_matching.csv") %>%
+  select(sample, record_id)
+```
+
+create binary recist variable and get irAE and Recist datasets
+```{r}
+clin <- merge(clin, samp.match)
+# clin <- clin %>%
+#   mutate(recist = ifelse())
+
+irAE <- clin %>%
+  select(sample, irAE) %>%
+  filter(!is.na(irAE))
+```
+
+split 'Taxonomy' column
+```{r}
+taxa <- taxa %>%
+   dplyr::select(sample, Taxonomy, RelAbun) %>%
+    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
+           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
+           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
+           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
+           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
+           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
+           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
+  filter(!is.na(species))
+```
+
+```{r}
+ggplot(taxa, aes(-log10(RelAbun))) + geom_histogram(binwidth = 0.5)
+ggplot(taxa, aes(-log10(RelAbun*1e1))) + geom_histogram(binwidth = 0.5)
+```
+function to get count tables
+```{r}
+write_desd <- function(taxa, lev){
+  desd <- taxa %>%
+    dplyr::select("sample", all_of(lev), "RelAbun") %>%
+    mutate(count = round(RelAbun*1e1))%>%
+    dplyr::select(-"RelAbun") 
+  
+  return(desd)
+}
+```
+
+get counts
+```{r}
+king <- write_desd(taxa, "kingdom") %>%
+  add_count(sample, kingdom, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="kingdom")
+
+phyl <- write_desd(taxa, "phylum") %>%
+  add_count(sample, phylum, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="phylum")
+
+class <- write_desd(taxa, "class") %>%
+  add_count(sample, class, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="class")
+
+ord <- write_desd(taxa, "order") %>%
+  add_count(sample, order, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="order")
+
+fam <- write_desd(taxa, "family") %>%
+  add_count(sample, family, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="family")
+
+gen <- write_desd(taxa, "genus") %>%
+  add_count(sample, genus, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="genus")
+
+spec <- write_desd(taxa, "species") %>%
+  add_count(sample, species, wt=count) %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames %>%
+  column_to_rownames(var="species")
+```
+
+function to run DESeq
+```{r}
+run_deseq <- function(desd, meta, lev){
+  ord <- rownames(meta)
+  desd <- desd[, ord]
+  dds <- DESeqDataSetFromMatrix(countData = desd,
+                                colData = meta,
+                                design = ~ irAE)
+
+  dds <- DESeq(dds)
+  res <- results(dds)
+  
+  pd <- res$log2FoldChange
+  
+  resPlot <- data.frame(res) %>% mutate(threshold = padj < 0.05)
+  
+  resPlot$level <- lev
+  return(resPlot)
+}
+```
+
+# deseq2 for irAE
+```{r}
+king_rp <- run_deseq(king, irAE, "kingdom")
+phyl_rp <- run_deseq(phyl, irAE, "phylum")
+clas_rp <- run_deseq(class, irAE, "class")
+ord_rp <- run_deseq(ord, irAE, "order")
+fam_rp <- run_deseq(fam, irAE, "family")
+gen_rp <- run_deseq(gen, irAE, "genus")
+spec_rp <- run_deseq(spec, irAE, "species")
+```
+
+```{r}
+resPlot_irAE <- rbind(king_rp, phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
+```
+
+# deseq2 for RECIST
+
+# deseq2 for subset
+
