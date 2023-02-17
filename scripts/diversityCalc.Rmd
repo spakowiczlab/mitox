@@ -12,23 +12,33 @@ library(tidyverse)
 library(vegan)
 ```
 
-# Load data 
+read in data
 ```{r}
-tax_mtphln <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
-tcell <- read.csv("../data/Tcell-senescence_matchedToMicro.csv")
+taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
 ```
 
-# Format
+split 'Taxonomy' column and filter to species level only
 ```{r}
-taxa <- tax_mtphln %>%
-  select(Taxonomy, RelAbun, sample)
-
-taxa <- spread(taxa, Taxonomy, RelAbun) %>%
-  remove_rownames %>% column_to_rownames(var="sample")
-
-taxa[is.na(taxa)] <- 0
+taxa <- taxa %>%
+   dplyr::select(sample, Taxonomy, RelAbun) %>%
+    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
+           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
+           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
+           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
+           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
+           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
+           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
+  filter(!is.na(species))
 ```
 
+long to wide - matrix for calc
+```{r}
+taxa <- taxa %>%
+  select(sample, species, RelAbun) %>%
+  spread(key = species, value = RelAbun, fill = 0) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample")
+```
 
 # Calculate diversity
 ```{r}
@@ -45,28 +55,6 @@ tcellDiv <- merge(tcell, test)
 write.csv(tcellDiv, "../data/diversityTcell.csv", row.names = F)
 ```
 
-```{r}
-tax_mtphln %>%
-  select(Taxonomy, RelAbun, sample) %>%
-  filter(grepl("|s__", Taxonomy, fixed = TRUE)) %>%
-  spread(sample, RelAbun) %>%
-  select(-Taxonomy) %>%  
-  summarise_all(funs(sum(is.na(.)))) %>%
-  gather(key = "sample", value = "n.species") %>%
-  ggplot(aes(x = n.species)) +
-  geom_histogram()
 
 
-```
-
-# Calculate diversity
-```{r}
-# Filter to species
-
-
-test <- as.data.frame(diversity(taxa, index = "simpson"))
-test$sample <- row.names(test)
-test <- test %>%
-  rename("diversity" = "diversity(taxa, index = \"simpson\")")
-```
 
