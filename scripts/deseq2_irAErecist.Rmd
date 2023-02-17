@@ -1,7 +1,7 @@
 ---
-title: "deseq2"
+title: "deseq2 script w/ clean up"
 author: "Caroline Wheeler"
-date: '2023-01-27'
+date: '2023-02-10'
 output: html_document
 ---
 
@@ -13,27 +13,22 @@ library(tidyverse)
 library(ggplot2)
 library(ggrepel)
 library(dplyr)
+
+
+source("../00-paths.R")
 ```
 
 read in data
 ```{r}
-clin <- read.csv("/Volumes/spakowicz/mitox/data/mitox_table_Recist_irae.csv") %>%
+clin <- read.csv(file.path(paths$t, "/mitox/data/mitox_table_Recist_irae.csv")) %>%
   dplyr::rename("record_id" = Patient.ID,
          "irAE" = Attribution..Final.)
 taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
 samp.match <- read.csv("../data/mitox_sample_matching.csv") %>%
   select(sample, record_id)
 
+# add sample names to clinical data
 clin <- merge(clin, samp.match)
-```
-
-get irAE df
-```{r}
-irAE <- clin %>%
-  select(sample, irAE) %>%
-  filter(!is.na(irAE)) %>%
-  distinct() %>%
-  filter(sample %in% taxa$sample) 
 ```
 
 split 'Taxonomy' column
@@ -50,79 +45,82 @@ taxa <- taxa %>%
   filter(!is.na(species))
 ```
 
+get irAE df's
 ```{r}
-ggplot(taxa, aes(-log10(RelAbun))) + geom_histogram(binwidth = 0.5)
-ggplot(taxa, aes(-log10(RelAbun*1e1))) + geom_histogram(binwidth = 0.5)
+irAE <- clin %>%
+  select(sample, irAE) %>%
+  filter(!is.na(irAE)) %>%
+  distinct() %>%
+  filter(sample %in% taxa$sample) 
+
+# filter to taxa with irAE data present
+taxa_irAE <- taxa %>%
+  filter(sample %in% irAE$sample)
 ```
 
-function to get count tables
+get recist df's
 ```{r}
+recist <- clin %>%
+  filter(!is.na(Category)) %>%
+  mutate(response = ifelse(Category == "PD", "NR", "R")) %>%
+  select(sample, response) %>%
+  distinct() %>%
+  filter(sample %in% taxa$sample) 
+
+# filter taxa
+taxa_res <- taxa %>%
+  filter(sample %in% recist$sample)
+```
+
+# get subset df's
+```{r}
+sub <- clin %>%
+  filter(Category != "PD") %>%
+  select(sample, irAE) %>%
+  distinct() %>%
+  filter(sample %in% taxa$sample,
+         !is.na(irAE))
+
+taxa_sub <- taxa %>%
+  filter(sample %in% sub$sample)
+```
+
+
+# ```{r}
+# ggplot(taxa, aes(-log10(RelAbun))) + geom_histogram(binwidth = 0.5)
+# ggplot(taxa, aes(-log10(RelAbun*1e1))) + geom_histogram(binwidth = 0.5)
+# ```
+
+## define functions
+```{r}
+# function to get count tables 
+#
+# @taxa df - long form df of taxa
+# @lev string - name of the taxonomic level
 write_desd <- function(taxa, lev){
   desd <- taxa %>%
     dplyr::select("sample", all_of(lev), "RelAbun") %>%
     mutate(count = round(RelAbun*1e1))%>%
-    dplyr::select(-"RelAbun") 
+    dplyr::select(-"RelAbun")
   
   return(desd)
 }
-```
 
-get counts
-```{r}
-taxa_irAE <- taxa %>%
-  filter(sample %in% irAE$sample)
-
-phyl <- write_desd(taxa_irAE, "phylum") %>%
-  add_count(sample, phylum, wt=count) %>%
+write_desd_part2 <- function(desd){
+  desd <- desd  %>%
   dplyr::select(-"count") %>%
   distinct() %>%
   spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
-  column_to_rownames(var="phylum")
+  remove_rownames
+  
+  return(desd)
+}
 
-class <- write_desd(taxa_irAE, "class") %>%
-  add_count(sample, class, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
-  column_to_rownames(var="class")
-
-ord <- write_desd(taxa_irAE, "order") %>%
-  add_count(sample, order, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
-  column_to_rownames(var="order")
-
-fam <- write_desd(taxa_irAE, "family") %>%
-  add_count(sample, family, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
-  column_to_rownames(var="family")
-
-gen <- write_desd(taxa_irAE, "genus") %>%
-  add_count(sample, genus, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
-  column_to_rownames(var="genus")
-
-spec <- write_desd(taxa_irAE, "species") %>%
-  add_count(sample, species, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
-  column_to_rownames(var="species")
-```
-
-function to run DESeq
-```{r}
+# function to run deseq2
+#
+# @desd
+# @meta
+# @lev
 run_deseq <- function(desd, meta, lev){
   ord <- rownames(meta)
   desd <- desd[, ord]
@@ -142,13 +140,47 @@ run_deseq <- function(desd, meta, lev){
 }
 ```
 
+## irAE
+
+# get irAE count tables
+```{r}
+phyl <- write_desd(taxa_irAE, "phylum") %>%
+  add_count(sample, phylum, wt=count) 
+phyl <- write_desd_part2(phyl) %>% 
+  column_to_rownames(var="phylum")
+
+class <- write_desd(taxa_irAE, "class") %>%
+  add_count(sample, class, wt=count) 
+class <- write_desd_part2(class) %>% 
+  column_to_rownames(var="class")
+
+ord <- write_desd(taxa_irAE, "order") %>%
+  add_count(sample, order, wt=count) 
+ord <- write_desd_part2(ord) %>%
+  column_to_rownames(var="order")
+
+fam <- write_desd(taxa_irAE, "family") %>%
+  add_count(sample, family, wt=count) 
+fam <- write_desd_part2(fam) %>%
+  column_to_rownames(var="family")
+
+gen <- write_desd(taxa_irAE, "genus") %>%
+  add_count(sample, genus, wt=count) 
+gen <- write_desd_part2(gen) %>%
+  column_to_rownames(var="genus")
+
+spec <- write_desd(taxa_irAE, "species") %>%
+  add_count(sample, species, wt=count) 
+spec <- write_desd_part2(spec) %>%
+  column_to_rownames(var="species")
+```
+
 make sure cols and rows match and make samples rownames
 ```{r}
 irAE <- irAE %>% arrange(factor(sample, levels = colnames(fam))) %>%
   remove_rownames() %>%
   column_to_rownames(var = "sample")
 ```
-
 
 # deseq2 for irAE
 ```{r}
@@ -163,77 +195,44 @@ gen_rp <- run_deseq(gen, irAE, "genus")
 # Every gene contains at least one zero, cannot compute log geometric means
 spec_rp <- run_deseq(spec + 1, irAE, "species")
 ```
-
 ```{r}
 resPlot_irAE <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
 # write.csv(resPlot_irAE, "../data/irAE_deseq2_results.csv")
 ```
 
+## RECIST 
 
-## deseq2 for RECIST
-
-get recist df
+# get recist count tables
 ```{r}
-recist <- clin %>%
-  filter(!is.na(Category)) %>%
-  mutate(response = ifelse(Category == "PD", "NR", "R")) %>%
-  select(sample, response) %>%
-  distinct() %>%
-  filter(sample %in% taxa$sample) 
-```
-
-get counts
-```{r}
-taxa_res <- taxa %>%
-  filter(sample %in% recist$sample)
-
 phyl <- write_desd(taxa_res, "phylum") %>%
-  add_count(sample, phylum, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, phylum, wt=count) 
+phyl <- write_desd_part2(phyl) %>% 
   column_to_rownames(var="phylum")
 
 class <- write_desd(taxa_res, "class") %>%
-  add_count(sample, class, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, class, wt=count) 
+class <- write_desd_part2(class) %>% 
   column_to_rownames(var="class")
 
 ord <- write_desd(taxa_res, "order") %>%
-  add_count(sample, order, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, order, wt=count) 
+ord <- write_desd_part2(ord) %>%
   column_to_rownames(var="order")
 
 fam <- write_desd(taxa_res, "family") %>%
-  add_count(sample, family, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, family, wt=count) 
+fam <- write_desd_part2(fam) %>%
   column_to_rownames(var="family")
 
 gen <- write_desd(taxa_res, "genus") %>%
-  add_count(sample, genus, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, genus, wt=count) 
+gen <- write_desd_part2(gen) %>%
   column_to_rownames(var="genus")
 
 spec <- write_desd(taxa_res, "species") %>%
-  add_count(sample, species, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, species, wt=count) 
+spec <- write_desd_part2(spec) %>%
   column_to_rownames(var="species")
 ```
 
@@ -257,75 +256,45 @@ gen_rp <- run_deseq(gen, recist, "genus")
 # Every gene contains at least one zero, cannot compute log geometric means
 spec_rp <- run_deseq(spec + 1, recist, "species")
 ```
+
 ```{r}
 resPlot_recist <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
 # write.csv(resPlot_recist, "../data/recist_deseq2_results.csv")
 ```
 
-## deseq2 for subset
+## SUBSET
 
-get subset df - response includes PR, CR, SD
+# get subset count tables 
 ```{r}
-sub <- clin %>%
-  filter(Category != "PD") %>%
-  select(sample, irAE) %>%
-  distinct() %>%
-  filter(sample %in% taxa$sample,
-         !is.na(irAE))
-```
-
-get counts
-```{r}
-taxa_sub <- taxa %>%
-  filter(sample %in% sub$sample)
-
 phyl <- write_desd(taxa_sub, "phylum") %>%
-  add_count(sample, phylum, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, phylum, wt=count) 
+phyl <- write_desd_part2(phyl) %>% 
   column_to_rownames(var="phylum")
 
 class <- write_desd(taxa_sub, "class") %>%
-  add_count(sample, class, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, class, wt=count) 
+class <- write_desd_part2(class) %>% 
   column_to_rownames(var="class")
 
 ord <- write_desd(taxa_sub, "order") %>%
-  add_count(sample, order, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, order, wt=count) 
+ord <- write_desd_part2(ord) %>%
   column_to_rownames(var="order")
 
 fam <- write_desd(taxa_sub, "family") %>%
-  add_count(sample, family, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, family, wt=count) 
+fam <- write_desd_part2(fam) %>%
   column_to_rownames(var="family")
 
 gen <- write_desd(taxa_sub, "genus") %>%
-  add_count(sample, genus, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, genus, wt=count) 
+gen <- write_desd_part2(gen) %>%
   column_to_rownames(var="genus")
 
 spec <- write_desd(taxa_sub, "species") %>%
-  add_count(sample, species, wt=count) %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames %>%
+  add_count(sample, species, wt=count) 
+spec <- write_desd_part2(spec) %>%
   column_to_rownames(var="species")
 ```
 
@@ -353,6 +322,5 @@ spec_rp <- run_deseq(spec + 1, sub, "species")
 ```{r}
 resPlot_sub <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
-write.csv(resPlot_sub, "../data/irAEsubset_deseq2_results.csv")
+# write.csv(resPlot_sub, "../data/irAEsubset_deseq2_results.csv")
 ```
-
