@@ -21,8 +21,7 @@ source("../00-paths.R")
 read in data
 ```{r}
 clin <- read.csv(file.path(paths$t, "/mitox/data/mitox_table_Recist_irae.csv")) %>%
-  dplyr::rename("record_id" = Patient.ID,
-         "irAE" = Attribution..Final.)
+  dplyr::rename("record_id" = Patient.ID)
 taxa <- read.csv("../data/mpa_aggregated_long_10-5-22.csv")
 samp.match <- read.csv("../data/mitox_sample_matching.csv") %>%
   select(sample, record_id)
@@ -30,6 +29,22 @@ samp.match <- read.csv("../data/mitox_sample_matching.csv") %>%
 # add sample names to clinical data
 clin <- merge(clin, samp.match)
 ```
+
+get irAE column from grade
+yes if grade > 1 
+```{r}
+clin <- clin %>%
+  mutate(irAE = ifelse(CTCAE.grade..final. > 1, "Yes", "No"),
+         irAE = ifelse(is.na(irAE), "No", irAE))
+```
+
+need to take care of duplicate values, some have irAE yes and no 
+```{r}
+clin <- clin %>%
+  arrange(match(irAE, c("Yes", "No"))) %>% 
+  distinct(sample, .keep_all = TRUE)
+```
+
 
 split 'Taxonomy' column
 ```{r}
@@ -195,10 +210,11 @@ gen_rp <- run_deseq(gen, irAE, "genus")
 # Every gene contains at least one zero, cannot compute log geometric means
 spec_rp <- run_deseq(spec + 1, irAE, "species")
 ```
+
 ```{r}
 resPlot_irAE <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
-# write.csv(resPlot_irAE, "../data/irAE_deseq2_results.csv")
+#write.csv(resPlot_irAE, "../data/irAE_deseq2_results.csv")
 ```
 
 ## RECIST 
@@ -322,5 +338,5 @@ spec_rp <- run_deseq(spec + 1, sub, "species")
 ```{r}
 resPlot_sub <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
-# write.csv(resPlot_sub, "../data/irAEsubset_deseq2_results.csv")
+write.csv(resPlot_sub, "../data/irAEsubset_deseq2_results.csv")
 ```
