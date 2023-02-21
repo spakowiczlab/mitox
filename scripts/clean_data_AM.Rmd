@@ -14,7 +14,7 @@ library(readxl)
 
 read in mitox data
 ```{r}
-clin_met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Met_Datasheet.csv", header = TRUE, skip = 1) %>%
+clin_met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Burd-other-data/Patient Data 7-1-22_Met_Datasheet.csv", header = TRUE, skip = 1) %>%
   select("Coded.Sample..", Cohort, "Age.When.Sample.Drawn..years.", "Sex..M.F.", "Smoker..current.former.non.secondhand.", "BMI..kg.m2.") %>%
   rename(MDSC = "Coded.Sample..",
          Category = Cohort,
@@ -27,7 +27,7 @@ clin_met <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patien
          #manually fix MDSC # that has space in the front
          MDSC = ifelse(MDSC == " MDSC-182", "MDSC-182", MDSC))
 
-clin_adj <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Patient Data 7-1-22_Adj_Datasheet.csv", header = TRUE, skip = 1)  %>%
+clin_adj <- read.csv("/Volumes/spakowicz/mitox/Patient Logs/Clinical info/Burd-other-data/Patient Data 7-1-22_Adj_Datasheet.csv", header = TRUE, skip = 1)  %>%
   select("Coded.Sample..", Cohort, "Age.When.Sample.Drawn..years.", "Sex..M.F.","Smoker..current.former.never.second.hand.", "BMI..kg.m2.")  %>%
   rename(MDSC = "Coded.Sample..",
          Category = Cohort,
@@ -95,6 +95,12 @@ fitness <- merge(fitness, fitnessClin) %>%
   select(-redcap_event_name)
 ```
 
+```{r}
+fitness <- fitness %>%
+  rename("diversity" = Simpson.div) %>%
+  select(patient.id, sample, visit, Tcell.Senescence, diversity, Age, Sex, BMI, Smoking_Status)
+```
+
 write fitness CSV
 fill in file path
 ```{r}
@@ -107,6 +113,13 @@ mitox set up
 mitox <- merge(mitox, clin, by="MDSC") %>%
   rename(patient.id = MDSC,
          visit = Type.of.Sample)
+```
+
+```{r}
+mitox <- mitox %>%
+  rename("drug" = Category.x,
+         "drugFull" = Category.y) %>%
+  select(patient.id, sample, visit, Tcell.Senescence, diversity, Age, Sex, BMI, Smoking_Status, drug, drugFull)
 ```
 
 write mitox CSV
