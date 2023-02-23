@@ -1,0 +1,77 @@
+---
+title: "Mitox_volcano"
+author: "Nyelia Williams"
+date: "2023-02-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(tidyverse)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+df1 <- read_csv("../data/recist_deseq2_results.csv")
+
+```
+```{r}
+df2 <- df1 %>%
+  drop_na(padj)
+
+
+```
+
+
+```{r NAs to zero}
+
+df2 <- replace(df2, is.na(df2), 0)
+
+view(df2)
+
+na.omit(df2)
+
+```
+
+
+```{r char to num}
+df2_num <- as.numeric(unlist(df2))
+
+df2_num <- replace(df2_num, is.na(df2_num), 0)
+
+df2_num <- as.numeric(df2_num)
+
+```
+
+```{r NAs to zero}
+
+#mutate_all(df1 ~replace_na(.,0))
+
+
+```
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r volcano plot}
+
+
+ggplot(dat=df2, aes(x=log2FoldChange, y=-log(padj))) + geom_point()
+
+class(df1$log2FoldChange)
+class(df1$padj)
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
