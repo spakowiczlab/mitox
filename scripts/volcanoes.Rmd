@@ -32,6 +32,35 @@ df2 <- df1 %>%
 
 
 
+<<<<<<< Updated upstream
+=======
+#df2 <- replace(df2, is.na(df2), 0)
+
+#view(df2)
+
+#na.omit(df2)
+
+```
+
+
+```{r char to num}
+#df2_num <- as.numeric(unlist(df2))
+
+#df2_num <- replace(df2_num, is.na(df2_num), 0)
+
+#df2_num <- as.numeric(df2_num)
+
+```
+
+```{r NAs to zero}
+
+#mutate_all(df1 ~replace_na(.,0))
+
+#class(df2$log2FoldChange)
+#class(df2$padj)
+
+```
+>>>>>>> Stashed changes
 
 
 ## Including Plots
@@ -43,8 +72,54 @@ You can also embed plots, for example:
 
 ggplot(dat=df2, aes(x=log2FoldChange, y=-log(padj))) + geom_point()
 
+<<<<<<< Updated upstream
 #class(df1$log2FoldChange)
 #class(df1$padj)
+=======
+
+
+```
+
+
+
+
+
+```{r}
+#if padj < 0.05 and Log2foldchange positive
+
+res_vs_non <- df2 %>%
+    mutate(resnon = case_when(log2FoldChange > 0 & padj <= 0.05 ~ "Responder",
+                              log2FoldChange <= 0 & padj >= 0.05 ~ "Non responder",
+                              TRUE ~ "ns"))          
+count(res_vs_non)             
+
+```
+
+
+```{r}
+
+cols <- c("Responder" = "#ffad73", "Non responder" = "#26b3ff", "ns" = "grey") 
+sizes <- c("Responder" = 2, "Non responder" = 2, "ns" = 1) 
+alphas <- c("Responder" = 1, "Non responder" = 1, "ns" = 0.5)
+
+
+res_vs_non %>%
+  ggplot(aes(x = log2(log2FoldChange),
+             y = -log10(padj),
+             fill = resnon,    
+             size = resnon,
+             alpha = resnon)) + 
+  geom_point(shape = 21,     
+             colour = "black") + 
+  geom_hline(yintercept = 1, linetype = "dashed") + 
+  geom_vline(xintercept = c(-0.3, 0.3), linetype = "dashed") +
+  scale_fill_manual(values = cols) + 
+  scale_size_manual(values = sizes) + 
+  scale_alpha_manual(values = alphas) + xlim(-2.5, 2.5) 
+  
+
+
+>>>>>>> Stashed changes
 
 ```
 
