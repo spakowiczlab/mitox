@@ -1,0 +1,3 @@
+name	patient	record_id	freezer_box	box_position	date_processed	time_processed	project	mass	sample_id
+nutricare 2333 4.H6 2023-03-08	2333	2333	4	H6	2023-03-08	11:00	nutricare	NA	2333.230308.1
+nutricare 2333 4.H7 2023-03-08	2333	2333	4	H7	2023-03-08	11:00	nutricare	NA	2333.230308.2

@@ -1,0 +1,63 @@
+---
+title: "Mitox Upset plot"
+author: "Nyelia Williams"
+date: "2023-03-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(UpSetR)
+library(tidyverse)
+library(dplyr)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+df1 <- read_csv("../data/recist_deseq2_results.csv")
+df2 <- read_csv("../data/irAE_deseq2_results.csv")
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+
+df1_res <- df1 %>% mutate(df1_micresp = ifelse(padj <= 0.05 & log2FoldChange > 0, name, NA)) %>% select(df1_micresp) %>% drop_na(df1_micresp)
+                  
+df1_nores <- df1 %>% mutate(df1_micnoresp = ifelse(padj <= 0.05 & log2FoldChange < 0, name, NA)) %>% select(df1_micnoresp) %>% drop_na(df1_micnoresp)
+
+df2_irae <- df2 %>% mutate(df2_micirae = ifelse(padj <= 0.05 & log2FoldChange > 0, name, NA)) %>% select(df2_micirae) %>% drop_na(df2_micirae) 
+
+df2_noirae <- df2 %>% mutate(df2_micnoirae = ifelse(padj <= 0.05 & log2FoldChange < 0, name, NA)) %>% select(df2_micnoirae) %>% drop_na(df2_micnoirae)
+
+
+
+
+x = list(A = df1_res$df1_micresp, 
+               B = df1_nores$df1_micnoresp, 
+               C = df2_irae$df2_micirae, 
+               D = df2_noirae$df2_micnoirae)
+
+
+responders <- list(df1_res)
+
+nonresponders <- list(df1_nores)
+
+irae <- list(df2_irae)
+
+noirae <- list(df2_noirae)
+
+#upset(fromList(x), order.by = "freq")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
