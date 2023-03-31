@@ -29,34 +29,60 @@ df2 <- read_csv("../data/irAE_deseq2_results.csv")
 
 You can also embed plots, for example:
 
-```{r}
+```{r microbes}
 
-df1_res <- df1 %>% mutate(df1_micresp = ifelse(padj <= 0.05 & log2FoldChange > 0, name, NA)) %>% select(df1_micresp) %>% drop_na(df1_micresp)
+df1_res <- df1 %>% 
+  mutate(df1_micresp = ifelse(padj <= 0.05 & log2FoldChange > 0, 
+                              name, NA)) %>% 
+ drop_na(df1_micresp)
                   
-df1_nores <- df1 %>% mutate(df1_micnoresp = ifelse(padj <= 0.05 & log2FoldChange < 0, name, NA)) %>% select(df1_micnoresp) %>% drop_na(df1_micnoresp)
+df1_nores <- df1 %>% 
+  mutate(df1_micnoresp = ifelse(padj <= 0.05 & log2FoldChange < 0, 
+                                name, NA)) %>% 
+  drop_na(df1_micnoresp)
 
-df2_irae <- df2 %>% mutate(df2_micirae = ifelse(padj <= 0.05 & log2FoldChange > 0, name, NA)) %>% select(df2_micirae) %>% drop_na(df2_micirae) 
+df2_irae <- df2 %>% 
+  mutate(df2_micirae = ifelse(padj <= 0.05 & log2FoldChange > 0, 
+                              name, NA)) %>% 
+  drop_na(df2_micirae) 
 
-df2_noirae <- df2 %>% mutate(df2_micnoirae = ifelse(padj <= 0.05 & log2FoldChange < 0, name, NA)) %>% select(df2_micnoirae) %>% drop_na(df2_micnoirae)
-
-
-
-
-x = list(A = df1_res$df1_micresp, 
-               B = df1_nores$df1_micnoresp, 
-               C = df2_irae$df2_micirae, 
-               D = df2_noirae$df2_micnoirae)
+df2_noirae <- df2 %>% 
+  mutate(df2_micnoirae = ifelse(padj <= 0.05 & log2FoldChange < 0, 
+                                name, NA))  %>% 
+  drop_na(df2_micnoirae)
 
 
-responders <- list(df1_res)
 
-nonresponders <- list(df1_nores)
 
-irae <- list(df2_irae)
+x = list(      Responders = df1_res$df1_micresp, 
+               Nonresponders = df1_nores$df1_micnoresp, 
+               Irae = df2_irae$df2_micirae, 
+               Noirae = df2_noirae$df2_micnoirae)
 
-noirae <- list(df2_noirae)
 
-#upset(fromList(x), order.by = "freq")
+length(unique(df1_res$df1_micresp))
+
+#responders <- list(df1_res)
+
+#nonresponders <- list(df1_nores)
+
+#irae <- list(df2_irae)
+
+#noirae <- list(df2_noirae)
+
+```
+
+```{r microbes}
+
+upset(fromList(x), 
+      order.by = "freq")
+
+
+
+#ggsave(filename = "../figures/mitoxupsetplot.png",plot = p1,
+       #height = 7,
+       #width = 7,
+       #dpi=400)
 
 ```
 
