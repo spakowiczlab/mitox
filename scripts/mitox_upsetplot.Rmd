@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(UpSetR)
 library(tidyverse)
 library(dplyr)
+
 ```
 
 ## R Markdown
@@ -22,7 +23,9 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r}
 df1 <- read_csv("../data/recist_deseq2_results.csv")
 df2 <- read_csv("../data/irAE_deseq2_results.csv")
-
+df3 <- read_csv("../data/mitox_sample_matching.csv")
+df4 <- read_csv("../data/MDSCresponse.csv")
+df5irae <- read_xlsx("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")
 ```
 
 ## Including Plots
@@ -85,5 +88,19 @@ upset(fromList(x),
        #dpi=400)
 
 ```
+```{r}
+
+irAE <- df5irae %>%
+  select(`Patient Id`, `Date(s)`, `Attribution (Final)`) %>%
+  rename(patient_id = `Patient Id`,
+         irAE = `Attribution (Final)`) %>%
+  fill(patient_id) %>%
+  mutate(date = openxlsx::convertToDate(`Date(s)`))
+
+
+
+
+```
+
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
