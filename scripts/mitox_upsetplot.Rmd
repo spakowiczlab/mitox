@@ -11,6 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(UpSetR)
 library(tidyverse)
 library(dplyr)
+library(readxl)
+
+
 
 ```
 
@@ -25,7 +28,8 @@ df1 <- read_csv("../data/recist_deseq2_results.csv")
 df2 <- read_csv("../data/irAE_deseq2_results.csv")
 df3 <- read_csv("../data/mitox_sample_matching.csv")
 df4 <- read_csv("../data/MDSCresponse.csv")
-df5irae <- read_xlsx("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")
+df5irae <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")
+
 ```
 
 ## Including Plots
@@ -88,6 +92,8 @@ upset(fromList(x),
        #dpi=400)
 
 ```
+
+
 ```{r}
 
 irAE <- df5irae %>%
@@ -97,10 +103,32 @@ irAE <- df5irae %>%
   fill(patient_id) %>%
   mutate(date = openxlsx::convertToDate(`Date(s)`))
 
+ irAEyes <- irAE %>%
+  filter(irAE == "Yes",
+         !is.na(date)) %>%
+  select(patient_id, date) 
 
+
+ irAEno <- irAE %>%
+  filter(irAE == "No",
+         !is.na(date)) %>%
+  select(patient_id, date)
+
+```
+
+```{r}
+
+y = list(      Irae = irAEyes$patient_id, 
+               Noirae = irAEno$patient_id)
 
 
 ```
 
+```{r}
 
+
+upset(fromList(y), 
+      order.by = "freq")
+
+```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
