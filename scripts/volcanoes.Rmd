@@ -1,0 +1,256 @@
+---
+title: "Mitox_volcano"
+author: "Nyelia Williams"
+date: "2023-02-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(tidyverse)
+library(RColorBrewer)
+library(ggplot2)
+library(ggrepel)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+df1 <- read_csv("../data/recist_deseq2_results.csv")
+df2 <- read_csv("../data/irAE_deseq2_results.csv")
+df3 <- read_csv("../data/irAEsubset_deseq2_results.csv")
+
+```
+
+
+```{r}
+df1_nona <- df1 %>%
+  drop_na(padj)
+
+
+```
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r volcano plot}
+
+
+ggplot(dat=df1_nona, aes(x=log2FoldChange, y=-log(padj))) + geom_point()
+
+#class(df1$log2FoldChange)
+#class(df1$padj)
+
+```
+
+```{r}
+
+tax_groups <- df1_nona %>%
+  mutate(res_non = case_when(log2FoldChange > 0 & padj <= 0.05 ~ "responder",
+                               log2FoldChange < 0 & padj <= 0.05 ~ "non responder",
+                               TRUE ~ "ns"))  
+
+
+
+
+cols <- c("responder" = "#ffad73", "non responder" = "#26b3ff", "ns" = "grey") 
+sizes <- c("responder" = 2, "non responder" = 2, "ns" = 1) 
+alphas <- c("responder" = 1, "non responder" = 1, "ns" = 0.5)
+
+tax_groups %>%
+  ggplot(aes(x = log2FoldChange,
+             y = -log(padj),
+             fill = res_non,    
+             size = res_non,
+             alpha = res_non)) + 
+  geom_point(shape = 21, # Specify shape and colour as fixed local parameters    
+             colour = "black") + 
+  geom_hline(yintercept = -log10(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(log2(0.5), log2(2)),
+             linetype = "dashed") +
+  scale_fill_manual(values = cols) + # Modify point colour
+  scale_size_manual(values = sizes) + # Modify point size
+  scale_alpha_manual(values = alphas) + # Modify point transparency
+  scale_x_continuous(breaks = c(seq(-10, 10, 2)),       
+                     limits = c(-10, 10))  
+
+```
+
+
+```{r Responders vs nonresponders}
+
+df1_nona$log2FoldChange[df2$log2FoldChange > 0 & df2$padj <= 0.05]
+
+ 
+tax_groups <- df1_nona %>% mutate(res_non = case_when(log2FoldChange > 0 & padj <= 0.05 ~ "responder",
+                               log2FoldChange < 0 & padj <= 0.05 ~ "non responder",
+                               TRUE ~ "ns"),
+                             Taxonomic_Level = ifelse(padj < 0.05, level, NA))  
+
+#cols <- c("responder" = "#ffad73", "non responder" = "#26b3ff", "ns" = "grey") 
+
+brbgval <- brewer.pal(5, "BrBG")
+brbgval[3] <- "#ffad73"
+
+
+tax_names <- tax_groups %>% mutate(taxnames = ifelse(padj <= 0.05, name, NA))
+
+tax_names$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names$taxnames)
+
+
+
+tax_names %>%
+  ggplot(aes(x = log2FoldChange,
+             y = -log(padj))) + 
+  geom_point(aes(color= Taxonomic_Level)) +
+  geom_hline(yintercept = -log(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(log2(0.5), log2(2)),
+             linetype = "dashed") + 
+  #scale_color_brewer(palette = "BrBG",na.value = "grey50") +
+  theme_bw() +
+  scale_color_manual(values = brbgval) +
+  geom_label_repel(aes(label = taxnames),
+                  max.overlaps = 10,
+                  force = 50,
+                  force_pull = 10,
+                  min.segment.length = 0.005) +
+  ggtitle("Responders vs. Non-responders") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ ggsave("../figures/mitox_volcanoplot_resnon.png",
+       height = 5,
+       width = 7,
+       dpi=400)
+
+ 
+
+```
+
+```{r irae drop nas}
+
+df2_nona <- df2 %>%
+  drop_na(padj)
+
+```
+
+```{r irae plot}
+
+ggplot(dat=df2_nona, aes(x=log2FoldChange, y=-log(padj))) + geom_point()
+
+df2_nona$log2FoldChange[df2_nona$log2FoldChange > 0 & df2$padj <= 0.05]
+
+ 
+tax_groups_df2 <- df2_nona %>% mutate(Taxonomic_Level = ifelse(padj < 0.05, level, NA))  
+
+#cols <- c("responder" = "#ffad73", "non responder" = "#26b3ff", "ns" = "grey") 
+
+brbgval <- brewer.pal(5, "BrBG")
+brbgval[3] <- "#ffad73"
+
+
+display.brewer.all()
+
+tax_names_df2 <- tax_groups_df2 %>% mutate(taxnames = ifelse(padj <= 0.05, name, NA))
+
+tax_names_df2$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names_df2$taxnames)
+
+
+
+tax_names_df2 %>%
+  ggplot(aes(x = log2FoldChange,
+             y = -log(padj))) + 
+  geom_point(aes(color= Taxonomic_Level)) +
+  geom_hline(yintercept = -log(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(log2(0.5), log2(2)),
+             linetype = "dashed") + 
+  #scale_color_brewer(palette = "BrBG",na.value = "grey50") +
+  theme_bw() +
+  scale_color_manual(values = brbgval) +
+  geom_label_repel(aes(label = taxnames),
+                  max.overlaps = 10,
+                  force = 50,
+                  force_pull = 10,
+                  min.segment.length = 0.005) +
+  ggtitle("irAE and Microbe Abundance") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ ggsave("../figures/mitox_volcanoplot_irae.png",
+       height = 5,
+       width = 7,
+       dpi=400)
+
+```
+
+
+
+```{r drop nas df3}
+df3_nona <- df3 %>%
+  drop_na(padj)
+```
+
+
+```{r irae_subset }
+
+ggplot(dat=df3_nona, aes(x=log2FoldChange, y=-log(padj))) + geom_point()
+
+df3_nona$log2FoldChange[df3_nona$log2FoldChange > 0 & df3$padj <= 0.05]
+
+ 
+tax_groups_df3 <- df3_nona %>% mutate(Taxonomic_Level = ifelse(padj < 0.05, level, NA))  
+
+#cols <- c("responder" = "#ffad73", "non responder" = "#26b3ff", "ns" = "grey") 
+
+brbgval <- brewer.pal(5, "BrBG")
+brbgval[3] <- "#ffad73"
+
+
+tax_names_df3 <- tax_groups_df3 %>% mutate(taxnames = ifelse(padj <= 0.05, name, NA))
+
+tax_names_df3$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names_df3$taxnames)
+
+
+
+tax_names_df3 %>%
+  ggplot(aes(x = log2FoldChange,
+             y = -log(padj))) + 
+  geom_point(aes(color= Taxonomic_Level)) +
+  geom_hline(yintercept = -log(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(log2(0.5), log2(2)),
+             linetype = "dashed") + 
+  #scale_color_brewer(palette = "BrBG",na.value = "grey50") +
+  theme_bw() +
+  scale_color_manual(values = brbgval) +
+  geom_label_repel(aes(label = taxnames),
+                  max.overlaps = 10,
+                  force = 50,
+                  force_pull = 10,
+                  min.segment.length = 0.005) +
+  ggtitle("irAE and Responders") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggsave("../figures/mitox_volcanoplot_iraesubset.png",
+       height = 5,
+       width = 7,
+       dpi=400)
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
