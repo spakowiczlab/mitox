@@ -1,4 +1,4 @@
-name,baseMean,log2FoldChange,lfcSE,stat,pvalue,padj,threshold,level
+Taxonomy,baseMean,log2FoldChange,lfcSE,stat,pvalue,padj,threshold,level
 p__Actinobacteria,34.4516908,1.171264553,0.521059343,2.247852514,0.024585596,0.091197504,FALSE,phylum
 p__Bacteroidetes,672.4661794,0.137654269,0.40081867,0.343432777,0.731272905,0.999999777,FALSE,phylum
 p__Candidatus_Melainabacteria,0.058909486,0.251719203,3.882135966,0.064840388,0.948301084,0.999999777,FALSE,phylum
