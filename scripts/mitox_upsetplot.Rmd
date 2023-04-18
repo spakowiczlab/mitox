@@ -29,6 +29,8 @@ df2 <- read_csv("../data/irAE_deseq2_results.csv")
 df3 <- read_csv("../data/mitox_sample_matching.csv")
 df4 <- read_csv("../data/MDSCresponse.csv")
 df5irae <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")
+df6microbe <- read.csv("../data/2022-02-01_mpa_aggregated_long.csv")
+df7samplematch <- read_csv("../data/mitox_sample_matching.csv")
 
 ```
 
@@ -40,22 +42,22 @@ You can also embed plots, for example:
 
 df1_res <- df1 %>% 
   mutate(df1_micresp = ifelse(padj <= 0.05 & log2FoldChange > 0, 
-                              name, NA)) %>% 
+                              Taxonomy, NA)) %>% 
  drop_na(df1_micresp)
                   
 df1_nores <- df1 %>% 
   mutate(df1_micnoresp = ifelse(padj <= 0.05 & log2FoldChange < 0, 
-                                name, NA)) %>% 
+                                Taxonomy, NA)) %>% 
   drop_na(df1_micnoresp)
 
 df2_irae <- df2 %>% 
   mutate(df2_micirae = ifelse(padj <= 0.05 & log2FoldChange > 0, 
-                              name, NA)) %>% 
+                              Taxonomy, NA)) %>% 
   drop_na(df2_micirae) 
 
 df2_noirae <- df2 %>% 
   mutate(df2_micnoirae = ifelse(padj <= 0.05 & log2FoldChange < 0, 
-                                name, NA))  %>% 
+                                Taxonomy, NA))  %>% 
   drop_na(df2_micnoirae)
 
 
@@ -129,6 +131,18 @@ y = list(      Irae = irAEyes$patient_id,
 
 upset(fromList(y), 
       order.by = "freq")
+
+```
+```{r}
+
+join_mdsc <- full_join(df4, df7samplematch, by = "MDSC #")
+join_fnum <- full_join(join_mdsc, df6microbe, by = "sample")
+join_microbe_res <- left_join(join_fnum, df1_res, by = "Taxonomy")
+
+microbe_res <- join_microbe_res %>% 
+  mutate(micrespond = ifelse(padj <= 0.05 & log2FoldChange > 0, 
+                              Taxonomy, NA)) %>% 
+ drop_na(micrespond)
 
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
