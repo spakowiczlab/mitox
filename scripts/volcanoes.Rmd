@@ -106,7 +106,7 @@ brbgval <- brewer.pal(5, "BrBG")
 brbgval[3] <- "#ffad73"
 
 
-tax_names <- tax_groups %>% mutate(taxnames = ifelse(padj <= 0.05, name, NA))
+tax_names <- tax_groups %>% mutate(taxnames = ifelse(padj <= 0.05, Taxonomy, NA))
 
 tax_names$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names$taxnames)
 
@@ -164,7 +164,7 @@ brbgval[3] <- "#ffad73"
 
 display.brewer.all()
 
-tax_names_df2 <- tax_groups_df2 %>% mutate(taxnames = ifelse(padj <= 0.05, name, NA))
+tax_names_df2 <- tax_groups_df2 %>% mutate(taxnames = ifelse(padj <= 0.05, Taxonomy, NA))
 
 tax_names_df2$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names_df2$taxnames)
 
@@ -219,7 +219,7 @@ brbgval <- brewer.pal(5, "BrBG")
 brbgval[3] <- "#ffad73"
 
 
-tax_names_df3 <- tax_groups_df3 %>% mutate(taxnames = ifelse(padj <= 0.05, name, NA))
+tax_names_df3 <- tax_groups_df3 %>% mutate(taxnames = ifelse(padj <= 0.05, Taxonomy, NA))
 
 tax_names_df3$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names_df3$taxnames)
 
