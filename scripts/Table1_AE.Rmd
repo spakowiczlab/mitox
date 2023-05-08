@@ -18,22 +18,25 @@ library(tableone)
 ```{r}
 demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx")
 ae.stat <- read.csv("T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv")
+ae_att <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table_fisherexact_test.csv")
 ```
 
 # Format
 
 ```{r}
-table.input <- ae.stat %>%
-  select(patient_id, any.yes) %>%
-  mutate(`Patient Id` = patient_id,
-         AE = ifelse(any.yes == "yes", "AE", "no AE")) %>%
+table.input <- ae_att %>%
+  select(Patient.ID, Attribution..Final.) %>%
+  mutate(`Patient Id` = Patient.ID,
+        AE = ifelse(Attribution..Final. == "Yes", "AE", "no AE")) %>%
   left_join(demo.dat) %>%
   mutate(Sex = ifelse(Sex == 'F', 1, 0),
          Metastatic = ifelse(Stage == 4, 1,0)) %>%
-  select(patient_id, AE, Sex, Metastatic, Treatment, Age) %>%
-  filter(!((patient_id == 'M005' | patient_id == "M042" | patient_id == "M056") & AE == "no AE")) %>%
+  select(Patient.ID, AE, Sex, Metastatic, Treatment, Age) %>%
+ filter(!((Patient.ID == 'M005' | Patient.ID == "M042" | Patient.ID == "M056") & AE == "no AE")) %>%
   distinct()
+
 ```
+
 ```{r}
 listVars <- c('Sex', 'Age', 'Metastatic', 'Treatment')
 ```

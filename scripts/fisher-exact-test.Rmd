@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(readxl)
 library(tidyverse)
+library(dplyr)
 ```
 
 # Nye's script 
@@ -17,28 +18,57 @@ library(tidyverse)
 To test whether mitox participants who developed an irAE were more likely to respond to tx.
 
 ```{r}
-df <- readxl::read_xlsx("../data/filename")
+df1 <- readxl::read_xlsx("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx")
+df2 <- readxl::read_xlsx("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")
+df3 <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table_Recist_irae.csv")
+
 ```
 
 The bottom script assumes that `df` has (at least these) 4 columns: ID, cohort, recist, and irAE.
 
 First, filter to the metastatic cohort. 
 
+
+
+```{r combine docs}
+df12 <- left_join(df1,df2, by = "Patient Id")
+
+
+```
+
+
+
 ```{r}
 x <- 
-  df %>%
-  filter(cohort == "metastatic")
+  df12 %>%
+  filter(`Patient Type` == "Met")
+
+y <- x %>% select(`Patient ID`,`Patient Type`, RECIST, Category, `Attribution (Final)`, `CTCAE grade (final)`)
+
+```
+
+```{r writing csv}
+
+write.csv(y, "mitox_table_fisherexact_test.csv", row.names = FALSE)
+
+
+
+```
+
+```{r}
+#table <- table(x$recist, x$irAE)
+#table
 ```
 
 
-
-```{r}
-table <- table(x$recist, x$irAE)
-table
+```{r fisher test}
+fisher.test(table(y$RECIST, y$`Attribution (Final)`))
 ```
+```{r fisher test_2}
+
+fisher.test(table(df3$RECIST, df3$Attribution..Final.))
 
 
-```{r}
-fisher.test(table)
+
 ```
 
