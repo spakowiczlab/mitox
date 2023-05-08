@@ -1,0 +1,72 @@
+---
+title: "quick table 1 for AE"
+author: "Rebecca Hoyd"
+date: "2/9/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(tableone)
+```
+
+# Load data
+
+```{r}
+demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx")
+ae.stat <- read.csv("T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv")
+ae_att <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table_fisherexact_test.csv")
+```
+
+# Format
+```{r}
+filter_met <- demo.dat %>% filter(`Patient Type`== "Met")
+
+
+
+```
+
+
+```{r}
+table.input <- ae_att %>%
+  select(Patient.ID, Attribution..Final.) %>%
+  mutate(`Patient Id` = Patient.ID,
+        AE = ifelse(Attribution..Final. == "Yes", "AE", "no AE")) %>%
+  full_join(demo.dat) %>%
+  mutate(Sex = ifelse(Sex == 'F', 1, 0),
+         Metastatic = ifelse(`Patient Type` == 'Met', 1,0),) 
+           
+         #AE2 = ifelse(is.na(Attribution..Final.)|ifelse(Attribution..Final.) == "Yes", "no AE", "AE"))
+  
+  #select(Patien)
+  #select(Patient Id, AE, Sex, Metastatic, Treatment, Age) #%>%
+ #filter(!((Patient.ID == 'M005' | Patient.ID == "M042" | Patient.ID == "M056") & AE == "no AE")) %>%
+  #distinct()
+
+```
+```{r}
+
+filter_met2 <- table.input %>% filter(`Patient Type`== "Met")
+
+
+table.input3 <- filter_met2 %>% select(`Patient Id`, AE, Sex, Metastatic, Treatment, Age) 
+      
+  
+
+```
+
+
+```{r}
+listVars <- c('Sex', 'Age', 'Metastatic', 'Treatment')
+```
+
+```{r}
+CreateTableOne(vars = listVars, strata = 'AE', data = table.input3)
+```
+
+
+
+
