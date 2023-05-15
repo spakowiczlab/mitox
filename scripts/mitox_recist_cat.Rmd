@@ -1,0 +1,41 @@
+---
+title: "ASCO_2023"
+author: "Nyelia Williams"
+date: "2023-04-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+recist <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+metrecist <- recist %>% 
+            filter(`Patient Type` == "Met") 
+
+y <- metrecist %>% select(`Patient Id`, `MDSC #`, `Patient Type`, `Category`,`Treatment`) %>% drop_na(Category)
+x <- metrecist %>% select(`Patient Id`, `MDSC #`, `Patient Type`, `Category`,`Treatment`)
+
+PD <- y %>% filter(Category == "PD")
+CR <- y %>% filter(Category == "CR")
+PR <- y %>% filter(Category == "PR")
+SD <- y %>% filter(Category == "SD")
+ipinivo <- y %>% filter(Treatment == "IPI/NIVO")
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
