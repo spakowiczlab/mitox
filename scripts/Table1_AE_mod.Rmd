@@ -1,7 +1,7 @@
 ---
-title: "quick table 1 for AE"
-author: "Rebecca Hoyd"
-date: "2/9/2022"
+title: "Mitox demo table"
+author: "Nyelia Williams"
+date: "5/1/2023"
 output: html_document
 ---
 
@@ -11,6 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(tableone)
+library(boot)
+library(dplyr)
+library(table1)
+
+
 ```
 
 # Load data
@@ -19,12 +24,36 @@ library(tableone)
 demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx")
 ae.stat <- read.csv("T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv")
 ae_att <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table_fisherexact_test.csv")
+pfsnonres <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/non_recist_met-pts.xlsx")
+recist <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx")
+res_nondat <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_resnoncombine_mod.csv")
+tabone <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod.csv")
+tabone_met <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod_met.csv")
 ```
 
 # Format
-```{r}
-filter_met <- demo.dat %>% filter(`Patient Type`== "Met")
+```{r responders vs nonresponders}
+recist_resnon <- recist %>%
+  mutate(res_nonresc = ifelse(recist$Category == "PR" | recist$Category == "CR", 
+                          "responder", "nonresponder")) %>%
+                          select(`Patient ID`, `Patient Type`, Category, 
+                                 res_nonresc) %>% drop_na(`Patient ID`)
+                       
 
+                      
+                          
+pfs_resnon <- pfsnonres %>% 
+  mutate(res_nonpfs = ifelse(`12-month PFS` == "Yes", "responder", 
+                          "nonresponder")) %>% select(`Patient ID`, `12-month PFS`, res_nonpfs)
+
+resnoninfo <- left_join(recist_resnon,pfs_resnon, by = "Patient ID")
+
+write.csv(resnoninfo, "mitox_resnoncombine.csv", row.names = FALSE)
+
+```
+
+
+```{r}
 
 
 ```
@@ -34,10 +63,18 @@ filter_met <- demo.dat %>% filter(`Patient Type`== "Met")
 table.input <- ae_att %>%
   select(Patient.ID, Attribution..Final.) %>%
   mutate(`Patient Id` = Patient.ID,
-        AE = ifelse(Attribution..Final. == "Yes", "AE", "no AE")) %>%
+        irAE = ifelse(Attribution..Final. == "Yes", "irAE", "no irAE")) %>%
   full_join(demo.dat) %>%
   mutate(Sex = ifelse(Sex == 'F', 1, 0),
-         Metastatic = ifelse(`Patient Type` == 'Met', 1,0),) 
+         Metastatic = ifelse(`Patient Type` == 'Met', 1,0),
+         Race = ifelse(Race == "White", 1,0)) %>%
+  distinct() %>% drop_na(Race) %>% left_join(res_nondat, by = "Patient.ID") %>%
+  mutate(Response = res_non)
+
+
+write.csv(table.input, "mitox_table1.csv", row.names = FALSE)
+
+#table.input2 <- left_join(table.input,resnoninfodat, by = "Patient ID" )
            
          #AE2 = ifelse(is.na(Attribution..Final.)|ifelse(Attribution..Final.) == "Yes", "no AE", "AE"))
   
@@ -47,12 +84,15 @@ table.input <- ae_att %>%
   #distinct()
 
 ```
+
+
 ```{r}
 
-filter_met2 <- table.input %>% filter(`Patient Type`== "Met")
+#filter_met2 <- table.input %>% filter(`Patient Type`== "Met")
 
 
-table.input3 <- filter_met2 %>% select(`Patient Id`, AE, Sex, Metastatic, Treatment, Age) 
+#table.input3 <- filter_met2 %>% select(`Patient Id`, AE, Sex, Metastatic, Treatment, Age) %>%
+  #distinct()  
       
   
 
@@ -60,13 +100,96 @@ table.input3 <- filter_met2 %>% select(`Patient Id`, AE, Sex, Metastatic, Treatm
 
 
 ```{r}
-listVars <- c('Sex', 'Age', 'Metastatic', 'Treatment')
+#listVars <- c('Sex', 'Age', 'Race', "irAE" ,'Metastatic', 'Treatment', 'Response')
 ```
 
 ```{r}
-CreateTableOne(vars = listVars, strata = 'AE', data = table.input3)
+#CreateTableOne(vars = listVars, strata = 'Response', data = table.input)
+
+#CreateTableOne(vars = listVars, strata = 'Response', data = tabone)
+
+
+```
+
+```{r pvalue}
+# tabonepval <- tabone %>% 
+ # mutate(PValue = apply(., 1, function(x) t.test(x[1:3], x[4:6])$p.value))
+
+```
+
+```{r}
+
+#manually edited tabone file
+table1(data=tabone, ~ Age + Sex + Race + irAE + Cohort + Treatment |Response)
+
+
+
+labels <- list(
+    variables=list(Sex="Sex",
+                   Age="Age (years)",
+                   Race="Race",
+                   irAE="irAE",
+                   Patient.Type= "Patient Type",
+                   Treatment= "Treatment"),
+    groups=list("","Response"))
+
+
+strata <- c(list(Total=tabone), split(tabone, tabone$Response))
+
+
+table1(strata, labels, groupspan=c( 1, 2))
+
+
+```
+
+```{r}
+
+#manually edited tabone_met file
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]
+    y <- unlist(x)
+    g <- factor(rep(1:length(x), times=sapply(x, length)))
+    if (is.numeric(y)) {
+      
+        p <- t.test(y ~ g)$p.value
+    } else {
+       
+        p <- chisq.test(table(y, g))$p.value
+    }
+    
+    c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+
+#labels <- list(
+    #variables=list(Sex="Sex",
+                  # Age="Age (years)",
+                   #Race="Race",
+                   #irAE="irAE",
+                   #Patient.Type= "Patient Type",
+#                   Treatment= "Treatment"),
+#    groups=list("","Response"))
+
+
+#strata <- c(list(Total=tabone), split(tabone, tabone$Response))
+
+
+table1(~ Age + Sex + Race + irAE  + Treatment | Response,
+       data=tabone_met, overall="Total", extra.col=list(`P-value`=pvalue))
+
+
+
+
+
+
+
 ```
 
 
+```{r}
 
+
+
+
+```
 
