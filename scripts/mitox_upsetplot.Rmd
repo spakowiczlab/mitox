@@ -133,9 +133,11 @@ upset(fromList(y),
       order.by = "freq")
 
 ```
+
 ```{r}
 
-join_mdsc <- full_join(df4, df7samplematch, by = "MDSC #")
+#join_mdsc <- full_join(df4, df7samplematch, by = "MDSC #")
+join_mdsc <- full_join(df4, df7samplematch)
 join_fnum <- full_join(join_mdsc, df6microbe, by = "sample")
 join_microbe_res <- left_join(join_fnum, df1_res, by = "Taxonomy")
 

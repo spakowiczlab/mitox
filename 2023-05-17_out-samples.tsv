@@ -1,0 +1,3 @@
+name	patient	record_id	freezer_box	box_position	date_processed	time_processed	project	mass	sample_id
+OROMIC oromic-40 1.E9 2023-05-17	oromic-40	oromic-40	1	E9	2023-05-17	10:15	OROMIC	NA	oromic-40.230517.1
+OROMIC oromic-40 1.F1 2023-05-17	oromic-40	oromic-40	1	F1	2023-05-17	10:15	OROMIC	NA	oromic-40.230517.2
