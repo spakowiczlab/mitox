@@ -33,7 +33,8 @@ get start and end date
 ```{r}
 pt_log <- pt_log %>% 
   select(`Patient Id`, `C1D1 date`, `EOS Date`) %>%
-  filter(!is.na(`C1D1 date`)) %>%
+  filter(!is.na(`C1D1 date`),
+         !is.na(`EOS Date`)) %>%
   mutate(`C1D1 date` = as.Date(`C1D1 date`),
          `EOS Date` = as.Date(`EOS Date`))
 ```
@@ -113,7 +114,47 @@ timepoints <- dates %>%
   filter(!is.na(Date)) %>%
   mutate(`Sample Type` = ifelse(Timepoint %in% c("Baseline", "Control", "AE", "12wk"), "Microbiome", Timepoint))
 ```
- plot timeline
+ 
+# OLD ISSUES - RESOLVED
+
+M010 doesn’t have an EOS date
+- dropped out 
+- remove from timeline 
+```{r}
+timepoints <- timepoints %>%
+  filter(!(`Patient Id` == "M010"))
+```
+
+M005 has Baseline at -155 days (prior to C1D1 date)
+- should only have 1 sample ?
+M006 has Baseline at -6 days (prior to C1D1 date)
+
+# samples sent after EOS - remove? 
+M001 has Control 18 days after EOS
+M001 has Control 46 days after EOS
+M014 has Control 39 days after EOS
+M017 has Control 32 days after EOS
+
+# OLD ISSUES - UNRESOLVED
+
+M100 has an irAE at -183 days (prior to C1D1 date)
+M059 has irAE 19 days after EOS
+M085 has irAE same day as EOS
+
+M085 Baseline at -7 days (prior to C1D1 date)
+
+M041 has AE sample 14 days after EOS
+
+M059 has irAE 19 days after EOS
+
+
+# NEW ISSUES - UNRESOLVED
+
+M005 has irAE 134 after EOS
+M060 has basleine -6 days (prior to C1D1 date)
+
+ 
+plot timeline
 ```{r}
 timepoints %>%
   ggplot(aes(x=Date, y=`Patient Id`, col=Timepoint, group=`Patient Id`)) +
@@ -125,6 +166,28 @@ timepoints %>%
 ggsave(file = "../figures/patient_timeline.png", dev = "png", width = 5, height = 9)
 ```
  
+# remove people without baseline samples
+```{r}
+pts.w.base <- timepoints %>%
+  filter(Timepoint == "Baseline") 
+
+pts.w.base <- pts.w.base$`Patient Id`
+
+timepoints.w.base <- timepoints %>%
+  filter(`Patient Id` %in% pts.w.base)
+```
+
+```{r}
+timepoints.w.base %>%
+  ggplot(aes(x=Date, y=`Patient Id`, col=Timepoint, group=`Patient Id`)) +
+  geom_point(aes(Date, `Patient Id`, col = Timepoint, shape = `Sample Type`)) +
+  geom_line() +
+  scale_color_manual(values = c("darkslateblue","red3","cyan4", "darkgoldenrod2", "darkgreen", "salmon2", "cornflowerblue", "deeppink4")) +
+  theme_bw() 
+
+ggsave(file = "../figures/patient_timeline_wBase.png", dev = "png", width = 5, height = 9)
+```
+
 
 
 filter to desired values, rename for matching, clean up
