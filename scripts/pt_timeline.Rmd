@@ -13,6 +13,7 @@ library(readxl)
 library(lubridate)
 library(reshape2)
 library(gt)
+library(openxlsx)
 ```
 
 path to t drive
@@ -28,10 +29,28 @@ irAE <- readxl::read_xlsx(file.path(paths.tdrive,"Patient Logs/Clinical info/Mit
 recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx"))
 micSamp <- read.table(file.path(paths.tdrive, '/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
 
-#redcap <- read.csv(file.path(paths.tdrive, "/data/redcap/raw/2022-12-02/P841APilotStudyOfThe_DATA_2022-12-02_1235.csv"))
+blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Patient Logs/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
+blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Patient Logs/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
+blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Patient Logs/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
 
-# need blood data!!!
+#redcap <- read.csv(file.path(paths.tdrive, "/data/redcap/raw/2022-12-02/P841APilotStudyOfThe_DATA_2022-12-02_1235.csv"))
 ```
+
+make MDSC M0 matching key
+```{r}
+key <- pt_log %>%
+  select(`Patient Id`, `MDSC #`) %>%
+  filter(!is.na(`MDSC #`))
+```
+
+make met/adj key
+```{r}
+met.key <- recist.scan %>%
+  select(`Patient ID`, `Patient Type`) %>%
+  rename(`Patient Id` = `Patient ID`) %>%
+  filter(`Patient Type` == "Met")
+```
+
 
 clean up start and stop study dates
 ```{r}
@@ -96,61 +115,116 @@ temp <- micSamp %>%
 micSamp <- reshape(temp, idvar = c("Patient Id", "sample_id"), timevar = "Type.of.Sample", direction = "wide")
 ```
 
-merge date data
-
+clean up blood data 
 ```{r}
-dfs <- list(pt_log,  irAE, recist, micSamp, scan)
+blood.adj <- blood.adj %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  select(`Coded.Sample.#`, Date.of.Draw)
+
+blood.met <- blood.met %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  select(`Coded.Sample.#`, Date.of.Draw)
+
+blood.metj <- blood.metj %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  select(`Coded.Sample.#`, Date.of.Draw)
+
+blood <- rbind(blood.adj, blood.met, blood.metj) %>%
+  mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9)) %>%
+  left_join(key) %>%
+  filter(!is.na(`Patient Id`)) %>%
+  mutate(Blood.date = openxlsx::convertToDate(Date.of.Draw)) %>%
+  select(`Patient Id`, Blood.date)
+```
+
+
+merge date data
+```{r}
+dfs <- list(pt_log,  irAE, recist, micSamp, scan, blood)
 dates <- dfs %>% reduce(full_join, by='Patient Id')
 ```
 
 calculate days
-
 ```{r}
 dates <- dates %>%
  mutate("Start Study" = 0,
         "End Study" =  `EOS Date` - `C1D1 date`,
         "irAE" = irAE_date - `C1D1 date`,
-        "irAE.bin" = ifelse(is.na(irAE), "No irAE", "irAE"),
+        "irAE.bin" = ifelse(is.na(irAE), "irAE-no", "irAE-yes"),
         "Baseline" = date.Baseline - `C1D1 date`, 
         "Control" = date.Control - `C1D1 date`,
         "AE" = date.AE - `C1D1 date`,
         "12wk" = date.12wk - `C1D1 date`,
         "Baseline.scan" = CT.baseline - `C1D1 date`,
-        "12wk.scan" = CT.12wk - `C1D1 date`,)
+        "12wk.scan" = CT.12wk - `C1D1 date`,
+        "Blood" = Blood.date - `C1D1 date`,)
         #"Other.scan" = CT.other - `C1D1 date`,)
 ```
 
 wide to long
++
+filter to timepoints within 21 days prior to start and within 16 wks of start
 ```{r}
-timepoints <- dates %>%
-  select(`Patient Id`, `Start Study`,`End Study`, `irAE`, `irAE.bin`, recist, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`) %>%
-  gather("Timepoint", "Date", c(`Start Study`,`End Study`, `irAE`, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`)) %>%
-  filter(!is.na(Date)) %>%
-  mutate(irAE = ifelse(Timepoint == "irAE", Date, NA),
+timepoints.filt <- dates %>%
+  select(`Patient Id`, `Start Study`,`End Study`, `irAE`, `irAE.bin`, recist, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, `Blood`) %>%
+  gather("Timepoint", "Date", c(`Start Study`,`End Study`, `irAE`, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, `Blood`)) %>%
+
+  # additional filtering step  
+  filter(!is.na(Date),
+         Date <= 113,
+         Date > -21,
+  # has a microbiome sample 
+        `Patient Id` %in% micSamp$`Patient Id`) %>%
+  
+ mutate(irAE = ifelse(Timepoint == "irAE", Date, NA),
          Microbiome = ifelse(Timepoint %in% c("Baseline", "Control", "AE", "12wk"), Date, NA),
          CT.scan = ifelse(grepl("scan", Timepoint), Date, NA),
-         Date = ifelse(Timepoint %in% c("Start Study", "End Study"), Date, NA)) %>%
-  group_by(`Patient Id`) %>%
-  mutate(max_day = max(Date)) %>%
-  ungroup() %>%
-  mutate(`Patient Id` = fct_reorder(factor(`Patient Id`), max_day))
+         Blood = ifelse(Timepoint == "Blood", Date, NA),
+         Date = ifelse(Timepoint %in% c("Start Study", "End Study"), Date, NA)) 
+  # group_by(`Patient Id`) %>%
+  # mutate(max_day = max(Date)) %>%
+  # ungroup() %>%
+  # mutate(`Patient Id` = fct_reorder(factor(`Patient Id`), max_day))
 ```
 
-Plot timeline
+plot timeline
 ```{r}
-timepoints %>%
+cols <- c("irAE-yes" = "cadetblue3",
+          "irAE-no" = "azure2",
+          "irAE" = "black",
+          "CT Scan" = "orange",
+          "Blood" = "red3",
+          "Microbiome" = "darkgreen")
+
+shape_override <- c(2, 15, 4, NA, NA, 21)
+line_override <- c(NA, NA, NA, 1, 1, NA) 
+stroke_override <- c(1 ,1 , 1 , 1 , 1, 1) 
+size_override <- c(1, 1, 1, 1.8, 1.8, 1)
+
+timepoints.filt %>%
   ggplot() + 
   geom_line(aes(x = Date, y =`Patient Id`, col=irAE.bin, group = `Patient Id`), size=1.8) +
-  scale_color_manual(values = c("dodgerblue4", "lightblue")) +
-  geom_point(aes(x = irAE, y =`Patient Id`), stroke = 1, shape = 4, color = "red3") +
-  geom_point(aes(x = Microbiome, y = `Patient Id`), stroke= 1, shape=21, color = "darkgreen") +
-  geom_point(aes(x = CT.scan, y = `Patient Id`), stroke=1, shape=15, color = "orange") + 
+  #scale_color_manual(values = c("cadetblue3", "azure2")) +
+  geom_point(aes(x = irAE, y =`Patient Id`, col = "irAE"), stroke = 1, shape = 4) +
+  geom_point(aes(x = CT.scan, y = `Patient Id`, col = "CT Scan"), stroke=1, shape=15) + 
+  geom_point(aes(x = Blood, y = `Patient Id`, col = "Blood"), stroke=1, shape=2) +
+  geom_point(aes(x = Microbiome, y = `Patient Id`, col = "Microbiome"), stroke= 1, shape=21) +
   theme_bw() +
-  facet_grid(rows = vars(recist), scales = "free_y")
+  facet_grid(rows = vars(recist), scales = "free_y", space = "free_y") +
+  scale_color_manual(values = cols, name="Timepoint") +
+    guides(color = guide_legend(
+                        override.aes = list(
+                                stroke = stroke_override,
+                                shape = shape_override,
+                                linetype = line_override,
+                                size = size_override)
+                                )
+    ) +
+  xlab("Days") +
+  ylab("Patient ID")
 
-ggsave(file = "../figures/patient_timeline_wBase.png", dev = "png", width = 5, height = 9)
+ggsave(file = "../figures/patient_timeline_timepointsFilt.png", dev = "png", width = 5, height = 9)
 ```
-
 
 
 
@@ -168,5 +242,5 @@ ggplot() +
   geom_rect(data = ribbon,
             aes(ymin = rib.low, ymax = rib.hi),
             alpha = .5,
-            xmin = 0, xmax = 755) +
+            xmin = 0, xmax = 755) 
 ```
