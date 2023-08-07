@@ -78,10 +78,10 @@ clean up recist
 ```{r}
 recist <- recist.scan %>%
   select(`Patient ID`, Category) %>%
-  filter(!is.na(Category),
-         !is.na(`Patient ID`)) %>%
+  filter(!is.na(`Patient ID`)) %>%
   rename(`Patient Id` = `Patient ID`) %>%
-  mutate(recist = ifelse(Category %in% c("CR", "PR"), "Responder", "Non-Responder"))
+  mutate(recist = ifelse(Category %in% c("CR", "PR"), "Responder", 
+                         ifelse(Category %in% c("PD", "SD"), "Non-Responder", "Unknown/Unmeasured")))
 ```
 
 clean up scan date
@@ -187,6 +187,13 @@ timepoints.filt <- dates %>%
   # mutate(`Patient Id` = fct_reorder(factor(`Patient Id`), max_day))
 ```
 
+<!-- filter to met -->
+<!-- ```{r} -->
+<!-- timepoints.filt <- timepoints.filt %>% -->
+<!--   filter(`Patient Id` %in% met.key$`Patient Id`) -->
+<!-- ``` -->
+
+
 plot timeline
 ```{r}
 cols <- c("irAE-yes" = "cadetblue3",
@@ -223,7 +230,7 @@ timepoints.filt %>%
   xlab("Days") +
   ylab("Patient ID")
 
-ggsave(file = "../figures/patient_timeline_timepointsFilt.png", dev = "png", width = 5, height = 9)
+ggsave(file = "../figures/patient_timeline.png", dev = "png", width = 5, height = 9)
 ```
 
 
