@@ -25,13 +25,14 @@ paths.tdrive <- "/Volumes/spakowicz/mitox"
 read in data
 ```{r}
 pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3)
-irAE <- readxl::read_xlsx(file.path(paths.tdrive,"Patient Logs/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx"))
-recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx"))
+irAE <- readxl::read_xlsx(file.path(paths.tdrive,"Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx"))
+# old.recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx"))
+recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"))
 micSamp <- read.table(file.path(paths.tdrive, '/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
 
-blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Patient Logs/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
-blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Patient Logs/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
-blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Patient Logs/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
+blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
+blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
+blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
 
 #redcap <- read.csv(file.path(paths.tdrive, "/data/redcap/raw/2022-12-02/P841APilotStudyOfThe_DATA_2022-12-02_1235.csv"))
 ```
