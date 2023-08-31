@@ -162,14 +162,12 @@ dates <- dates %>%
         #"Other.scan" = CT.other - `C1D1 date`,)
 ```
 
-<!-- wide to long - save dates in rds for Nye analysis -->
+<!-- Object for Nye to work with -->
 <!-- ```{r} -->
 <!-- dates.save <- dates %>% -->
-<!--   select(`Patient Id`, `Start Study`, `End Study`, irAE, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood) %>% -->
-<!--   gather("Timepoint", "Days", c(`Start Study`, `End Study`, irAE, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood)) %>% -->
-<!--   filter(!is.na(Days)) %>% -->
-<!--   distinct() %>% -->
-<!--   mutate(Timepoint = ifelse(Timepoint %in% c("Baseline", "Control", "AE", "12wk"), "Microbiome", Timepoint)) -->
+<!--   mutate(Microbiome.date = coalesce(date.Control, date.Baseline, date.AE, date.12wk), -->
+<!--          Microbiome.days = coalesce(Baseline, Control, AE, `12wk`)) %>% -->
+<!--   select(`Patient Id`, irAE_date, sample_id, Microbiome.date, irAE, Microbiome.days) -->
 
 <!-- saveRDS(dates.save, "../data/dates.rds") -->
 <!-- ``` -->
