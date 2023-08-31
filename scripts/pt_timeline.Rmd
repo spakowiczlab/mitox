@@ -162,6 +162,18 @@ dates <- dates %>%
         #"Other.scan" = CT.other - `C1D1 date`,)
 ```
 
+<!-- wide to long - save dates in rds for Nye analysis -->
+<!-- ```{r} -->
+<!-- dates.save <- dates %>% -->
+<!--   select(`Patient Id`, `Start Study`, `End Study`, irAE, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood) %>% -->
+<!--   gather("Timepoint", "Days", c(`Start Study`, `End Study`, irAE, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood)) %>% -->
+<!--   filter(!is.na(Days)) %>% -->
+<!--   distinct() %>% -->
+<!--   mutate(Timepoint = ifelse(Timepoint %in% c("Baseline", "Control", "AE", "12wk"), "Microbiome", Timepoint)) -->
+
+<!-- saveRDS(dates.save, "../data/dates.rds") -->
+<!-- ``` -->
+
 wide to long
 +
 filter to timepoints within 21 days prior to start and within 16 wks of start
@@ -170,12 +182,12 @@ timepoints.filt <- dates %>%
   select(`Patient Id`, `Start Study`,`End Study`, `irAE`, `irAE.bin`, recist, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, `Blood`) %>%
   gather("Timepoint", "Date", c(`Start Study`,`End Study`, `irAE`, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, `Blood`)) %>%
 
-  # additional filtering step  
-  filter(!is.na(Date),
-         Date <= 113,
-         Date > -21,
-  # has a microbiome sample 
-        `Patient Id` %in% micSamp$`Patient Id`) %>%
+  # # additional filtering step  
+  # filter(!is.na(Date),
+  #        Date <= 113,
+  #        Date > -21,
+  # # has a microbiome sample 
+  #       `Patient Id` %in% micSamp$`Patient Id`) %>%
   
  mutate(irAE = ifelse(Timepoint == "irAE", Date, NA),
          Microbiome = ifelse(Timepoint %in% c("Baseline", "Control", "AE", "12wk"), Date, NA),
@@ -188,11 +200,12 @@ timepoints.filt <- dates %>%
   # mutate(`Patient Id` = fct_reorder(factor(`Patient Id`), max_day))
 ```
 
-<!-- filter to met -->
-<!-- ```{r} -->
-<!-- timepoints.filt <- timepoints.filt %>% -->
-<!--   filter(`Patient Id` %in% met.key$`Patient Id`) -->
-<!-- ``` -->
+filter to met
+```{r}
+timepoints.filt <- timepoints.filt %>%
+  filter(`Patient Id` %in% met.key$`Patient Id`) %>%
+  mutate(recist = ifelse(recist == "Unknown/Unmeasured", NA, recist))
+```
 
 
 plot timeline
@@ -231,7 +244,8 @@ timepoints.filt %>%
   xlab("Days") +
   ylab("Patient ID")
 
-ggsave(file = "../figures/patient_timeline.png", dev = "png", width = 5, height = 9)
+#ggsave(file = "../figures/patient_timeline.png", dev = "png", width = 5, height = 9)
+ggsave(file = "../figures/patient_timeline_MET.png", dev = "png", width = 5, height = 9)
 ```
 
 
