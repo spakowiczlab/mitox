@@ -94,11 +94,13 @@ tax_groups %>%
 
 df1_nona$log2FoldChange[df2$log2FoldChange > 0 & df2$padj <= 0.05]
 
- 
-tax_groups <- df1_nona %>% mutate(res_non = case_when(log2FoldChange > 0 & padj <= 0.05 ~ "responder",
-                               log2FoldChange < 0 & padj <= 0.05 ~ "non responder",
-                               TRUE ~ "ns"),
-                             Taxonomic_Level = ifelse(padj < 0.05, level, NA))  
+
+tax_groups <- df1_nona %>%
+  mutate(res_non = case_when(log2FoldChange > 0 & padj <= 0.05 ~ "responder",
+                             log2FoldChange < 0 & padj <= 0.05 ~ "non responder",
+                             TRUE ~ "ns"),
+         Taxonomic_Level = ifelse(padj < 0.05, level, NA))  
+
 
 #cols <- c("responder" = "#ffad73", "non responder" = "#26b3ff", "ns" = "grey") 
 
@@ -111,6 +113,8 @@ tax_names <- tax_groups %>% mutate(taxnames = ifelse(padj <= 0.05, Taxonomy, NA)
 tax_names$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names$taxnames)
 
 
+df1.blautia <-tax_names %>%
+  filter(grepl("Blautia", Taxonomy) & threshold == T)
 
 tax_names %>%
   ggplot(aes(x = log2FoldChange,
@@ -124,16 +128,21 @@ tax_names %>%
   theme_bw() +
   scale_color_manual(values = brbgval) +
   geom_label_repel(aes(label = taxnames),
-                  max.overlaps = 10,
-                  force = 50,
-                  force_pull = 10,
-                  min.segment.length = 0.005) +
+                   max.overlaps = 5,
+                   force = 50,
+                   force_pull = 10,
+                   min.segment.length = 0.005) +
+  geom_label_repel(data = df1.blautia,aes(label = taxnames),
+                   max.overlaps = 5,
+                   force = 50,
+                   force_pull = 10,
+                   min.segment.length = 0.005) +
   ggtitle("Responders vs. Non-responders") +
   theme(plot.title = element_text(hjust = 0.5))
 
  ggsave("../figures/mitox_volcanoplot_resnon.png",
-       height = 5,
-       width = 7,
+       height = 7,
+       width = 10,
        dpi=400)
 
  
@@ -223,7 +232,8 @@ tax_names_df3 <- tax_groups_df3 %>% mutate(taxnames = ifelse(padj <= 0.05, Taxon
 
 tax_names_df3$taxnames <- gsub("s__|f__|o__|g__|c__", "", tax_names_df3$taxnames)
 
-
+df3.blautia <-tax_names_df3 %>%
+  filter(grepl("Blautia", Taxonomy) & threshold == T)
 
 tax_names_df3 %>%
   ggplot(aes(x = log2FoldChange,
@@ -237,17 +247,22 @@ tax_names_df3 %>%
   theme_bw() +
   scale_color_manual(values = brbgval) +
   geom_label_repel(aes(label = taxnames),
-                  max.overlaps = 10,
+                  max.overlaps = 5,
                   force = 50,
                   force_pull = 10,
                   min.segment.length = 0.005) +
+  geom_label_repel(data = df3.blautia,aes(label = taxnames),
+                   max.overlaps = 5,
+                   force = 50,
+                   force_pull = 10,
+                   min.segment.length = 0.005) +
   ggtitle("irAE and Responders") +
   theme(plot.title = element_text(hjust = 0.5))
 
 
 ggsave("../figures/mitox_volcanoplot_iraesubset.png",
-       height = 5,
-       width = 7,
+       height = 7,
+       width = 10,
        dpi=400)
 
 ```
