@@ -13,7 +13,9 @@ library(readxl)
 library(tableone)
 library(boot)
 library(dplyr)
-library(table1)
+
+
+remotes::install_github("benjaminrich/table1")
 
 
 ```
@@ -24,11 +26,11 @@ library(table1)
 demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx")
 ae.stat <- read.csv("T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv")
 ae_att <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table_fisherexact_test.csv")
-pfsnonres <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/non_recist_met-pts.xlsx")
-recist <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx")
+pfsnonres <- read_excel("T:/Labs/Spakowicz/mitox/Clinical info/non_recist_met-pts.xlsx")
+recist <- read_excel("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")
 res_nondat <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_resnoncombine_mod.csv")
 tabone <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod.csv")
-tabone_met <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod_met.csv")
+tabone_met <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod_met_samponly.csv")
 ```
 
 # Format
@@ -175,7 +177,7 @@ pvalue <- function(x, ...) {
 
 
 table1(~ Age + Sex + Race + irAE  + Treatment | Response,
-       data=tabone_met, overall="Total", extra.col=list(`P-value`=pvalue))
+       data=tabone_met, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
 
 
 
