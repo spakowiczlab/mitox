@@ -13,9 +13,10 @@ library(readxl)
 library(tableone)
 library(boot)
 library(dplyr)
+library(table1)
+library(tidyr)
 
-
-remotes::install_github("benjaminrich/table1")
+install.packages("table1")
 
 
 ```
@@ -25,56 +26,64 @@ remotes::install_github("benjaminrich/table1")
 ```{r}
 demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx")
 ae.stat <- read.csv("T:/Labs/Spakowicz/mitox/data/table_patients-with-AE_baseline-samps.csv")
-ae_att <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table_fisherexact_test.csv")
-pfsnonres <- read_excel("T:/Labs/Spakowicz/mitox/Clinical info/non_recist_met-pts.xlsx")
+pfsnonres <- readxl::read_xlsx(file.path("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"), sheet = "No_RECIST_Patients_w_samps")
 recist <- read_excel("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")
-res_nondat <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_resnoncombine_mod.csv")
-tabone <- read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod.csv")
-tabone_met <-read.csv("T:/Labs/Spakowicz/mitox/data/mitox_table1_mod_met_samponly.csv")
+tabone <- read.csv("C:/Users/wil407/Documents/GitHub/mitox/data/mitox_table1.csv")
+iraetab <- read_excel("T:/Labs/spakowicz/mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")
 ```
 
 # Format
 ```{r responders vs nonresponders}
-recist_resnon <- recist %>%
-  mutate(res_nonresc = ifelse(recist$Category == "PR" | recist$Category == "CR", 
+recist_pts <- recist %>%
+  mutate(pts = ifelse(recist$Category == "PR" | recist$Category == "CR", 
                           "responder", "nonresponder")) %>%
-                          select(`Patient ID`, `Patient Type`, Category, 
-                                 res_nonresc) %>% drop_na(`Patient ID`)
+                          select(`Patient.ID`, Cohort, Category, 
+                                 pts) %>% drop_na(`Patient.ID`)
                        
 
                       
                           
-pfs_resnon <- pfsnonres %>% 
-  mutate(res_nonpfs = ifelse(`12-month PFS` == "Yes", "responder", 
-                          "nonresponder")) %>% select(`Patient ID`, `12-month PFS`, res_nonpfs)
+pfs_pts <- pfsnonres %>% 
+  mutate(pts = ifelse(`12-month PFS` == "Yes", "responder", 
+                          "nonresponder")) %>% select(`Patient.ID`, `12-month PFS`, pts) %>% drop_na(`12-month PFS`)
 
-resnoninfo <- left_join(recist_resnon,pfs_resnon, by = "Patient ID")
+responsepts_mut <- left_join(recist_pts,pfs_pts, by = "Patient.ID") %>% 
+                    select(Patient.ID, Cohort, Category, pts.x, pts.y)
 
 write.csv(resnoninfo, "mitox_resnoncombine.csv", row.names = FALSE)
 
+responsepts <- responsepts_mut %>% unite('Response', pts.x:pts.y, remove = FALSE, na.rm = TRUE) %>%
+                                   select(Patient.ID, Cohort, Category, Response)
+
+
+```
+
+
+```{r irae}
+irae <- iraetab %>% select(Patient.ID, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`) %>%
+                    filter(grepl("Yes",`Attribution (Final)` ))  %>% 
+        mutate(`Patient Id` = Patient.ID, irAE = ifelse( `Attribution (Final)` == "Yes", "irAE", "no irAE"))
+
+irae_full <- iraetab %>% select(Patient.ID, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`) %>% 
+        mutate(`Patient Id` = Patient.ID, irAE = ifelse( `Attribution (Final)` == "Yes", "irAE", "no irAE"))
+
 ```
 
 
 ```{r}
-
-
-```
-
-
-```{r}
-table.input <- ae_att %>%
-  select(Patient.ID, Attribution..Final.) %>%
-  mutate(`Patient Id` = Patient.ID,
-        irAE = ifelse(Attribution..Final. == "Yes", "irAE", "no irAE")) %>%
+table.input <- irae_full %>%
+  #select(Patient.ID, Attribution..Final.) %>%
+  #mutate(`Patient Id` = Patient.ID,
+        #irAE = ifelse(Attribution..Final. == "Yes", "irAE", "no irAE")) %>%
   full_join(demo.dat) %>%
   mutate(Sex = ifelse(Sex == 'F', 1, 0),
-         Metastatic = ifelse(`Patient Type` == 'Met', 1,0),
+         Metastatic = ifelse(Cohort == 'Met', 1,0),
          Race = ifelse(Race == "White", 1,0)) %>%
-  distinct() %>% drop_na(Race) %>% left_join(res_nondat, by = "Patient.ID") %>%
-  mutate(Response = res_non)
+  distinct() %>% drop_na(Race) #%>% left_join(res_nondat, by = "Patient.ID") %>%
+  #mutate(Response = res_non)
 
 
-write.csv(table.input, "mitox_table1.csv", row.names = FALSE)
+#write.csv(table.input, "mitox_table1.csv", row.names = FALSE)
 
 #table.input2 <- left_join(table.input,resnoninfodat, by = "Patient ID" )
            
@@ -84,19 +93,6 @@ write.csv(table.input, "mitox_table1.csv", row.names = FALSE)
   #select(Patient Id, AE, Sex, Metastatic, Treatment, Age) #%>%
  #filter(!((Patient.ID == 'M005' | Patient.ID == "M042" | Patient.ID == "M056") & AE == "no AE")) %>%
   #distinct()
-
-```
-
-
-```{r}
-
-#filter_met2 <- table.input %>% filter(`Patient Type`== "Met")
-
-
-#table.input3 <- filter_met2 %>% select(`Patient Id`, AE, Sex, Metastatic, Treatment, Age) %>%
-  #distinct()  
-      
-  
 
 ```
 
@@ -156,7 +152,7 @@ pvalue <- function(x, ...) {
         p <- t.test(y ~ g)$p.value
     } else {
        
-        p <- chisq.test(table(y, g))$p.value
+        p <- fisher.test(table(y, g))$p.value
     }
     
     c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
@@ -188,7 +184,12 @@ table1(~ Age + Sex + Race + irAE  + Treatment | Response,
 ```
 
 
-```{r}
+```{r irae}
+
+
+irae_demo <- dplyr::left_join(iraeyes, )
+
+irae_select <- irae_demo %>% select(Patient.ID, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`, Sex, Race, Treatment, Cohort, Stage, Age)
 
 
 
