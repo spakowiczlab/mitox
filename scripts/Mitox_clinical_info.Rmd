@@ -1,0 +1,254 @@
+---
+title: "Mitox demo table"
+author: "Nyelia Williams"
+date: "5/1/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Load data
+
+```{r}
+# Mitox patient demographics
+demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patient_demographics.xlsx") %>%
+  select(-MRN, -Name) %>%
+  arrange(`Patient Id`) %>%
+  drop_na(`Patient Id`) %>%
+  rename(`Patient ID` = `Patient Id`)
+
+
+#Patient PFS data
+pfsnonres <- readxl::read_xlsx(file.path("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"), 
+                               sheet = "No_RECIST_Patients_w_samps")
+
+# RECIST criteria-based response to treatment
+recist <- read_excel("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx") %>%
+  select(-MRN, -Name)
+
+
+# irAE documentation 
+iraetab <- read_excel("T:/Labs/spakowicz/mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx") %>%
+  select(-`Patient Name`, -MRN) %>%
+  drop_na(`Patient Id`) %>%
+  rename(`Patient ID` = `Patient Id`)
+```
+
+# Define RECIST criteria and join
+
+```{r responders vs nonresponders}
+recist_pts <- 
+  recist %>%
+  mutate(pts = ifelse(recist$Category == "PR" | recist$Category == "CR", 
+                          "responder", "nonresponder")) %>%
+                          select(`Patient ID`, `Patient Type`, Category, 
+                                 pts) %>% drop_na(`Patient ID`)
+                          
+
+
+# write.csv(resnoninfo, "../data/mitox_resnoncombine.csv", row.names = FALSE)
+
+
+
+
+```
+
+# Define 12-month PFS and join
+
+```{r}
+pfs_pts <- 
+  pfsnonres %>% 
+  mutate(pts = ifelse(`12-month PFS` == "Yes", 
+                      "responder", 
+                      "nonresponder")) %>% 
+  select(`Patient ID`, `12-month PFS`, pts) %>% 
+  drop_na(`12-month PFS`)
+
+responsepts_mut <- left_join(recist_pts,pfs_pts, by = "Patient ID") %>% 
+                    select(`Patient ID`, `Patient Type`, 
+                           Category, pts.x, pts.y) %>% 
+                           rename(Cohort = `Patient Type`) 
+                           
+responsepts <- 
+  responsepts_mut %>% 
+  unite('Response', pts.x:pts.y, remove = FALSE, na.rm = TRUE) %>%
+  select(`Patient ID`, Category, Response)
+
+
+```
+
+# Categorize and join irAEs
+
+```{r irae}
+irae <- 
+  iraetab %>% 
+  select(`Patient ID`, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`, `Date(s)`) %>%
+  filter(grepl("Yes",`Attribution (Final)`, ))  %>% 
+  mutate(#`Patient Id` = Patient.ID, 
+         irAE = ifelse( `Attribution (Final)` == "Yes", 
+                        "irAE", 
+                        "no irAE"))
+
+#write.csv(irae, "iraeyes.csv" ,row.names = FALSE)
+
+irae_full <- 
+  iraetab %>% 
+  select(`Patient ID`, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`) %>%
+  mutate(#`Patient Id` = Patient.ID, 
+         irAE = ifelse( `Attribution (Final)` == "Yes", 
+                        "irAE", 
+                        "no irAE"))
+
+# table(irae$Symptoms)
+
+# g2 <- 
+#   irae %>%
+#   filter(`CTCAE grade (final)` > 1)
+# 
+# table(g2$Symptoms)
+```
+
+# Write out cleaned clinical data table 
+
+```{r}
+clean_mitox_data <- irae_full %>% 
+                    full_join(demo.dat, responsepts, by = "Patient ID") #%>%
+                    #full_join(responsepts_mut)
+write.csv(clean_mitox_data, "clean_mitox_data.csv" ,row.names = FALSE )
+
+```
+
+
+
+```{r}
+table.input <- clean_mitox_data %>%
+  #select(Patient.ID, Attribution..Final.) %>%
+  #mutate(`Patient Id` = Patient.ID,
+        #irAE = ifelse(Attribution..Final. == "Yes", "irAE", "no irAE")) %>%
+  #full_join(demo.dat) %>%
+  #mutate(Sex = ifelse(Sex == 'F', 1, 0),
+         #Metastatic = ifelse(Cohort == 'Met', 1,0),
+         #Race = ifelse(Race == "White", 1,0)) %>%
+  #distinct() %>% drop_na(Race) %>%
+  #full_join(responsepts)  %>% 
+  #drop_na(Patient.ID) #%>% left_join(res_nondat, by = "Patient.ID") %>%
+  #mutate(Response = res_non)
+
+
+#write.csv(table.input, "mitox_table1.csv", row.names = FALSE)
+
+#table.input2 <- left_join(table.input,resnoninfodat, by = "Patient ID" )
+           
+         #AE2 = ifelse(is.na(Attribution..Final.)|ifelse(Attribution..Final.) == "Yes", "no AE", "AE"))
+  
+  #select(Patient)
+  #select(Patient Id, AE, Sex, Metastatic, Treatment, Age) #%>%
+ #filter(!((Patient.ID == 'M005' | Patient.ID == "M042" | Patient.ID == "M056") & AE == "no AE")) %>%
+  #distinct()
+
+```
+
+
+```{r}
+#listVars <- c('Sex', 'Age', 'Race', "irAE" ,'Metastatic', 'Treatment', 'Response')
+```
+
+```{r}
+#CreateTableOne(vars = listVars, strata = 'Response', data = table.input)
+
+#CreateTableOne(vars = listVars, strata = 'Response', data = tabone)
+
+
+```
+
+```{r pvalue}
+# tabonepval <- tabone %>% 
+ # mutate(PValue = apply(., 1, function(x) t.test(x[1:3], x[4:6])$p.value))
+
+```
+
+```{r}
+
+#manually edited tabone file
+table1(data=tabone, ~ Age + Sex + Race + irAE + Cohort + Treatment |Response)
+
+
+
+labels <- list(
+    variables=list(Sex="Sex",
+                   Age="Age (years)",
+                   Race="Race",
+                   irAE="irAE",
+                   Patient.Type= "Patient Type",
+                   Treatment= "Treatment"),
+    groups=list("","Response"))
+
+
+strata <- c(list(Total=tabone), split(tabone, tabone$Response))
+
+
+table1(strata, labels, groupspan=c( 1, 2))
+
+
+```
+
+```{r}
+
+#manually edited tabone_met file
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]
+    y <- unlist(x)
+    g <- factor(rep(1:length(x), times=sapply(x, length)))
+    if (is.numeric(y)) {
+      
+        p <- t.test(y ~ g)$p.value
+    } else {
+       
+        p <- fisher.test(table(y, g))$p.value
+    }
+    
+    c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+
+#labels <- list(
+    #variables=list(Sex="Sex",
+                  # Age="Age (years)",
+                   #Race="Race",
+                   #irAE="irAE",
+                   #Patient.Type= "Patient Type",
+#                   Treatment= "Treatment"),
+#    groups=list("","Response"))
+
+
+#strata <- c(list(Total=tabone), split(tabone, tabone$Response))
+
+
+table1(~ Age + Sex + Race + irAE  + Treatment | Response,
+       data=tabone_met, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+
+
+table1(~ Age + Sex + Race + irAE  + Treatment | Response,
+       data = table.input, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+
+
+
+
+```
+
+
+```{r irae}
+
+
+irae_demo <- dplyr::left_join(iraeyes, )
+
+irae_select <- irae_demo %>% select(Patient.ID, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`, Sex, Race, Treatment, Cohort, Stage, Age)
+
+
+
+
+```
+
