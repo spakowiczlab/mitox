@@ -1,0 +1,61 @@
+---
+title: "Mitox Tables"
+author: "Nyelia Williams"
+date: "2023-09-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(tableone)
+library(boot)
+library(dplyr)
+library(table1)
+library(tidyr)
+
+
+```
+
+## Load Data
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+clean_data <- read.csv("data/clean_mitox_data.csv") %>% 
+  mutate(Sex = ifelse(Sex == 'F', 1, 0),
+  Metastatic = ifelse(Cohort == 'Met', 1,0),
+  Race = ifelse(Race == "White", 1,0)) %>%
+  drop_na(Race) 
+```
+
+## Table one - 
+
+```{r}
+
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable label.
+  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+ 
+ table1(~ Age + Sex + Race + irAE  + Treatment | Response,
+       data=clean_mitox_data, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
