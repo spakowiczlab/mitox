@@ -8,6 +8,16 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(tidyverse)
+library(readxl)
+library(tableone)
+library(boot)
+library(dplyr)
+library(table1)
+library(tidyr)
+library(lubridate)
+
+
 ```
 
 # Load data
@@ -18,12 +28,13 @@ demo.dat <- read_excel("T:/Labs/Spakowicz/mitox/Patient Logs/Demographics/Patien
   select(-MRN, -Name) %>%
   arrange(`Patient Id`) %>%
   drop_na(`Patient Id`) %>%
-  rename(`Patient ID` = `Patient Id`)
+  rename(`Patient ID` = `Patient Id`) %>%
+  select(-Cohort)
 
 
 #Patient PFS data
-pfsnonres <- readxl::read_xlsx(file.path("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"), 
-                               sheet = "No_RECIST_Patients_w_samps")
+pfspts <- readxl::read_xlsx(file.path("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"), 
+                               sheet = "Progression dates") %>% rename(`Patient ID` = `Patient Id`)
 
 # RECIST criteria-based response to treatment
 recist <- read_excel("T:/Labs/Spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx") %>%
@@ -35,6 +46,12 @@ iraetab <- read_excel("T:/Labs/spakowicz/mitox/Clinical info/Mitoxstudy_patient_
   select(-`Patient Name`, -MRN) %>%
   drop_na(`Patient Id`) %>%
   rename(`Patient ID` = `Patient Id`)
+
+#microbiome samples doc
+
+microsamp <- readRDS("../data/dates.rds") %>% select(`Patient Id`, Microbiome.date)
+
+
 ```
 
 # Define RECIST criteria and join
@@ -59,23 +76,24 @@ recist_pts <-
 # Define 12-month PFS and join
 
 ```{r}
-pfs_pts <- 
-  pfsnonres %>% 
-  mutate(pts = ifelse(`12-month PFS` == "Yes", 
-                      "responder", 
-                      "nonresponder")) %>% 
-  select(`Patient ID`, `12-month PFS`, pts) %>% 
-  drop_na(`12-month PFS`)
+#pfs_pts <- 
+  #pfspts %>% 
+  #mutate(PFS = ifelse(`12-month PFS` == "Yes", 
+                      #"12-month PFS", 
+                      #"No"))# %>% 
+  #select(`Patient Id,`12-month PFS` ) #%>% 
+  #drop_na(`12-month PFS`)
 
-responsepts_mut <- left_join(recist_pts,pfs_pts, by = "Patient ID") %>% 
+responsepts <- left_join(recist_pts,pfspts, by = "Patient ID") %>% 
                     select(`Patient ID`, `Patient Type`, 
-                           Category, pts.x, pts.y) %>% 
-                           rename(Cohort = `Patient Type`) 
+                           Category, pts, `12-month PFS`) %>% 
+                           rename(Cohort = `Patient Type`) %>%
+                           rename(Response = pts)
                            
-responsepts <- 
-  responsepts_mut %>% 
-  unite('Response', pts.x:pts.y, remove = FALSE, na.rm = TRUE) %>%
-  select(`Patient ID`, Category, Response)
+#responsepts <- 
+  #responsepts_mut %>% 
+  #unite('Response', pts.x:pts.y, remove = FALSE, na.rm = TRUE) %>%
+  #select(`Patient ID`, Category, Response)
 
 
 ```
@@ -85,22 +103,26 @@ responsepts <-
 ```{r irae}
 irae <- 
   iraetab %>% 
-  select(`Patient ID`, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`, `Date(s)`) %>%
+  select(`Patient ID`, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`,
+         Onset, `Symptom Treatment`) %>%
   filter(grepl("Yes",`Attribution (Final)`, ))  %>% 
   mutate(#`Patient Id` = Patient.ID, 
          irAE = ifelse( `Attribution (Final)` == "Yes", 
-                        "irAE", 
-                        "no irAE"))
+                        "Yes", 
+                        "No"))
+
+
 
 #write.csv(irae, "iraeyes.csv" ,row.names = FALSE)
 
 irae_full <- 
   iraetab %>% 
-  select(`Patient ID`, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`) %>%
+  select(`Patient ID`, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`, 
+         Onset, `Symptom Treatment`) %>%
   mutate(#`Patient Id` = Patient.ID, 
          irAE = ifelse( `Attribution (Final)` == "Yes", 
-                        "irAE", 
-                        "no irAE"))
+                        "Yes", 
+                        "No")) %>% unique()
 
 # table(irae$Symptoms)
 
@@ -114,10 +136,20 @@ irae_full <-
 # Write out cleaned clinical data table 
 
 ```{r}
-clean_mitox_data <- irae_full %>% 
-                    full_join(demo.dat, responsepts, by = "Patient ID") #%>%
-                    #full_join(responsepts_mut)
-write.csv(clean_mitox_data, "clean_mitox_data.csv" ,row.names = FALSE )
+responseandirae <- irae_full %>% full_join(demo.dat) %>% drop_na(irAE)
+
+clean_mitox_data <- responseandirae %>% 
+                    full_join(responsepts, by = "Patient ID") %>%
+                    #unite('Cohort', Cohort.x:Cohort.y, remove = TRUE, 
+                    #na.rm = TRUE)
+                    select(`Patient ID`,`MDSC #`, Sex, Age, Race, Ethnicity, 
+                           Treatment, Cohort, Stage, Symptoms,
+                           `CTCAE grade (final)`, irAE, Onset, 
+                           `Symptom Treatment`, Response, Category)
+  
+
+  
+  write.csv(clean_mitox_data, "clean_mitox_data.csv" ,row.names = FALSE )
 
 ```
 
@@ -152,48 +184,13 @@ table.input <- clean_mitox_data %>%
 ```
 
 
-```{r}
-#listVars <- c('Sex', 'Age', 'Race', "irAE" ,'Metastatic', 'Treatment', 'Response')
-```
-
-```{r}
-#CreateTableOne(vars = listVars, strata = 'Response', data = table.input)
-
-#CreateTableOne(vars = listVars, strata = 'Response', data = tabone)
-
-
-```
-
-```{r pvalue}
-# tabonepval <- tabone %>% 
- # mutate(PValue = apply(., 1, function(x) t.test(x[1:3], x[4:6])$p.value))
-
-```
-
-```{r}
-
-#manually edited tabone file
-table1(data=tabone, ~ Age + Sex + Race + irAE + Cohort + Treatment |Response)
 
 
 
-labels <- list(
-    variables=list(Sex="Sex",
-                   Age="Age (years)",
-                   Race="Race",
-                   irAE="irAE",
-                   Patient.Type= "Patient Type",
-                   Treatment= "Treatment"),
-    groups=list("","Response"))
 
 
-strata <- c(list(Total=tabone), split(tabone, tabone$Response))
 
 
-table1(strata, labels, groupspan=c( 1, 2))
-
-
-```
 
 ```{r}
 
@@ -240,15 +237,5 @@ table1(~ Age + Sex + Race + irAE  + Treatment | Response,
 ```
 
 
-```{r irae}
 
-
-irae_demo <- dplyr::left_join(iraeyes, )
-
-irae_select <- irae_demo %>% select(Patient.ID, Symptoms, `Attribution (Final)`, `CTCAE grade (final)`, Sex, Race, Treatment, Cohort, Stage, Age)
-
-
-
-
-```
 

@@ -25,15 +25,20 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
+#read in data
 ```{r}
-clean_data <- read.csv("data/clean_mitox_data.csv") %>% 
-  mutate(Sex = ifelse(Sex == 'F', 1, 0),
-  Metastatic = ifelse(Cohort == 'Met', 1,0),
-  Race = ifelse(Race == "White", 1,0)) %>%
-  drop_na(Race) 
+clean_data <- read.csv ("C:/Users/wil407/Documents/GitHub/mitox/data/clean_mitox_data.csv") %>% select(-Symptoms, -Symptom.Treatment, -Onset) %>% unique()
+  
+ 
+
 ```
 
-## Table one - 
+#filter metastatic
+```{r}
+
+
+```
+## Table two - irAE
 
 ```{r}
 
@@ -55,7 +60,7 @@ pvalue <- function(x, ...) {
 }
 
  
- table1(~ Age + Sex + Race + irAE  + Treatment | Response,
-       data=clean_mitox_data, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+ table1(~ Age + Sex + Race + Treatment + Response | irAE,
+       data=clean_data, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
