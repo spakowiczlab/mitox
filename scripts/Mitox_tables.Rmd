@@ -27,18 +27,22 @@ When you click the **Knit** button a document will be generated that includes bo
 
 #read in data
 ```{r}
-clean_data <- read.csv ("C:/Users/wil407/Documents/GitHub/mitox/data/clean_mitox_data.csv") %>% select(-Symptoms, -Symptom.Treatment, -Onset) %>% unique()
+clean_data <- read.csv ("C:/Users/wil407/Documents/GitHub/mitox/data/clean_mitox_data.csv") %>% select(-Symptoms, -Symptom.Treatment, -Onset) %>% unique() %>% filter(Cohort == "Met")
+
+
   
  
 
 ```
 
-#filter metastatic
+
 ```{r}
+#rows <- clean_data[-c(1,8,20,22,26,38,42,58,70,71,72,78,98,111,120,122,124,134,137,141,149),]
+
 
 
 ```
-## Table two - irAE
+## Table one - response
 
 ```{r}
 
@@ -60,7 +64,37 @@ pvalue <- function(x, ...) {
 }
 
  
+ table1(~ Age + Sex + Race + Treatment + irAE | Response,
+       data=mitoxtab, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+```
+
+
+#table two- irae
+```{r}
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable label.
+  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+ 
  table1(~ Age + Sex + Race + Treatment + Response | irAE,
-       data=clean_data, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+       data=mitoxtab, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+
+
+
+
+
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

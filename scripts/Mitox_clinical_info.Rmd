@@ -10,10 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(readxl)
-library(tableone)
 library(boot)
 library(dplyr)
-library(table1)
 library(tidyr)
 library(lubridate)
 
@@ -54,15 +52,21 @@ microsamp <- readRDS("../data/dates.rds") %>% select(`Patient Id`, Microbiome.da
 
 ```
 
-# Define RECIST criteria and join
+# Filter pts with samples only & Define RECIST criteria and join
 
 ```{r responders vs nonresponders}
+
+recist_samps <- recist %>% mutate(samples = 
+                                    ifelse(`Baseline Scan` == "No Samples", 
+                                           "No", "Yes")) %>% 
+                                     filter(samples == "Yes")
+
 recist_pts <- 
-  recist %>%
-  mutate(pts = ifelse(recist$Category == "PR" | recist$Category == "CR", 
+  recist_samps %>%
+  mutate(pts = ifelse(Category == "PR" | Category== "CR", 
                           "responder", "nonresponder")) %>%
                           select(`Patient ID`, `Patient Type`, Category, 
-                                 pts) %>% drop_na(`Patient ID`)
+                                 pts) #%>% drop_na(`Patient ID`)
                           
 
 
@@ -145,7 +149,8 @@ clean_mitox_data <- responseandirae %>%
                     select(`Patient ID`,`MDSC #`, Sex, Age, Race, Ethnicity, 
                            Treatment, Cohort, Stage, Symptoms,
                            `CTCAE grade (final)`, irAE, Onset, 
-                           `Symptom Treatment`, Response, Category)
+                           `Symptom Treatment`, Response, Category,
+                           `12-month PFS`)
   
 
   
@@ -154,9 +159,8 @@ clean_mitox_data <- responseandirae %>%
 ```
 
 
-
 ```{r}
-table.input <- clean_mitox_data %>%
+#table.input <- clean_mitox_data %>%
   #select(Patient.ID, Attribution..Final.) %>%
   #mutate(`Patient Id` = Patient.ID,
         #irAE = ifelse(Attribution..Final. == "Yes", "irAE", "no irAE")) %>%
@@ -174,11 +178,13 @@ table.input <- clean_mitox_data %>%
 
 #table.input2 <- left_join(table.input,resnoninfodat, by = "Patient ID" )
            
-         #AE2 = ifelse(is.na(Attribution..Final.)|ifelse(Attribution..Final.) == "Yes", "no AE", "AE"))
+         #AE2 = ifelse(is.na(Attribution..Final.)|ifelse(Attribution..Final.) 
+          #== "Yes", "no AE", "AE"))
   
   #select(Patient)
   #select(Patient Id, AE, Sex, Metastatic, Treatment, Age) #%>%
- #filter(!((Patient.ID == 'M005' | Patient.ID == "M042" | Patient.ID == "M056") & AE == "no AE")) %>%
+ #filter(!((Patient.ID == 'M005' | Patient.ID == "M042" | Patient.ID == "M056") 
+ #& AE == "no AE")) %>%
   #distinct()
 
 ```
@@ -188,53 +194,6 @@ table.input <- clean_mitox_data %>%
 
 
 
-
-
-
-
-```{r}
-
-#manually edited tabone_met file
-pvalue <- function(x, ...) {
-  x <- x[-length(x)]
-    y <- unlist(x)
-    g <- factor(rep(1:length(x), times=sapply(x, length)))
-    if (is.numeric(y)) {
-      
-        p <- t.test(y ~ g)$p.value
-    } else {
-       
-        p <- fisher.test(table(y, g))$p.value
-    }
-    
-    c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
-}
-
-
-#labels <- list(
-    #variables=list(Sex="Sex",
-                  # Age="Age (years)",
-                   #Race="Race",
-                   #irAE="irAE",
-                   #Patient.Type= "Patient Type",
-#                   Treatment= "Treatment"),
-#    groups=list("","Response"))
-
-
-#strata <- c(list(Total=tabone), split(tabone, tabone$Response))
-
-
-table1(~ Age + Sex + Race + irAE  + Treatment | Response,
-       data=tabone_met, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
-
-
-table1(~ Age + Sex + Race + irAE  + Treatment | Response,
-       data = table.input, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
-
-
-
-
-```
 
 
 
