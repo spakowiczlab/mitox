@@ -132,7 +132,8 @@ irae_labels <- yesirae %>%
                              ~ "Gastrointestinal disorders", yesirae$Symptoms == 
                                "Delirium" ~ "Psychiatric disorders", 
                              yesirae$Symptoms == "Arthralgias" 
-                             ~ "Rheumatologic disorders",
+                             ~ "Rheumatologic disorders", yesirae$Symptoms == 
+                               "Nephritis"  ~ "Renal disorders",
                              TRUE ~ "Liver disorders" ))
 
 ```
