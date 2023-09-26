@@ -1,0 +1,31 @@
+"Patient ID","MDSC #","Sex","Age","Race","Ethnicity","Treatment","Cohort","Stage","Symptoms","CTCAE grade (final)","irAE","Onset","Symptom Treatment","Response","Category","12-month PFS"
+"M020","N/A","Male",71,"White","Not Hispanic or Latino","PEMBRO","Met",4,"Hyperthyroidism",2,"irAE",2020-09-17,NA,"nonresponder","SD",NA
+"M006","MDSC-388","Male",65,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Adrenal insufficiency",2,"irAE",2020-08-31,2020-08-31,"nonresponder","PD","No"
+"M005","MDSC-203","Male",64,"White","Not Hispanic or Latino","PEMBRO","Met",4,"Hypothyroidism",2,"irAE",2020-10-27,NA,"nonresponder","SD","Yes"
+"M011","MDSC-396","Male",72,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Adrenal insufficiency",2,"irAE",2020-11-19,2020-11-19,"nonresponder","SD",NA
+"M018","MDSC-407","Female",74,"White","Not Hispanic or Latino","PEMBRO","Met",4,"Psoriasis flare",2,"irAE",2021-01-19,2021-01-19,"responder","PR",NA
+"M003","MDSC-383","Female",65,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Maculo-paular rash",2,"irAE",2020-02-27,2020-02-27,"nonresponder","SD",NA
+"M028","MDSC-416","Female",64,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Rash",1,"irAE",2020-11-24,2020-11-24,"nonresponder","SD",NA
+"M017","MDSC-405","Female",56,"White","Not Hispanic or Latino","NIVO","Met",4,"Rash",1,"irAE",2020-08-31,2020-09-24,"responder","PR","Yes"
+"M042","MDSC-458","Female",38,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Rash",1,"irAE",2021-05-18,NA,"nonresponder","SD",NA
+"M042","MDSC-458","Female",38,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Diarrhea",2,"irAE",2021-06-01,NA,"nonresponder","SD",NA
+"M055","MDSC-152","Female",67,"White","Not Hispanic or Latino","PEMBRO","Met",4,"Skin itching",1,"irAE",2021-07-08,NA,"responder","CR",NA
+"M072","MDSC-498","Male",76,"White","Not Hispanic or Latino","NIVO","Adj",3,"Autoimmune colitis (diarrhea)",3,"irAE",2021-10-18,2021-10-19,NA,NA,NA
+"M072","MDSC-498","Male",76,"White","Not Hispanic or Latino","NIVO","Adj",3,"Hyperthyroidism",2,"irAE",2021-10-26,NA,NA,NA,NA
+"M085","MDSC-318B","Female",28,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Hypothyroidism",2,"irAE",2019-04-22,NA,"nonresponder","PD","No"
+"M086","MDSC-429B","Female",70,"White","Not Hispanic or Latino","IPI/NIVO","Adj",2,"Adrenal insufficiency",3,"irAE",2022-02-01,2022-02-11,"responder","CR","No"
+"M060","MDSC-472","Female",56,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Thyroiditis",1,"irAE",2021-08-05,NA,"nonresponder","SD","No"
+"M038","MDSC-436","Female",65,"White","Not Hispanic or Latino","PEMBRO","Adj",3,"Acute liver injury",2,"irAE",2021-02-26,NA,"nonresponder","SD",NA
+"M039","MDSC-450","Female",60,"White","Not Hispanic or Latino","PEMBRO","Adj",3,"Rash",2,"irAE",2021-04-27,2021-04-29,NA,NA,NA
+"M054","MDSC-454","Male",60,"White","Not Hispanic or Latino","PEMBRO","Adj",3,"Arthralgias",3,"irAE",2021-04-30,2021-04-30,NA,NA,NA
+"M054","MDSC-454","Male",60,"White","Not Hispanic or Latino","PEMBRO","Adj",3,"Hypothyroid",1,"irAE",2021-05-24,NA,NA,NA,NA
+"M059","MDSC-471","Female",52,"White","Not Hispanic or Latino","PEMBRO","Adj",3,"Hypothyroidism",2,"irAE",2021-11-19,NA,"responder","CR","No"
+"M071","MDSC-500","Female",70,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Rash",1,"irAE",2021-10-04,2021-10-04,"responder","PR",NA
+"M082","MDSC-504","Male",74,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Hypothyroidism",2,"irAE",2021-10-07,NA,"nonresponder","SD","No"
+"M035","N/A","Male",61,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Adrenal insufficiency",2,"irAE",2022-03-18,NA,"responder","PR",NA
+"M012","MDSC-403","Male",51,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Autoimmune hepatitis",3,"irAE",2020-09-14,2020-10-30,"responder","PR",NA
+"M028","MDSC-416","Female",64,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Autoimmune hepatitis",3,"irAE",2020-12-29,2020-12-29,"nonresponder","SD",NA
+"M021","MDSC-432","Male",66,"White","Not Hispanic or Latino","NIVO","Met",3,"Rash",2,"irAE",2021-11-12,2021-11-15,"responder","PR",NA
+"M063","MDSC-466","Female",63,"White","Not Hispanic or Latino","NIVO","Adj",3,"Hepatitis",1,"irAE",2022-05-22,2022-05-25,NA,NA,NA
+"M013","MDSC-400","Female",43,"White","Not Hispanic or Latino","IPI/NIVO",NA,4,"Nephritis",3,"irAE",NA,NA,NA,NA,NA
+"M065","MDSC-464","Female",88,"White","Not Hispanic or Latino","NIVO","Met",3,"Delirium",3,"irAE",2021-03-15,2021-12-11,"responder","PR",NA

@@ -112,8 +112,8 @@ irae <-
   filter(grepl("Yes",`Attribution (Final)`, ))  %>% 
   mutate(#`Patient Id` = Patient.ID, 
          irAE = ifelse( `Attribution (Final)` == "Yes", 
-                        "Yes", 
-                        "No"))
+                        "irAE", 
+                        "No irAE"))
 
 
 
@@ -125,8 +125,8 @@ irae_full <-
          Onset, `Symptom Treatment`) %>%
   mutate(#`Patient Id` = Patient.ID, 
          irAE = ifelse( `Attribution (Final)` == "Yes", 
-                        "Yes", 
-                        "No")) %>% unique()
+                        "irAE", 
+                        "No irAE")) %>% unique()
 
 # table(irae$Symptoms)
 
@@ -155,6 +155,31 @@ clean_mitox_data <- responseandirae %>%
 
   
   write.csv(clean_mitox_data, "clean_mitox_data.csv" ,row.names = FALSE )
+
+
+
+
+
+```
+
+#irae yes clean table
+```{r}
+
+cleandatairae <- irae %>% full_join(demo.dat) %>% drop_na(irAE)
+
+
+clean_mitox_irae <- cleandatairae %>% 
+                    full_join(responsepts, by = "Patient ID") %>%
+                    #unite('Cohort', Cohort.x:Cohort.y, remove = TRUE, 
+                    #na.rm = TRUE)
+                    select(`Patient ID`,`MDSC #`, Sex, Age, Race, Ethnicity, 
+                           Treatment, Cohort, Stage, Symptoms,
+                           `CTCAE grade (final)`, irAE, Onset, 
+                           `Symptom Treatment`, Response, Category,
+                           `12-month PFS`) %>% drop_na(irAE)
+
+write.csv(clean_mitox_irae, "clean_mitox_data_yesirae.csv" ,row.names = FALSE )
+
 
 ```
 

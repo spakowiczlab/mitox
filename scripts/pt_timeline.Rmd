@@ -18,8 +18,8 @@ library(openxlsx)
 
 path to t drive
 ```{r}
-#paths.tdrive <- "T:/Labs/Spakowicz/mitox/"
-paths.tdrive <- "/Volumes/spakowicz/mitox"
+paths.tdrive <- "T:/Labs/Spakowicz/mitox/"
+#paths.tdrive <- "/Volumes/spakowicz/mitox"
 ```
 
 read in data

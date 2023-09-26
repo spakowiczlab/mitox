@@ -27,24 +27,39 @@ When you click the **Knit** button a document will be generated that includes bo
 
 #read in data
 ```{r}
+#clean data without symptoms
 clean_data <- read.csv ("C:/Users/wil407/Documents/GitHub/mitox/data/clean_mitox_data.csv") %>% select(-Symptoms, -Symptom.Treatment, -Onset) %>% unique() %>% filter(Cohort == "Met")
 
+#clean data with symptoms
+clean_data2 <- read.csv("C:/Users/wil407/Documents/GitHub/mitox/data/clean_mitox_data.csv")
 
-  
+#clean data with patients with iraes filtered to Met pts
+
+yesirae <- read.csv("C:/Users/wil407/Documents/GitHub/mitox/data/clean_mitox_data_yesirae.csv") #%>% filter(Cohort == "Met")
  
 
 ```
-
+#get rid of dups (met pts)
 
 ```{r}
-#rows <- clean_data[-c(1,8,20,22,26,38,42,58,70,71,72,78,98,111,120,122,124,134,137,141,149),]
 
 
 
+#single_pid <- clean_data[!duplicated(clean_data[,c('Patient.ID')]),]
+
+#dat <- data.frame(id=c(1,1,3), id2=c(1,1,4) ,somevalue=c("x","y","z"))    
+#dat[row.names(unique(dat[,c("id", "id2")])), c("id", "id2")]
+#nondup <- clean_data %>% group_by(Patient.ID, irAE) %>% filter(row_number() == 1)
+
+nondup <- clean_data[-c(1,3,5,7,11,18,20,23,29,34,41,42,44),]
 ```
-## Table one - response
+## Table one - stratified by response (met pts)
 
 ```{r}
+#delete row with missing response data
+
+response_data <- nondup[-38, ]
+
 
 pvalue <- function(x, ...) {
   x <- x[-length(x)]  # Remove "overall" group
@@ -59,17 +74,19 @@ pvalue <- function(x, ...) {
     p <- chisq.test(table(y, g))$p.value
   }
   # Format the p-value, using an HTML entity for the less-than sign.
-  # The initial empty string places the output on the line below the variable label.
+  # The initial empty string places the output on the line below the variable 
+  #label.
   c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
 }
 
  
  table1(~ Age + Sex + Race + Treatment + irAE | Response,
-       data=mitoxtab, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+       data=response_data, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL)
 ```
 
 
-#table two- irae
+#table two- stratified by irae (met pts)
 ```{r}
 pvalue <- function(x, ...) {
   x <- x[-length(x)]  # Remove "overall" group
@@ -84,17 +101,68 @@ pvalue <- function(x, ...) {
     p <- chisq.test(table(y, g))$p.value
   }
   # Format the p-value, using an HTML entity for the less-than sign.
-  # The initial empty string places the output on the line below the variable label.
+  # The initial empty string places the output on the line below the variable 
+  #label.
   c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
 }
 
  
  table1(~ Age + Sex + Race + Treatment + Response | irAE,
-       data=mitoxtab, overall="Total", extra.col=list(`P-value`=pvalue), render.missing=NULL)
+       data=nondup, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL)
+```
 
-
-
-
+#categorize iraes for all pts
+```{r}
+irae_labels <- yesirae %>% 
+  mutate(iraecat = case_when(yesirae$Symptoms == 
+                               "Hyperthyroidism"| yesirae$Symptoms ==
+                               "Hypothyroidism"| yesirae$Symptoms ==
+                               "Adrenal insufficiency" | yesirae$Symptoms ==
+                               "Thyroiditis" | yesirae$Symptoms == 
+                               "Hypothyroid" ~ "Endocrine disorders", 
+                             yesirae$Symptoms == "Rash" | yesirae$Symptoms == 
+                               "Psoriasis flare" | yesirae$Symptoms == 
+                               "Skin itching" | yesirae$Symptoms == 
+                               "Maculo-paular rash" | yesirae$Symptoms == 
+                               "Skin itching" ~ "Skin disorders", 
+                             yesirae$Symptoms == 
+                               "Diarrhea"| yesirae$Symptoms ==
+                               "Autoimmune colitis (diarrhea)" 
+                             ~ "Gastrointestinal disorders", yesirae$Symptoms == 
+                               "Delirium" ~ "Psychiatric disorders", 
+                             yesirae$Symptoms == "Arthralgias" 
+                             ~ "Rheumatologic disorders",
+                             TRUE ~ "Liver disorders" ))
 
 ```
+
+#table with irae categories for all pts
+```{r}
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable 
+  #label.
+  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+ 
+ table1(~ Age + Sex + Race + Treatment | iraecat,
+       data=irae_labels, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL)
+
+```
+
+
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
