@@ -22,7 +22,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-dates <- readRDS("../data/dates.rds")
+dates <- readRDS("../data/dates.rds") %>% unique()
 ```
 
 
@@ -41,8 +41,29 @@ sublist <- dates %>% mutate(difference = irAE - Microbiome.days)
 ```
 
 ```{r}
+
 ggplot(sublist, aes(x=difference)) + geom_histogram()
 
+
+
+```
+#adding timepoints
+
+```{r}
+
+#irae_day <- sublist %>% mutate(irae_samps = case_when(difference <=14 & 
+                                                        #difference > -14  
+                                                     #~ "1", TRUE ~ "0" )) 
+irae_day <- sublist %>% mutate(irae_samps = case_when(difference == -4 ~ "timepoint1", difference == -5 ~ "timepoint2", difference == -6 | difference == 7 ~ "timepoint3", difference == 10 | difference == -8 | difference == -9 | difference == 9 ~ "timepoint4", difference == -11 | difference == 11 ~ "timepoint5", TRUE ~ "no timepoint"))
+                    
+iraes_days_times <- irae_day %>% mutate(time_windows = case_when(difference == -4 ~ "+/- 3 Day", difference == -5 ~ "+/- 5 Day", difference == -6 | difference == 7 ~ "+/- 7 Day", difference == 10 | difference == -8 | difference == -9 | difference == 9 ~ "+/- 10 Day", difference == -11 | difference == 11 ~ "+/- 14 Day", TRUE ~ "Out")) 
+  
+
+```
+
+```{r}
+ggplot(iraes_days_times, aes(x=time_windows, y= irae_samps, group=1)) + 
+       geom_line(linetype = "dashed") + geom_point()
 
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
