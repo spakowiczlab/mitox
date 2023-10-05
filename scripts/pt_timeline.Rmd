@@ -66,10 +66,10 @@ pt_log <- pt_log %>%
 clean up irAE dates
 ```{r}
 irAE <- irAE %>%
-  select(`Patient Id`, `Date(s)`, `irAE (AM)`) %>%
-  rename(irAE = `irAE (AM)`) %>%
+  select(`Patient Id`, `Onset`, `Attribution (Final)`) %>%
+  rename(irAE = `Attribution (Final)`) %>%
   fill(`Patient Id`) %>%
-  mutate("irAE_date"  = openxlsx::convertToDate(`Date(s)`)) %>%
+  mutate("irAE_date"  = openxlsx::convertToDate(`Onset`)) %>%
   filter(irAE == "Yes",
           !is.na(irAE_date)) %>%
   select(`Patient Id`, irAE_date)
@@ -160,6 +160,7 @@ dates <- dates %>%
         "12wk.scan" = CT.12wk - `C1D1 date`,
         "Blood" = Blood.date - `C1D1 date`,)
         #"Other.scan" = CT.other - `C1D1 date`,)
+
 ```
 
 <!-- Object for Nye to work with -->
