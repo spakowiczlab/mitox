@@ -82,7 +82,7 @@ pvalue <- function(x, ...) {
  
  table1(~ Age + Sex + Race + Treatment + irAE | Response,
        data=response_data, overall="Total", extra.col=list(`P-value`=pvalue), 
-       render.missing=NULL)
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 ```
 
 
@@ -109,7 +109,7 @@ pvalue <- function(x, ...) {
  
  table1(~ Age + Sex + Race + Treatment + Response | irAE,
        data=nondup, overall="Total", extra.col=list(`P-value`=pvalue), 
-       render.missing=NULL)
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 ```
 
 #categorize iraes for all pts
@@ -161,9 +161,37 @@ pvalue <- function(x, ...) {
  
  table1(~ Age + Sex + Race + Treatment | iraecat,
        data=irae_labels, overall="Total", extra.col=list(`P-value`=pvalue), 
-       render.missing=NULL)
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
 ```
+#filter to met patients irae symptoms
+```{r}
+yesirae_met <- irae_labels %>% filter(Cohort == "Met")
 
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable 
+  #label.
+  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+ 
+ table1(~ Age + Sex + Race + Treatment | iraecat,
+       data=yesirae_met, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
+
+
+```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -41,20 +41,20 @@
 "M028","MDSC-416","Female",64,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Headaches",NA,"No irAE",NA,NA,"nonresponder","SD",NA
 "M017","MDSC-405","Female",56,"White","Not Hispanic or Latino","NIVO","Met",4,"Rash",1,"irAE",2020-08-31,2020-09-24,"responder","PR","Yes"
 "M017","MDSC-405","Female",56,"White","Not Hispanic or Latino","NIVO","Met",4,"Hypothyroidism",NA,"No irAE",NA,NA,"responder","PR","Yes"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Nervousnes",NA,"No irAE",NA,NA,"responder","PR","No"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Poor appetitie",NA,"No irAE",NA,NA,"responder","PR","No"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"dull headache",NA,"No irAE",NA,NA,"responder","PR","No"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Nausea",NA,"No irAE",NA,NA,"responder","PR","No"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"sore throat",NA,"No irAE",NA,NA,"responder","PR","No"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"headaches",NA,"No irAE",NA,NA,"responder","PR","No"
-"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Dizzines",NA,"No irAE",NA,NA,"responder","PR","No"
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Seizure",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Insomnia",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Burning sensation while having a bowel movement and after",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Blood after bowel movement",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"night sweats",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"anxiety",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"head cold",NA,"No irAE",NA,NA,"nonresponder","SD",NA
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Nervousnes",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Poor appetitie",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"dull headache",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Nausea",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"sore throat",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"headaches",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M048","MDSC-442","Female",71,"White","Not Hispanic or Latino","NIVO","Met",4,"Dizzines",NA,"No irAE",NA,NA,"responder","PR","Yes"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Seizure",NA,"No irAE",NA,NA,"nonresponder","SD","No"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Insomnia",NA,"No irAE",NA,NA,"nonresponder","SD","No"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Burning sensation while having a bowel movement and after",NA,"No irAE",NA,NA,"nonresponder","SD","No"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"Blood after bowel movement",NA,"No irAE",NA,NA,"nonresponder","SD","No"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"night sweats",NA,"No irAE",NA,NA,"nonresponder","SD","No"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"anxiety",NA,"No irAE",NA,NA,"nonresponder","SD","No"
+"M043","MDSC-444","Male",36,"White","Not Hispanic or Latino","IPI/NIVO","Met",3,"head cold",NA,"No irAE",NA,NA,"nonresponder","SD","No"
 "M042","MDSC-458","Female",38,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Rash",1,"irAE",2021-05-18,NA,"nonresponder","SD",NA
 "M042","MDSC-458","Female",38,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Diarrhea",2,"irAE",2021-06-01,NA,"nonresponder","SD",NA
 "M055","MDSC-152","Female",67,"White","Not Hispanic or Latino","PEMBRO","Met",4,"Skin itching",1,"irAE",2021-07-08,NA,"responder","CR",NA
@@ -155,13 +155,13 @@
 "M028","MDSC-416","Female",64,"White","Not Hispanic or Latino","IPI/NIVO","Met",4,"Autoimmune hepatitis",3,"irAE",2020-12-29,2020-12-29,"nonresponder","SD",NA
 "M021","MDSC-432","Male",66,"White","Not Hispanic or Latino","NIVO","Met",3,"Rash",2,"irAE",2021-11-12,2021-11-15,"responder","PR",NA
 "M063","MDSC-466","Female",63,"White","Not Hispanic or Latino","NIVO","Adj",3,"Hepatitis",1,"irAE",2022-05-22,2022-05-25,NA,NA,NA
-"M013","MDSC-400","Female",43,"White","Not Hispanic or Latino","IPI/NIVO",NA,4,"Nephritis",3,"irAE",NA,NA,NA,NA,NA
-"M057","MDSC-474","Male",45,"White","Not Hispanic or Latino","PEMBRO",NA,3,"Intolerance (Elevated BG)",NA,"No irAE",NA,NA,NA,NA,NA
+"M013","MDSC-400","Female",43,"White","Not Hispanic or Latino","IPI/NIVO",NA,4,"Nephritis",3,"irAE",2021-12-15,NA,NA,NA,NA
+"M057","MDSC-474","Male",45,"White","Not Hispanic or Latino","PEMBRO",NA,3,"Type I diabetes",3,"irAE",2022-07-22,2022-07-22,NA,NA,NA
 "M065","MDSC-464","Female",88,"White","Not Hispanic or Latino","NIVO","Met",3,"Delirium",3,"irAE",2021-03-15,2021-12-11,"responder","PR",NA
 "M002","MDSC-384","Female",61,"White","Not Hispanic or Latino","NIVO","Adj",4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M004","MDSC-385","Male",50,"White","Not Hispanic or Latino","NIVO",NA,4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M008","MDSC-201","Male",74,"White","Not Hispanic or Latino","PEMBRO","Adj",3,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","SD",NA
-"M009","MDSC-390","Male",64,"White","Not Hispanic or Latino","NIVO","Adj",3,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","PD",NA
+"M009","MDSC-390","Male",64,"White","Not Hispanic or Latino","NIVO","Adj",3,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","PD","No"
 "M016","MDSC-399","Male",73,"White","Not Hispanic or Latino","NIVO",NA,3,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M015","MDSC-402","Female",42,"White","Not Hispanic or Latino","IPI/NIVO",NA,4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M024","MDSC-337","Female",57,"White","Not Hispanic or Latino","NIVO",NA,4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
@@ -173,7 +173,7 @@
 "M032","MDSC-421","Male",77,"White","Not Hispanic or Latino","NIVO","Met",4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M030","MDSC-428","Female",58,"White","Not Hispanic or Latino","NIVO",NA,3,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M031","MDSC-425","Male",75,"White","Not Hispanic or Latino","PEMBRO","Met",4,"no symptoms",NA,"No irAE",NA,NA,"responder","PR","No"
-"M037","MDSC-429","Female",69,"White","Not Hispanic or Latino","IPI/NIVO","Adj",2,"no symptoms",NA,"No irAE",NA,NA,NA,NA,"No"
+"M037","MDSC-429","Female",69,"White","Not Hispanic or Latino","IPI/NIVO","Adj",2,"no symptoms",NA,"No irAE",NA,NA,NA,NA,"Yes"
 "M022","MDSC-441","Male",45,"White","Not Hispanic or Latino","IPI/NIVO",NA,4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M036","MDSC-443","Male",52,"White","Not Hispanic or Latino","IPI/NIVO",NA,4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M045","MDSC-451","Male",64,"White","Not Hispanic or Latino","PEMBRO","Met",4,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","SD","Yes"
@@ -189,7 +189,7 @@
 "M081","MDSC-503","Male",57,"African American","Not Hispanic or Latino","IPI/NIVO",NA,4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M067","MDSC-507","Male",72,"White","Not Hispanic or Latino","IPI","Adj",4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,"No"
 "M080","MDSC-508","Male",69,"White","Not Hispanic or Latino","NIVO",NA,3,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
-"M079","MDSC-511","Male",78,"White","Not Hispanic or Latino","NIVO","Adj",3,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","PD",NA
+"M079","MDSC-511","Male",78,"White","Not Hispanic or Latino","NIVO","Adj",3,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","PD","No"
 "M076","N/A","Male",75,"White","Not Hispanic or Latino","NIVO","Met",4,"no symptoms",NA,"No irAE",NA,NA,"nonresponder","SD",NA
 "M083","MDSC-515","Male",65,"White","Not Hispanic or Latino","IPI/NIVO",NA,3,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
 "M078","MDSC-514","Male",78,"White","Not Hispanic or Latino","PEMBRO","Adj",4,"no symptoms",NA,"No irAE",NA,NA,NA,NA,NA
