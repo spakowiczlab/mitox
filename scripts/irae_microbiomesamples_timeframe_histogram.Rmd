@@ -34,15 +34,22 @@ dates <- readRDS("../data/dates.rds") %>% unique()
 
 
 ```
+
+# number of days from when we received a microbiome sample at an irae occurence
 ```{r}
 
-sublist <- dates %>% mutate(difference = irAE - Microbiome.days)
+sublist <- 
+  dates %>% 
+  mutate(days.from.irae = Microbiome.days - irAE) %>% 
+  drop_na(days.from.irae)
 
 ```
 
 ```{r}
 
-ggplot(sublist, aes(x=difference)) + geom_histogram()
+
+
+ggplot(sublist, aes(x=days.from.irae)) + geom_histogram()
 
 
 
@@ -54,10 +61,62 @@ ggplot(sublist, aes(x=difference)) + geom_histogram()
 #irae_day <- sublist %>% mutate(irae_samps = case_when(difference <=14 & 
                                                         #difference > -14  
                                                      #~ "1", TRUE ~ "0" )) 
-irae_day <- sublist %>% mutate(irae_samps = case_when(difference == -4 ~ "timepoint1", difference == -5 ~ "timepoint2", difference == -6 | difference == 7 ~ "timepoint3", difference == 10 | difference == -8 | difference == -9 | difference == 9 ~ "timepoint4", difference == -11 | difference == 11 ~ "timepoint5", TRUE ~ "no timepoint"))
+#irae_day <- sublist %>% mutate(irae_samps = case_when(difference == -4 ~ "timepoint1", difference == -5 ~ "timepoint2", difference == -6 | difference == 7 ~ "timepoint3", difference == 10 | difference == -8 | difference == -9 | difference == 9 ~ "timepoint4", difference == -11 | difference == 11 ~ "timepoint5", TRUE ~ "no timepoint"))
                     
-iraes_days_times <- irae_day %>% mutate(time_windows = case_when(difference == -4 ~ "+/- 3 Day", difference == -5 ~ "+/- 5 Day", difference == -6 | difference == 7 ~ "+/- 7 Day", difference == 10 | difference == -8 | difference == -9 | difference == 9 ~ "+/- 10 Day", difference == -11 | difference == 11 ~ "+/- 14 Day", TRUE ~ "Out")) 
+#iraes_days_times <- irae_day %>% mutate(time_windows = case_when(difference == -4 ~ "+/- 3 Day", difference == -5 ~ "+/- 5 Day", difference == -6 | difference == 7 ~ "+/- 7 Day", difference == 10 | difference == -8 | difference == -9 | difference == 9 ~ "+/- 10 Day", difference == -11 | difference == 11 ~ "+/- 14 Day", TRUE ~ "Out")) 
   
+#define window size that will be tested
+window <-seq(1,max(abs(sublist$days.from.irae )))
+#pre-allocate memory to store for loop output
+out <- data.frame(windowsize = window, qty = NA)
+
+
+for (i in window) { 
+  window.test <- abs(sublist$days.from.irae) < i
+  
+  out$qty[i] <- sum(window.test) 
+}
+head(out)
+```
+
+
+```{r}
+
+out %>% 
+  ggplot(aes(x=windowsize, y = qty)) +
+  geom_line()
+
+ggsave(file = "../figures/irae_windowsize.png", dev = "png", width = 10, height = 7)
+```
+
+```{r}
+out %>% 
+  ggplot(aes(x=windowsize, y = qty)) +
+  geom_line() + 
+  xlim(0,25) +
+  ylim(0,40)
+
+ggsave(file = "../figures/irae_windowsize_closeup.png", dev = "png", width = 10, height = 7)
+
+```
+```{r}
+out %>% 
+  filter(windowsize == 12)
+```
+
+```{r}
+
+out.sign <- data.frame(windowsize = window,
+                       qty = NA,
+                       before.or.after = NA)
+
+for (i in window) { 
+  window.test <- abs(sublist$days.from.irae) < i
+  
+  out.sign$qty[i] <- sum(window.test) 
+
+  }
+
 
 ```
 
