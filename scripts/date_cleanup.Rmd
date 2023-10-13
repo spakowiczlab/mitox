@@ -161,7 +161,7 @@ dates <- dates %>%
         "Baseline.scan" = CT.baseline - `C1D1 date`,
         "12wk.scan" = CT.12wk - `C1D1 date`,
         "Blood" = Blood.date - `C1D1 date`,) %>%
-  select(`Patient Id`, Category, recist, `Start Study`, `End Study`, irAE, irAE.bin, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood)
+  select(`Patient Id`, sample_id, Category, recist, `Start Study`, `End Study`, irAE, irAE.bin, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood)
         #"Other.scan" = CT.other - `C1D1 date`,)
 ```
 
