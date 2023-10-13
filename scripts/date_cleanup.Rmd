@@ -160,17 +160,11 @@ dates <- dates %>%
         "12wk" = date.12wk - `C1D1 date`,
         "Baseline.scan" = CT.baseline - `C1D1 date`,
         "12wk.scan" = CT.12wk - `C1D1 date`,
-        "Blood" = Blood.date - `C1D1 date`,)
+        "Blood" = Blood.date - `C1D1 date`,) %>%
+  select(`Patient Id`, Category, recist, `Start Study`, `End Study`, irAE, irAE.bin, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, Blood)
         #"Other.scan" = CT.other - `C1D1 date`,)
 ```
 
 ```{r}
-saveRDS(dates, "../data/timeline.RDS")
+saveRDS(dates, "../data/dates.RDS")
 ```
-
-<!-- make new dates object for Nye to work from  -->
-<!-- ```{r} -->
-<!-- mic.dates <- dates %>% -->
-<!--   select(`Patient Id`, `C1D1 date`, irAE_date, sample_id, `Start Study`, irAE, ) -->
-<!-- ``` -->
-
