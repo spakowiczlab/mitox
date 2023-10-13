@@ -11,167 +11,21 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(lubridate)
-library(reshape2)
 library(gt)
 library(openxlsx)
 ```
 
-path to t drive
+load timeline.RDS from github - created in date_cleanup.Rmd
 ```{r}
-paths.tdrive <- "T:/Labs/Spakowicz/mitox/"
-#paths.tdrive <- "/Volumes/spakowicz/mitox"
-```
+ dates <- readRDS("~/Documents/GitHub/mitox/data/dates.rds")
 
-read in data
-```{r}
-pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3)
-irAE <- readxl::read_xlsx(file.path(paths.tdrive,"Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx"))
-# old.recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "Clinical info/OSU-19125_patient_progression_RECIST_MH_v3.xlsx"))
-recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"))
-micSamp <- read.table(file.path(paths.tdrive, '/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
-
-blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
-blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
-blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
-
-#redcap <- read.csv(file.path(paths.tdrive, "/data/redcap/raw/2022-12-02/P841APilotStudyOfThe_DATA_2022-12-02_1235.csv"))
-```
-
-make MDSC M0 matching key
-```{r}
-key <- pt_log %>%
-  select(`Patient Id`, `MDSC #`) %>%
-  filter(!is.na(`MDSC #`))
-```
-
-make met/adj key
-```{r}
-met.key <- recist.scan %>%
+# met key
+met.key<- readxl::read_xlsx("/Volumes/spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx") %>%
+  dplyr::select(-Name, -MRN) %>%
   select(`Patient ID`, `Patient Type`) %>%
   rename(`Patient Id` = `Patient ID`) %>%
   filter(`Patient Type` == "Met")
 ```
-
-
-clean up start and stop study dates
-```{r}
-pt_log <- pt_log %>% 
-  select(`Patient Id`, `C1D1 date`, `EOS Date`) %>%
-  filter(!is.na(`C1D1 date`),
-         !is.na(`EOS Date`)) %>%
-  mutate(`C1D1 date` = as.Date(`C1D1 date`),
-         `EOS Date` = as.Date(`EOS Date`))
-```
-
-clean up irAE dates
-```{r}
-irAE <- irAE %>%
-  select(`Patient Id`, `Onset`, `Attribution (Final)`) %>%
-  rename(irAE = `Attribution (Final)`) %>%
-  fill(`Patient Id`) %>%
-  mutate("irAE_date"  = openxlsx::convertToDate(`Onset`)) %>%
-  filter(irAE == "Yes",
-          !is.na(irAE_date)) %>%
-  select(`Patient Id`, irAE_date)
-```
-
-clean up recist
-```{r}
-recist <- recist.scan %>%
-  select(`Patient ID`, Category) %>%
-  filter(!is.na(`Patient ID`)) %>%
-  rename(`Patient Id` = `Patient ID`) %>%
-  mutate(recist = ifelse(Category %in% c("CR", "PR"), "Responder", 
-                         ifelse(Category %in% c("PD", "SD"), "Non-Responder", "Unknown/Unmeasured")))
-```
-
-clean up scan date
-```{r}
-scan <- recist.scan %>%
-  select(`Patient ID`, `Baseline Scan`, `12th Week Scan`, `Other Scan`) %>%
-  filter(!is.na(`Patient ID`)) %>%
-  rename(`Patient Id` = `Patient ID`) %>%
-  mutate(CT.baseline = openxlsx::convertToDate(`Baseline Scan`),
-         CT.12wk = openxlsx::convertToDate(`12th Week Scan`),
-         CT.other = `Other Scan`)
-```
-
-clean up microbiome dates
-```{r}
-temp <- micSamp %>%
-  # if we dont have date sample collected, we don't need the entry
-  filter(!is.na(Date.Sample.Collected),
-         Date.Sample.Collected != "",
-         Date.Sample.Collected != "false") %>%
-  select(sample_id, Type.of.Sample, Date.Sample.Collected) %>%
-  # use sample_id substr instead of record_id, which is missing values
-  mutate(`Patient Id` = substr(sample_id, 0, 4),
-         date = as.Date(Date.Sample.Collected),
-         Type.of.Sample = ifelse(Type.of.Sample == "12Wk", "12wk", Type.of.Sample)) %>%
-  select(-Date.Sample.Collected) %>%
-  distinct()
-
-# multiple instances of 'Control' and 'Baseline' and 'AE'
-# assuming this is intentional
-micSamp <- reshape(temp, idvar = c("Patient Id", "sample_id"), timevar = "Type.of.Sample", direction = "wide")
-```
-
-clean up blood data 
-```{r}
-blood.adj <- blood.adj %>%
-  subset(., select = which(!duplicated(names(.)))) %>%
-  select(`Coded.Sample.#`, Date.of.Draw)
-
-blood.met <- blood.met %>%
-  subset(., select = which(!duplicated(names(.)))) %>%
-  select(`Coded.Sample.#`, Date.of.Draw)
-
-blood.metj <- blood.metj %>%
-  subset(., select = which(!duplicated(names(.)))) %>%
-  select(`Coded.Sample.#`, Date.of.Draw)
-
-blood <- rbind(blood.adj, blood.met, blood.metj) %>%
-  mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9)) %>%
-  left_join(key) %>%
-  filter(!is.na(`Patient Id`)) %>%
-  mutate(Blood.date = openxlsx::convertToDate(Date.of.Draw)) %>%
-  select(`Patient Id`, Blood.date)
-```
-
-
-merge date data
-```{r}
-dfs <- list(pt_log,  irAE, recist, micSamp, scan, blood)
-dates <- dfs %>% reduce(full_join, by='Patient Id')
-```
-
-calculate days
-```{r}
-dates <- dates %>%
- mutate("Start Study" = 0,
-        "End Study" =  `EOS Date` - `C1D1 date`,
-        "irAE" = irAE_date - `C1D1 date`,
-        "irAE.bin" = ifelse(is.na(irAE), "irAE-no", "irAE-yes"),
-        "Baseline" = date.Baseline - `C1D1 date`, 
-        "Control" = date.Control - `C1D1 date`,
-        "AE" = date.AE - `C1D1 date`,
-        "12wk" = date.12wk - `C1D1 date`,
-        "Baseline.scan" = CT.baseline - `C1D1 date`,
-        "12wk.scan" = CT.12wk - `C1D1 date`,
-        "Blood" = Blood.date - `C1D1 date`,)
-        #"Other.scan" = CT.other - `C1D1 date`,)
-
-```
-
-<!-- Object for Nye to work with -->
-<!-- ```{r} -->
-<!-- dates.save <- dates %>% -->
-<!--   mutate(Microbiome.date = coalesce(date.Control, date.Baseline, date.AE, date.12wk), -->
-<!--          Microbiome.days = coalesce(Baseline, Control, AE, `12wk`)) %>% -->
-<!--   select(`Patient Id`, irAE_date, sample_id, Microbiome.date, irAE, Microbiome.days) -->
-
-<!-- saveRDS(dates.save, "../data/dates.rds") -->
-<!-- ``` -->
 
 wide to long
 +
@@ -181,12 +35,10 @@ timepoints.filt <- dates %>%
   select(`Patient Id`, `Start Study`,`End Study`, `irAE`, `irAE.bin`, recist, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, `Blood`) %>%
   gather("Timepoint", "Date", c(`Start Study`,`End Study`, `irAE`, Baseline, Control, AE, `12wk`, Baseline.scan, `12wk.scan`, `Blood`)) %>%
 
-  # # additional filtering step  
-  # filter(!is.na(Date),
-  #        Date <= 113,
-  #        Date > -21,
-  # # has a microbiome sample 
-  #       `Patient Id` %in% micSamp$`Patient Id`) %>%
+# filter timepoints to restrict dates
+  filter(!is.na(Date),
+         Date <= 113,
+         Date > -21) %>%
   
  mutate(irAE = ifelse(Timepoint == "irAE", Date, NA),
          Microbiome = ifelse(Timepoint %in% c("Baseline", "Control", "AE", "12wk"), Date, NA),
@@ -198,6 +50,18 @@ timepoints.filt <- dates %>%
   # ungroup() %>%
   # mutate(`Patient Id` = fct_reorder(factor(`Patient Id`), max_day))
 ```
+
+additional filtering step to filter to those which have a microbiome sample
+```{r}
+mic.samps <- timepoints.filt %>% 
+  filter(!is.na(Microbiome)) %>%
+  select(`Patient Id`) %>%
+  distinct()
+
+timepoints.filt <- timepoints.filt %>%
+  filter(`Patient Id` %in% mic.samps$`Patient Id`)
+```
+
 
 filter to met
 ```{r}
