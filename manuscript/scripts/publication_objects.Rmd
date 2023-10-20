@@ -1,0 +1,154 @@
+---
+title: "generate data objects for publication"
+author: "Caroline Wheeler"
+date: "2023-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+```
+
+Publication objects = cleaned R objects in the repo, without PHI, that are the inputs to ALL of the figures
+
+file path 
+```{r}
+paths.tdrive <- "/Volumes/spakowicz/"
+#paths.tdrive <- "T:/Labs/Spakowicz/"
+```
+
+
+read in necessary data
+```{r}
+# pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
+#   dplyr::select(-`Pt Name`, -MRN)
+# 
+irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")) %>%
+  dplyr::select(-`Patient Name`, - MRN)
+# 
+
+# new sample column to include in data 
+recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")) %>%
+  dplyr::select(-Name, -MRN)
+# 
+# micSamp <- read.table(file.path(paths.tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
+# 
+# blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
+# blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
+# blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
+# 
+demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/Patient_demographics.xlsx")) %>%
+   select(-MRN, -Name)
+# 
+# ae.stat <- read.csv(file.path(paths.tdrive, "mitox/data/table_patients-with-AE_baseline-samps.csv" )) %>%
+#   select(-mrn)
+# 
+# ae_att <-read.csv(file.path(paths.tdrive, "mitox/data/mitox_table_fisherexact_test.csv"))
+# 
+# 
+pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
+                               sheet = "Progression dates")
+# 
+# ## ?
+# tabone <- read.csv("../data/mitox_table1.csv") 
+```
+
+Demographics (Input to Tables 1, S1)
+Rows are pts
+Age, stage, response, irae
+```{r}
+# variables used in table 1 
+# table1(data=tabone, ~ Age + Sex + Race + irAE + Cohort + Treatment |Response)
+
+# clean up demographic data
+demographics <- demo.dat %>% 
+  filter(!is.na(`Patient Id`)) %>%
+  select(-c(No., Notes))
+
+# get irAE and Response
+recist.mic <- recist.scan %>%
+  select(`Patient ID`, RECIST, Category, Samples) %>%
+  rename("Patient Id" = `Patient ID`,
+         "Mic.Samp" = Samples) %>%
+  filter(!is.na(`Patient Id`))
+
+pfs <- pfs %>%
+  select(`Patient Id`, `12-month PFS`)
+
+irae <- irAE %>%
+  dplyr::select(`Patient Id`, `Attribution (Final)`) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  filter(irAE == "Yes") %>%
+  distinct()
+
+symptoms <- irAE %>%
+  dplyr::select(`Patient Id`, `Attribution (Final)`, Symptoms) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  filter(irAE == "Yes")
+
+# join 
+demographics <- merge(demographics, recist.mic, all=T)
+demographics <- merge(demographics, pfs, all=T)
+demographics <- merge(demographics, irae, all=T)
+
+# slight mutations 
+demographics <- demographics %>%
+  mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE))
+
+# add irAE groupings and microbiome samples present 
+save(demographics, symptoms, file = "../data/clinical.Rdata")
+```
+
+
+Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
+                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", NA))
+
+
+Events object (input to Figure 1C (timeline figure))
+Rows are events
+ptID, event, time from C1D1 
+```{r}
+
+```
+
+
+irAE table
+Rows are irAEs
+ptID, grade, type (input to Table S2)
+```{r}
+
+```
+
+
+Microbiome sample metadata
+Rows are microbiome samples
+ptID, category label [baseline, 12wk, irae, control]
+```{r}
+
+```
+
+
+Microbiome data
+Abundances 
+Rows are microbiomes
+```{r}
+
+```
+
+
+Taxonomy table
+```{r}
+
+```
+
+
+Blood data
+Rows are blood samples
+ptID, genes
+```{r}
+
+```
+
