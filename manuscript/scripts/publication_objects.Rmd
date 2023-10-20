@@ -28,13 +28,12 @@ read in necessary data
 # 
 irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")) %>%
   dplyr::select(-`Patient Name`, - MRN)
-# 
 
-# new sample column to include in data 
+# recist, CT scans
 recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")) %>%
   dplyr::select(-Name, -MRN)
-# 
-# micSamp <- read.table(file.path(paths.tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
+
+micSamp <- read.table(file.path(paths.tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
 # 
 # blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
 # blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
@@ -53,22 +52,26 @@ pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_
                                sheet = "Progression dates")
 # 
 # ## ?
-# tabone <- read.csv("../data/mitox_table1.csv") 
+# tabone <- read.csv("../data/mitox_table1.csv")
+
+
+# microbiome taxonomic data
+taxa <- read.csv("../../data/mpa_aggregated_long_10-5-22.csv")
+
+# microbiome sample matching 
+samp.match <- read.csv("../../data/mitox_sample_matching.csv") %>%
+  select(sample, record_id)
 ```
 
 Demographics (Input to Tables 1, S1)
 Rows are pts
-Age, stage, response, irae
 ```{r}
-# variables used in table 1 
-# table1(data=tabone, ~ Age + Sex + Race + irAE + Cohort + Treatment |Response)
-
 # clean up demographic data
 demographics <- demo.dat %>% 
   filter(!is.na(`Patient Id`)) %>%
   select(-c(No., Notes))
 
-# get irAE and Response
+# get irAE, symptoms, response, pfs, microbiome sample presence
 recist.mic <- recist.scan %>%
   select(`Patient ID`, RECIST, Category, Samples) %>%
   rename("Patient Id" = `Patient ID`,
@@ -84,27 +87,17 @@ irae <- irAE %>%
   filter(irAE == "Yes") %>%
   distinct()
 
-symptoms <- irAE %>%
-  dplyr::select(`Patient Id`, `Attribution (Final)`, Symptoms) %>%
-  rename(irAE = `Attribution (Final)`) %>%
-  filter(irAE == "Yes")
-
 # join 
 demographics <- merge(demographics, recist.mic, all=T)
 demographics <- merge(demographics, pfs, all=T)
 demographics <- merge(demographics, irae, all=T)
 
-# slight mutations 
+# slight mutation to irae
 demographics <- demographics %>%
   mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE))
 
-# add irAE groupings and microbiome samples present 
-save(demographics, symptoms, file = "../data/clinical.Rdata")
+save(demographics, file = "../data/clinical.rds")
 ```
-
-
-Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
-                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", NA))
 
 
 Events object (input to Figure 1C (timeline figure))
@@ -119,7 +112,13 @@ irAE table
 Rows are irAEs
 ptID, grade, type (input to Table S2)
 ```{r}
+irae <- irAE %>%
+  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, Onset, `Symptom Treatment`, `Attribution (Final)`) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  filter(!is.na(`Patient Id`),
+         irAE == "Yes") 
 
+save(irAE, file = "../data/irae.rds")
 ```
 
 
@@ -127,17 +126,47 @@ Microbiome sample metadata
 Rows are microbiome samples
 ptID, category label [baseline, 12wk, irae, control]
 ```{r}
+# get average number of days between date collected and date processed 
+x <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
+  filter(!is.na(test))
 
+x <- mean(x$test)
+
+temp <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
+  filter(!is.na(test))
+  select(sample_id, Type.of.Sample, Date.Sample.Collected, record_id) %>%
+  # use sample_id substr instead of record_id, which is missing values
+  mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
+         Date.Sample.Collected = as.Date(Date.Sample.Collected),
+         Type.of.Sample = ifelse(Type.of.Sample == "12Wk", "12wk", Type.of.Sample),
+         ) %>%
+  select(-record_id) %>%
+  distinct()
+
+# multiple instances of 'Control' and 'Baseline' and 'AE'
+# assuming this is intentional
+micSamp <- reshape(temp, idvar = c("Patient Id", "sample_id"), timevar = "Type.of.Sample", direction = "wide")
+
+#save(mic, "../data/microbiome_metadata.rds")
 ```
+ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
+RESOLVED it is M020
 
+ISSUE M048 has a 12wk microbiome sample but no collection date 
+RESOLVED average days between collection and processing and add collection dates based on processing date 
 
 Microbiome data
 Abundances 
-Rows are microbiomes
+Rows are microbes
 ```{r}
 
 ```
-
 
 Taxonomy table
 ```{r}

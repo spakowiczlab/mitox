@@ -12,6 +12,14 @@ library(tidyverse)
 ```
 
 ```{r}
-load("../data/clinical.Rdata")
+load("../data/clinical.rds")
+load("../data/irae.rds")
+```
+
+create response var
+```{r}
+demographics <- demographics %>%
+  mutate(Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
+                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", NA)))
 ```
 
