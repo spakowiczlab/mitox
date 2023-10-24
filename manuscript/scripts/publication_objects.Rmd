@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(readxl)
+
+# source("00-paths.R")
 ```
 
 Publication objects = cleaned R objects in the repo, without PHI, that are the inputs to ALL of the figures
@@ -44,23 +46,20 @@ demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/
 # 
 # ae.stat <- read.csv(file.path(paths.tdrive, "mitox/data/table_patients-with-AE_baseline-samps.csv" )) %>%
 #   select(-mrn)
-# 
-# ae_att <-read.csv(file.path(paths.tdrive, "mitox/data/mitox_table_fisherexact_test.csv"))
-# 
-# 
+
+
+# PFS
 pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
                                sheet = "Progression dates")
-# 
-# ## ?
-# tabone <- read.csv("../data/mitox_table1.csv")
 
-
-# microbiome taxonomic data
+# microbiome taxonomic data merged metaphlan output 
 taxa <- read.csv("../../data/mpa_aggregated_long_10-5-22.csv")
 
 # microbiome sample matching 
-samp.match <- read.csv("../../data/mitox_sample_matching.csv") %>%
-  select(sample, record_id)
+samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx"))
+samps2 <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx")) %>%
+   select(-`Specimen Type`)
+samps <- rbind(samps, samps2) 
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -104,6 +103,15 @@ Events object (input to Figure 1C (timeline figure))
 Rows are events
 ptID, event, time from C1D1 
 ```{r}
+# get average number of days between date collected and date processed 
+x <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
+  filter(!is.na(test))
+
+x <- mean(x$test)
+
 
 ```
 
@@ -124,36 +132,31 @@ save(irAE, file = "../data/irae.rds")
 
 Microbiome sample metadata
 Rows are microbiome samples
-ptID, category label [baseline, 12wk, irae, control]
+ptID, category label [baseline, 12wk, irae, control], link to 
 ```{r}
-# get average number of days between date collected and date processed 
-x <- micSamp %>%
+temp.mic <- micSamp %>%
   filter(sample_id != "",
          Type.of.Sample != "") %>%
-  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
-  filter(!is.na(test))
-
-x <- mean(x$test)
-
-temp <- micSamp %>%
-  filter(sample_id != "",
-         Type.of.Sample != "") %>%
-  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
-  filter(!is.na(test))
-  select(sample_id, Type.of.Sample, Date.Sample.Collected, record_id) %>%
+  select(sample_id, Type.of.Sample, record_id) %>%
   # use sample_id substr instead of record_id, which is missing values
   mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
-         Date.Sample.Collected = as.Date(Date.Sample.Collected),
          Type.of.Sample = ifelse(Type.of.Sample == "12Wk", "12wk", Type.of.Sample),
-         ) %>%
+         #sample_id = substr(sample_id, 0, nchar(sample_id)-2),
+         sample_id = gsub(" ", ".", sample_id)) %>%
   select(-record_id) %>%
-  distinct()
+  rename("Category" = Type.of.Sample) %>% 
+  distinct() 
 
-# multiple instances of 'Control' and 'Baseline' and 'AE'
-# assuming this is intentional
-micSamp <- reshape(temp, idvar = c("Patient Id", "sample_id"), timevar = "Type.of.Sample", direction = "wide")
+samps <- samps %>%
+  select("Barcode ID", "Name") %>%
+  mutate(sample_id = gsub("_", ".", Name)) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-Name) %>%
+  rename("sample" = "Barcode ID")
 
-#save(mic, "../data/microbiome_metadata.rds")
+mic.meta <- left_join(samps, temp.mic)
+
+save(mic.meta, file = "../data/microbiome_metadata.rds")
 ```
 ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
 RESOLVED it is M020
@@ -165,14 +168,28 @@ Microbiome data
 Abundances 
 Rows are microbes
 ```{r}
+mic <- taxa %>%
+  select(sample, Taxonomy, RelAbun) %>%
+  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) 
 
+save(mic, file = "../data/microbiome.rds")
 ```
 
 Taxonomy table
 ```{r}
+tax.tab <- taxa %>%
+   dplyr::select(sample, Taxonomy, RelAbun) %>%
+    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
+           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
+           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
+           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
+           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
+           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
+           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
+  filter(!is.na(species)) 
 
+save(tax.tab, file = "../data/taxonomy.rds")
 ```
-
 
 Blood data
 Rows are blood samples
