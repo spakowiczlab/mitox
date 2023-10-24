@@ -9,7 +9,23 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Figure 2A
-Figure 2B
-Figure 2C
-Figure 2D
+Figure 2A - Stacked Bar
+```{r}
+
+```
+
+Figure 2B - UMAP Clustering 
+```{r}
+
+```
+
+Figure 2C - Volcano Plot R vs. NR
+```{r}
+
+```
+
+Figure 2D - Effect Size
+```{r}
+
+```
+
