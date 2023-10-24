@@ -126,7 +126,7 @@ irae <- irAE %>%
   filter(!is.na(`Patient Id`),
          irAE == "Yes") 
 
-save(irAE, file = "../data/irae.rds")
+save(irAE, file = "../../data/irae.rds")
 ```
 
 
@@ -156,7 +156,7 @@ samps <- samps %>%
 
 mic.meta <- left_join(samps, temp.mic)
 
-save(mic.meta, file = "../data/microbiome_metadata.rds")
+save(mic.meta, file = "../../data/microbiome_metadata.rds")
 ```
 ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
 RESOLVED it is M020
@@ -172,7 +172,7 @@ mic <- taxa %>%
   select(sample, Taxonomy, RelAbun) %>%
   pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) 
 
-save(mic, file = "../data/microbiome.rds")
+save(mic, file = "../../data/microbiome.rds")
 ```
 
 Taxonomy table
@@ -188,7 +188,7 @@ tax.tab <- taxa %>%
            species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
   filter(!is.na(species)) 
 
-save(tax.tab, file = "../data/taxonomy.rds")
+save(tax.tab, file = "../../data/taxonomy.rds")
 ```
 
 Blood data

@@ -1,0 +1,21 @@
+---
+title: "figure 1 - timeline"
+author: "Caroline Wheeler"
+date: "2023-10-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+```
+
+Figure 1A - Schema
+Figure 1B - CONSORT
+
+Figure 1C - Timeline 
+```{r}
+
+```
+
