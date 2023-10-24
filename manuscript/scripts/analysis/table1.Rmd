@@ -12,8 +12,8 @@ library(tidyverse)
 ```
 
 ```{r}
-load("../data/clinical.rds")
-load("../data/irae.rds")
+load("../../data/clinical.rds")
+load("../../data/irae.rds")
 ```
 
 create response var

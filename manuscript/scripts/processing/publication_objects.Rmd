@@ -53,7 +53,7 @@ pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_
                                sheet = "Progression dates")
 
 # microbiome taxonomic data merged metaphlan output 
-taxa <- read.csv("../../data/mpa_aggregated_long_10-5-22.csv")
+taxa <- read.csv("../../../data/mpa_aggregated_long_10-5-22.csv")
 
 # microbiome sample matching 
 samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx"))
@@ -126,7 +126,7 @@ irae <- irAE %>%
   filter(!is.na(`Patient Id`),
          irAE == "Yes") 
 
-save(irAE, file = "../../data/irae.rds")
+save(irae, file = "../../data/irae.rds")
 ```
 
 
@@ -154,6 +154,7 @@ samps <- samps %>%
   select(-Name) %>%
   rename("sample" = "Barcode ID")
 
+test <- merge(samps, temp.mic, all=T)
 mic.meta <- left_join(samps, temp.mic)
 
 save(mic.meta, file = "../../data/microbiome_metadata.rds")
