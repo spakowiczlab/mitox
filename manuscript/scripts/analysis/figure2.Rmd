@@ -1,0 +1,34 @@
+---
+title: "figure 2 - The association of gut microbes and T-cell senescence markers with treatment response"
+author: "Caroline Wheeler"
+date: "2023-10-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(ggrepel)
+```
+
+Figure 2A - Stacked Bar
+```{r}
+
+```
+
+Figure 2B - UMAP Clustering 
+```{r}
+
+```
+
+Figure 2C - Volcano Plot R vs. NR
+```{r}
+
+```
+
+Figure 2D - Effect Size
+```{r}
+
+```
+

@@ -1,0 +1,25 @@
+---
+title: "table 1"
+author: "Caroline Wheeler"
+date: "2023-10-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+load("../../data/clinical.rds")
+load("../../data/irae.rds")
+```
+
+create response var
+```{r}
+demographics <- demographics %>%
+  mutate(Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
+                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", NA)))
+```
+

@@ -1,0 +1,201 @@
+---
+title: "generate data objects for publication"
+author: "Caroline Wheeler"
+date: "2023-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+
+# source("00-paths.R")
+```
+
+Publication objects = cleaned R objects in the repo, without PHI, that are the inputs to ALL of the figures
+
+file path 
+```{r}
+paths.tdrive <- "/Volumes/spakowicz/"
+#paths.tdrive <- "T:/Labs/Spakowicz/"
+```
+
+
+read in necessary data
+```{r}
+# pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
+#   dplyr::select(-`Pt Name`, -MRN)
+# 
+irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")) %>%
+  dplyr::select(-`Patient Name`, - MRN)
+
+# recist, CT scans
+recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")) %>%
+  dplyr::select(-Name, -MRN)
+
+micSamp <- read.table(file.path(paths.tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
+# 
+# blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
+# blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
+# blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
+# 
+demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/Patient_demographics.xlsx")) %>%
+   select(-MRN, -Name)
+# 
+# ae.stat <- read.csv(file.path(paths.tdrive, "mitox/data/table_patients-with-AE_baseline-samps.csv" )) %>%
+#   select(-mrn)
+
+
+# PFS
+pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
+                               sheet = "Progression dates")
+
+# microbiome taxonomic data merged metaphlan output 
+taxa <- read.csv("../../../data/mpa_aggregated_long_10-5-22.csv")
+
+# microbiome sample matching 
+samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx"))
+samps2 <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx")) %>%
+   select(-`Specimen Type`)
+samps <- rbind(samps, samps2) 
+```
+
+Demographics (Input to Tables 1, S1)
+Rows are pts
+```{r}
+# clean up demographic data
+demographics <- demo.dat %>% 
+  filter(!is.na(`Patient Id`)) %>%
+  select(-c(No., Notes))
+
+# get irAE, symptoms, response, pfs, microbiome sample presence
+recist.mic <- recist.scan %>%
+  select(`Patient ID`, RECIST, Category, Samples) %>%
+  rename("Patient Id" = `Patient ID`,
+         "Mic.Samp" = Samples) %>%
+  filter(!is.na(`Patient Id`))
+
+pfs <- pfs %>%
+  select(`Patient Id`, `12-month PFS`)
+
+irae <- irAE %>%
+  dplyr::select(`Patient Id`, `Attribution (Final)`) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  filter(irAE == "Yes") %>%
+  distinct()
+
+# join 
+demographics <- merge(demographics, recist.mic, all=T)
+demographics <- merge(demographics, pfs, all=T)
+demographics <- merge(demographics, irae, all=T)
+
+# slight mutation to irae
+demographics <- demographics %>%
+  mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE))
+
+save(demographics, file = "../data/clinical.rds")
+```
+
+
+Events object (input to Figure 1C (timeline figure))
+Rows are events
+ptID, event, time from C1D1 
+```{r}
+# get average number of days between date collected and date processed 
+x <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
+  filter(!is.na(test))
+
+x <- mean(x$test)
+
+
+```
+
+
+irAE table
+Rows are irAEs
+ptID, grade, type (input to Table S2)
+```{r}
+irae <- irAE %>%
+  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, Onset, `Symptom Treatment`, `Attribution (Final)`) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  filter(!is.na(`Patient Id`),
+         irAE == "Yes") 
+
+save(irae, file = "../../data/irae.rds")
+```
+
+
+Microbiome sample metadata
+Rows are microbiome samples
+ptID, category label [baseline, 12wk, irae, control], link to 
+```{r}
+temp.mic <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  select(sample_id, Type.of.Sample, record_id) %>%
+  # use sample_id substr instead of record_id, which is missing values
+  mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
+         Type.of.Sample = ifelse(Type.of.Sample == "12Wk", "12wk", Type.of.Sample),
+         #sample_id = substr(sample_id, 0, nchar(sample_id)-2),
+         sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-record_id) %>%
+  rename("Category" = Type.of.Sample) %>% 
+  distinct() 
+
+samps <- samps %>%
+  select("Barcode ID", "Name") %>%
+  mutate(sample_id = gsub("_", ".", Name)) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-Name) %>%
+  rename("sample" = "Barcode ID")
+
+test <- merge(samps, temp.mic, all=T)
+mic.meta <- left_join(samps, temp.mic)
+
+save(mic.meta, file = "../../data/microbiome_metadata.rds")
+```
+ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
+RESOLVED it is M020
+
+ISSUE M048 has a 12wk microbiome sample but no collection date 
+RESOLVED average days between collection and processing and add collection dates based on processing date 
+
+Microbiome data
+Abundances 
+Rows are microbes
+```{r}
+mic <- taxa %>%
+  select(sample, Taxonomy, RelAbun) %>%
+  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) 
+
+save(mic, file = "../../data/microbiome.rds")
+```
+
+Taxonomy table
+```{r}
+tax.tab <- taxa %>%
+   dplyr::select(sample, Taxonomy, RelAbun) %>%
+    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
+           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
+           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
+           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
+           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
+           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
+           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
+  filter(!is.na(species)) 
+
+save(tax.tab, file = "../../data/taxonomy.rds")
+```
+
+Blood data
+Rows are blood samples
+ptID, genes
+```{r}
+
+```
+
