@@ -43,7 +43,7 @@ metab.df.form <- metab.df %>%
          "RelAbun" = "V3",
          "Alternative.Tax" = "V4")
 
-write.csv(metab.df.form, "../data/mpa_aggregated_long_10-5-22.csv", row.names = F)
+write.csv(metab.df.form, "../data/mpa_aggregated_long_2023-10-26.csv", row.names = F)
 write.csv(metab.df.form, "/fs/ess/PAS1695/projects/mitox/data/2023-10-26_mpa_aggregated_long.csv", row.names = F)
 ```
 
