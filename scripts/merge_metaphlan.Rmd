@@ -16,16 +16,18 @@ library(tidyverse)
 ```{r}
 path1 <- "/fs/ess/PAS1695/projects/mitox/data/metaphlan"
 path2 <- "/fs/ess/PAS1695/projects/mitox/data/metaphlan2"
+path3 <- "/fs/ess/PAS1695/projects/mitox/data/problem_fastqs/metaphlan"
 
 met1 <- list.files(path1, pattern = "txt", full.names = T)
 met2 <- list.files(path2, pattern = "txt", full.names = T)
-met <- c(met1, met2)
+met3 <- list.files(path3, pattern = "txt", full.names = T)
+met <- c(met1, met2, met3)
 
 names1 <- list.files(path1, pattern = "txt")
 names2 <- list.files(path2, pattern = "txt")
-names <- c(names1, names2)
+names3 <- list.files(path3, pattern = "txt")
+names <- c(names1, names2, names3)
 names <- substr(names, 1, nchar(names)-4)
-
 ```
 
 ```{r}
@@ -42,5 +44,6 @@ metab.df.form <- metab.df %>%
          "Alternative.Tax" = "V4")
 
 write.csv(metab.df.form, "../data/mpa_aggregated_long_10-5-22.csv", row.names = F)
+write.csv(metab.df.form, "/fs/ess/PAS1695/projects/mitox/data/2023-10-26_mpa_aggregated_long.csv", row.names = F)
 ```
 
