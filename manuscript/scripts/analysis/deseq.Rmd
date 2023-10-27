@@ -7,6 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(DESeq2)
 ```
 
 load data
@@ -16,8 +18,148 @@ load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 ```
 
-make input dfs
+create inputs 
 ```{r}
-test <- left_join(mic.meta, demographics, by = "Patient Id")
+clin <- left_join(mic.meta, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% tax.tab$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% tax.tab$sample)
+
+taxa_irae <- tax.tab %>%
+  dplyr::filter(sample %in% irae$sample)
+
+# response as ifelse(Category == "PD", "NR", "R")) for deseq
+recist <- clin %>%
+  dplyr::mutate(Response = ifelse(Category == "PD", "NR", "R")) %>%
+  dplyr::select(sample, Response) %>%
+  dplyr::filter(sample %in% tax.tab$sample)
+
+taxa_res <- tax.tab %>%
+  dplyr::filter(sample %in% recist$sample)
+
+sub <- clin %>%
+  dplyr::filter(Category != "PD",
+                !is.na(Category),
+                sample %in% tax.tab$sample) %>%
+  dplyr::select(sample, irAE)
+
+taxa_sub <- tax.tab %>%
+  dplyr::filter(sample %in% sub$sample)
 ```
+
+## define functions
+```{r}
+# function to get count tables 
+#
+# @taxa df - long form df of taxa
+# @lev string - name of the taxonomic level
+write_desd <- function(taxa, lev){
+  desd <- taxa %>%
+    dplyr::select("sample", all_of(lev), "RelAbun") %>%
+    mutate(count = round(RelAbun*1e1))%>%
+    dplyr::select(-"RelAbun")
+  
+  return(desd)
+}
+
+write_desd_part2 <- function(desd){
+  desd <- desd  %>%
+  dplyr::select(-"count") %>%
+  distinct() %>%
+  spread(sample, n, fill = 0) %>%
+  remove_rownames
+  
+  return(desd)
+}
+
+# function to run deseq2
+#
+# @desd
+# @meta
+# @lev
+run_deseq <- function(desd, meta, lev){
+  ord <- rownames(meta)
+  desd <- desd[, ord]
+  dds <- DESeqDataSetFromMatrix(countData = desd,
+                                colData = meta,
+                                design = ~ irAE)
+
+  dds <- DESeq(dds)
+  res <- results(dds)
+  
+  pd <- res$log2FoldChange
+  
+  resPlot <- data.frame(res) %>% mutate(threshold = padj < 0.05)
+  
+  resPlot$level <- lev
+  return(resPlot)
+}
+```
+
+## irAE
+
+# get irAE count tables
+```{r}
+phyl <- write_desd(taxa_irae, "phylum") %>%
+  add_count(sample, phylum, wt=count) 
+phyl <- write_desd_part2(phyl) %>% 
+  column_to_rownames(var="phylum")
+
+class <- write_desd(taxa_irae, "class") %>%
+  add_count(sample, class, wt=count) 
+class <- write_desd_part2(class) %>% 
+  column_to_rownames(var="class")
+
+ord <- write_desd(taxa_irae, "order") %>%
+  add_count(sample, order, wt=count) 
+ord <- write_desd_part2(ord) %>%
+  column_to_rownames(var="order")
+
+fam <- write_desd(taxa_irae, "family") %>%
+  add_count(sample, family, wt=count) 
+fam <- write_desd_part2(fam) %>%
+  column_to_rownames(var="family")
+
+gen <- write_desd(taxa_irae, "genus") %>%
+  add_count(sample, genus, wt=count) 
+gen <- write_desd_part2(gen) %>%
+  column_to_rownames(var="genus")
+
+spec <- write_desd(taxa_irae, "species") %>%
+  add_count(sample, species, wt=count) 
+spec <- write_desd_part2(spec) %>%
+  column_to_rownames(var="species")
+```
+
+make sure cols and rows match and make samples rownames
+```{r}
+irae <- irae %>% arrange(factor(sample, levels = colnames(fam))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample")
+```
+
+# deseq2 for irAE
+```{r}
+phyl_rp <- run_deseq(phyl, irae, "phylum")
+clas_rp <- run_deseq(class, irae, "class")
+ord_rp <- run_deseq(ord, irae, "order")
+fam_rp <- run_deseq(fam, irae, "family")
+gen_rp <- run_deseq(gen, irae, "genus")
+
+# add constant value to all cells in species matrix
+# previously getting error
+# Every gene contains at least one zero, cannot compute log geometric means
+spec_rp <- run_deseq(spec + 1, irae, "species")
+```
+
+```{r}
+resPlot_irae <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
+
+#write.csv(resPlot_irae, "../data/irAE_deseq2_results.csv")
+```
+
+
+
 

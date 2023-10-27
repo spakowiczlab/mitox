@@ -12,6 +12,7 @@ library(ggplot2)
 ```
 
 Figure 1A - Schema
+
 Figure 1B - CONSORT
 
 Figure 1C - Timeline 

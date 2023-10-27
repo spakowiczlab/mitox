@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(table1)
 ```
 
 ```{r}
@@ -20,6 +21,40 @@ create response var
 ```{r}
 demographics <- demographics %>%
   mutate(Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
-                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", NA)))
+                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", "No Response Info"))) 
+
+dem.met <- demographics %>%
+  filter(Cohort == "Met")
+```
+
+function to get p-value 
+```{r}
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable 
+  #label.
+  c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+
+```
+
+
+Table 1
+```{r}
+
+table1(~ Age + Sex + Race + Treatment + irAE | Response,
+       data=dem.met, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 ```
 

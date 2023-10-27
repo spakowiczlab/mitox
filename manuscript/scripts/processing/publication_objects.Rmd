@@ -22,12 +22,9 @@ paths.tdrive <- "/Volumes/spakowicz/"
 #paths.tdrive <- "T:/Labs/Spakowicz/"
 ```
 
-
 read in necessary data
 ```{r}
-# pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
-#   dplyr::select(-`Pt Name`, -MRN)
-# 
+# irAEs
 irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")) %>%
   dplyr::select(-`Patient Name`, - MRN)
 
@@ -35,31 +32,28 @@ irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy
 recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")) %>%
   dplyr::select(-Name, -MRN)
 
+# microbiome metadata
 micSamp <- read.table(file.path(paths.tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
-# 
-# blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
-# blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
-# blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
-# 
+
+# demographics
 demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/Patient_demographics.xlsx")) %>%
    select(-MRN, -Name)
-# 
-# ae.stat <- read.csv(file.path(paths.tdrive, "mitox/data/table_patients-with-AE_baseline-samps.csv" )) %>%
-#   select(-mrn)
-
 
 # PFS
 pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
                                sheet = "Progression dates")
 
 # microbiome taxonomic data merged metaphlan output 
-taxa <- read.csv("../../../data/mpa_aggregated_long_10-5-22.csv")
+taxa <- read.csv("../../../data/mpa_aggregated_long_2023-10-26.csv")
 
 # microbiome sample matching 
 samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx"))
 samps2 <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx")) %>%
    select(-`Specimen Type`)
 samps <- rbind(samps, samps2) 
+
+# blood data
+
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -95,7 +89,7 @@ demographics <- merge(demographics, irae, all=T)
 demographics <- demographics %>%
   mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE))
 
-save(demographics, file = "../data/clinical.rds")
+save(demographics, file = "../../data/clinical.rds")
 ```
 
 
@@ -112,7 +106,7 @@ x <- micSamp %>%
 
 x <- mean(x$test)
 
-
+# need to update this one date and create events object
 ```
 
 
@@ -154,8 +148,8 @@ samps <- samps %>%
   select(-Name) %>%
   rename("sample" = "Barcode ID")
 
-test <- merge(samps, temp.mic, all=T)
-mic.meta <- left_join(samps, temp.mic)
+mic.meta <- left_join(samps, temp.mic) %>%
+  rename("Timepoint" = "Category")
 
 save(mic.meta, file = "../../data/microbiome_metadata.rds")
 ```
@@ -164,6 +158,7 @@ RESOLVED it is M020
 
 ISSUE M048 has a 12wk microbiome sample but no collection date 
 RESOLVED average days between collection and processing and add collection dates based on processing date 
+
 
 Microbiome data
 Abundances 
@@ -195,6 +190,8 @@ save(tax.tab, file = "../../data/taxonomy.rds")
 Blood data
 Rows are blood samples
 ptID, genes
+
+in nanostring summary
 ```{r}
 
 ```
