@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(DESeq2)
+library(tidyverse)
 ```
 
 load data
@@ -34,7 +35,8 @@ taxa_irae <- tax.tab %>%
 recist <- clin %>%
   dplyr::mutate(Response = ifelse(Category == "PD", "NR", "R")) %>%
   dplyr::select(sample, Response) %>%
-  dplyr::filter(sample %in% tax.tab$sample)
+  dplyr::filter(sample %in% tax.tab$sample,
+                !is.na(Response))
 
 taxa_res <- tax.tab %>%
   dplyr::filter(sample %in% recist$sample)
@@ -49,16 +51,22 @@ taxa_sub <- tax.tab %>%
   dplyr::filter(sample %in% sub$sample)
 ```
 
+
+```{r}
+ggplot(tax.tab, aes(-log10(RelAbun*1e4))) + geom_histogram(binwidth = 0.5)
+```
+
+
 ## define functions
 ```{r}
-# function to get count tables 
+# functions to get count tables - ideally 3 parts would be in one function, too annoying to resolve right now
 #
 # @taxa df - long form df of taxa
 # @lev string - name of the taxonomic level
 write_desd <- function(taxa, lev){
   desd <- taxa %>%
     dplyr::select("sample", all_of(lev), "RelAbun") %>%
-    mutate(count = round(RelAbun*1e1))%>%
+    mutate(count = round(RelAbun*1e4))%>%
     dplyr::select(-"RelAbun")
   
   return(desd)
@@ -66,13 +74,22 @@ write_desd <- function(taxa, lev){
 
 write_desd_part2 <- function(desd){
   desd <- desd  %>%
-  dplyr::select(-"count") %>%
-  distinct() %>%
-  spread(sample, n, fill = 0) %>%
-  remove_rownames
+    dplyr::select(-"count") %>%
+    distinct() %>%
+    spread(sample, n, fill = 0) %>%
+    remove_rownames
   
   return(desd)
 }
+
+# write_desd_part3 <- function(desd){
+#   desd <- desd %>%
+#     mutate(Total = reduce(., `+`)) %>%
+#     dplyr::filter(Total != 0) %>%
+#     dplyr::select(-Total)
+#   
+#   return(desd)
+# }
 
 # function to run deseq2
 #
@@ -84,6 +101,7 @@ run_deseq <- function(desd, meta, lev){
   desd <- desd[, ord]
   dds <- DESeqDataSetFromMatrix(countData = desd,
                                 colData = meta,
+                                # change design = according to which analysis 
                                 design = ~ irAE)
 
   dds <- DESeq(dds)
@@ -106,28 +124,96 @@ phyl <- write_desd(taxa_irae, "phylum") %>%
   add_count(sample, phylum, wt=count) 
 phyl <- write_desd_part2(phyl) %>% 
   column_to_rownames(var="phylum")
+#phyl <- write_desd_part3(phyl)
 
 class <- write_desd(taxa_irae, "class") %>%
   add_count(sample, class, wt=count) 
 class <- write_desd_part2(class) %>% 
   column_to_rownames(var="class")
+#class <- write_desd_part3(class)
 
 ord <- write_desd(taxa_irae, "order") %>%
   add_count(sample, order, wt=count) 
 ord <- write_desd_part2(ord) %>%
   column_to_rownames(var="order")
+#ord <- write_desd_part3(ord)
 
 fam <- write_desd(taxa_irae, "family") %>%
   add_count(sample, family, wt=count) 
 fam <- write_desd_part2(fam) %>%
   column_to_rownames(var="family")
+#fam <- write_desd_part3(fam)
 
 gen <- write_desd(taxa_irae, "genus") %>%
   add_count(sample, genus, wt=count) 
 gen <- write_desd_part2(gen) %>%
   column_to_rownames(var="genus")
+#gen <- write_desd_part3(gen)
 
 spec <- write_desd(taxa_irae, "species") %>%
+  add_count(sample, species, wt=count) 
+spec <- write_desd_part2(spec) %>%
+  column_to_rownames(var="species")
+#spec <- write_desd_part3(spec)
+```
+
+make sure cols and rows match and make samples rownames
+```{r}
+irae <- irae %>% arrange(factor(sample, levels = colnames(phyl))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample")
+```
+
+
+# deseq2 for irAE
+```{r}
+phyl_rp <- run_deseq(phyl+1, irae, "phylum")
+clas_rp <- run_deseq(class+1, irae, "class")
+ord_rp <- run_deseq(ord+1, irae, "order")
+fam_rp <- run_deseq(fam+1, irae, "family")
+gen_rp <- run_deseq(gen+1, irae, "genus")
+
+# add constant value to all cells in species matrix
+# previously getting error
+# Every gene contains at least one zero, cannot compute log geometric means
+spec_rp <- run_deseq(spec+1, irae, "species")
+```
+
+```{r}
+resPlot_irae <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
+save(resPlot_irae, file = "../../data/deseq_irae.rds")
+```
+
+## RECIST 
+
+# get recist count tables
+```{r}
+phyl <- write_desd(taxa_res, "phylum") %>%
+  add_count(sample, phylum, wt=count) 
+phyl <- write_desd_part2(phyl) %>% 
+  column_to_rownames(var="phylum")
+
+class <- write_desd(taxa_res, "class") %>%
+  add_count(sample, class, wt=count) 
+class <- write_desd_part2(class) %>% 
+  column_to_rownames(var="class")
+
+ord <- write_desd(taxa_res, "order") %>%
+  add_count(sample, order, wt=count) 
+ord <- write_desd_part2(ord) %>%
+  column_to_rownames(var="order")
+
+fam <- write_desd(taxa_res, "family") %>%
+  add_count(sample, family, wt=count) 
+fam <- write_desd_part2(fam) %>%
+  column_to_rownames(var="family")
+
+gen <- write_desd(taxa_res, "genus") %>%
+  add_count(sample, genus, wt=count) 
+gen <- write_desd_part2(gen) %>%
+  column_to_rownames(var="genus")
+
+spec <- write_desd(taxa_res, "species") %>%
   add_count(sample, species, wt=count) 
 spec <- write_desd_part2(spec) %>%
   column_to_rownames(var="species")
@@ -135,31 +221,92 @@ spec <- write_desd_part2(spec) %>%
 
 make sure cols and rows match and make samples rownames
 ```{r}
-irae <- irae %>% arrange(factor(sample, levels = colnames(fam))) %>%
+recist <- recist %>% arrange(factor(sample, levels = colnames(fam))) %>%
   remove_rownames() %>%
   column_to_rownames(var = "sample")
 ```
 
-# deseq2 for irAE
+# deseq2 for recist
 ```{r}
-phyl_rp <- run_deseq(phyl, irae, "phylum")
-clas_rp <- run_deseq(class, irae, "class")
-ord_rp <- run_deseq(ord, irae, "order")
-fam_rp <- run_deseq(fam, irae, "family")
-gen_rp <- run_deseq(gen, irae, "genus")
+phyl_rp <- run_deseq(phyl+1, recist, "phylum")
+clas_rp <- run_deseq(class+1, recist, "class")
+ord_rp <- run_deseq(ord+1, recist, "order")
+fam_rp <- run_deseq(fam+1, recist, "family")
+gen_rp <- run_deseq(gen+1, recist, "genus")
 
 # add constant value to all cells in species matrix
 # previously getting error
 # Every gene contains at least one zero, cannot compute log geometric means
-spec_rp <- run_deseq(spec + 1, irae, "species")
+spec_rp <- run_deseq(spec + 1, recist, "species")
 ```
 
 ```{r}
-resPlot_irae <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
+resPlot_recist <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
-#write.csv(resPlot_irae, "../data/irAE_deseq2_results.csv")
+save(resPlot_recist, file = "../../data/deseq_recist.rds")
 ```
 
 
+## SUBSET
+
+# get subset count tables 
+```{r}
+phyl <- write_desd(taxa_sub, "phylum") %>%
+  add_count(sample, phylum, wt=count) 
+phyl <- write_desd_part2(phyl) %>% 
+  column_to_rownames(var="phylum")
+
+class <- write_desd(taxa_sub, "class") %>%
+  add_count(sample, class, wt=count) 
+class <- write_desd_part2(class) %>% 
+  column_to_rownames(var="class")
+
+ord <- write_desd(taxa_sub, "order") %>%
+  add_count(sample, order, wt=count) 
+ord <- write_desd_part2(ord) %>%
+  column_to_rownames(var="order")
+
+fam <- write_desd(taxa_sub, "family") %>%
+  add_count(sample, family, wt=count) 
+fam <- write_desd_part2(fam) %>%
+  column_to_rownames(var="family")
+
+gen <- write_desd(taxa_sub, "genus") %>%
+  add_count(sample, genus, wt=count) 
+gen <- write_desd_part2(gen) %>%
+  column_to_rownames(var="genus")
+
+spec <- write_desd(taxa_sub, "species") %>%
+  add_count(sample, species, wt=count) 
+spec <- write_desd_part2(spec) %>%
+  column_to_rownames(var="species")
+```
+
+make sure cols and rows match and make samples rownames
+```{r}
+sub <- sub %>% arrange(factor(sample, levels = colnames(fam))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample")
+```
+
+# deseq2 for recist
+```{r}
+phyl_rp <- run_deseq(phyl+1, sub, "phylum")
+aclas_rp <- run_deseq(class+1, sub, "class")
+ord_rp <- run_deseq(ord+1, sub, "order")
+fam_rp <- run_deseq(fam+1, sub, "family")
+gen_rp <- run_deseq(gen+1, sub, "genus")
+
+# add constant value to all cells in species matrix
+# previously getting error
+# Every gene contains at least one zero, cannot compute log geometric means
+spec_rp <- run_deseq(spec + 1, sub, "species")
+```
+
+```{r}
+resPlot_sub <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
+
+save(resPlot_sub, file = "../../data/_deseq_subset_results.rds")
+```
 
 
