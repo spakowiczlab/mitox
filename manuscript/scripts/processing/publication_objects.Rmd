@@ -53,7 +53,13 @@ samps2 <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2022-07-27_mitox_
 samps <- rbind(samps, samps2) 
 
 # blood data
+blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
+blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
+blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2)
 
+# Patient log
+pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
+  dplyr::select(-`Pt Name`, -MRN)
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -85,30 +91,13 @@ demographics <- merge(demographics, recist.mic, all=T)
 demographics <- merge(demographics, pfs, all=T)
 demographics <- merge(demographics, irae, all=T)
 
-# slight mutation to irae
+# slight mutation to irae and MDSC
 demographics <- demographics %>%
-  mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE))
+  mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE),
+         `MDSC #` = case_when(`MDSC #` == "N/A"~NA, .default = `MDSC #`))
 
 save(demographics, file = "../../data/clinical.rds")
 ```
-
-
-Events object (input to Figure 1C (timeline figure))
-Rows are events
-ptID, event, time from C1D1 
-```{r}
-# get average number of days between date collected and date processed 
-x <- micSamp %>%
-  filter(sample_id != "",
-         Type.of.Sample != "") %>%
-  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
-  filter(!is.na(test))
-
-x <- mean(x$test)
-
-# need to update this one date and create events object
-```
-
 
 irAE table
 Rows are irAEs
@@ -194,5 +183,122 @@ ptID, genes
 in nanostring summary
 ```{r}
 
+```
+
+
+Events object (input to Figure 1C (timeline figure))
+Rows are events
+ptID, event, time from C1D1 
+```{r}
+key <- demographics %>%
+  select(`Patient Id`, `MDSC #`)
+
+## clean up start and end dates
+eos.d <-  pt_log %>% 
+  select(`Patient Id`, `C1D1 date`, `EOS Date`) %>%
+  filter(!is.na(`C1D1 date`),
+         !is.na(`EOS Date`)) %>%
+  mutate(`C1D1 date` = as.Date(`C1D1 date`),
+         `EOS Date` = as.Date(`EOS Date`),
+          Days = `EOS Date` - `C1D1 date`,
+          Event = "End Study") %>%
+  select(`Patient Id`, Days, Event)
+
+start.key <- pt_log %>%
+  select(`Patient Id`, `C1D1 date`)
+
+start.d <- start.key %>%
+  mutate(Days = 0,
+         Event = "Start Study") %>%
+  select(-`C1D1 date`)
+  
+## clean up irAE dates
+irae.d <- irAE %>%
+  select(`Patient Id`, Onset, `Attribution (Final)`) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  fill(`Patient Id`) %>%
+  mutate(irAE_date = as.Date(as.character(Onset))) %>%
+  filter(irAE == "Yes",
+          !is.na(irAE_date)) %>%
+  select(`Patient Id`, irAE_date) %>%
+  left_join(start.key) %>%
+  mutate(Days = irAE_date - `C1D1 date`,
+         Event = "irAE") %>%
+  select(`Patient Id`, Days, Event)
+
+## clean up microbiome sample dates
+
+# get average number of days between date collected and date processed 
+x <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  mutate(test = as.integer(as.Date(date_processed) - as.Date(Date.Sample.Collected))) %>%
+  filter(!is.na(test))
+
+x <- round(mean(x$test))
+
+mic.d <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  # use sample_id substr instead of record_id, which is missing values
+  mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
+         sample_id = gsub(" ", ".", sample_id),
+         date = as.Date(Date.Sample.Collected),
+         date_processed = as.Date(date_processed)) %>%
+  filter(sample_id %in% mic.meta$sample_id) %>%
+  select(`Patient Id`, date, date_processed) %>%
+  distinct() %>%
+  mutate(date = case_when(is.na(date)~ date_processed-x, .default = date)) %>%
+  select(`Patient Id`, date) %>%
+  left_join(start.key) %>%
+  mutate(Days = date - `C1D1 date`,
+         Event = "Microbiome") %>%
+  select(`Patient Id`, Days, Event)
+
+## clean up scan dates
+scan.d <- recist.scan %>%
+  select(`Patient ID`, `Baseline Scan`, `12th Week Scan`, `Other Scan`) %>%
+  filter(!is.na(`Patient ID`)) %>%
+  rename(`Patient Id` = `Patient ID`) %>%
+  mutate(CT.baseline = openxlsx::convertToDate(`Baseline Scan`),
+         CT.12wk = openxlsx::convertToDate(`12th Week Scan`),
+         CT.other = as.Date(`Other Scan`)) %>%
+  select(`Patient Id`, CT.baseline, CT.12wk, CT.other) %>%
+  # WIDE TO LONG
+  pivot_longer(!`Patient Id`, names_to = "Scan", values_to = "date") %>%
+  filter(!is.na(date)) %>%
+  left_join(start.key) %>%
+  mutate(Days = date - `C1D1 date`,
+         Event = "CT Scan") %>%
+  select(`Patient Id`, Days, Event)
+
+## clean up blood draw dates
+blood.adj <- blood.adj %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  select(`Coded.Sample.#`, Date.of.Draw)
+
+blood.met <- blood.met %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  select(`Coded.Sample.#`, Date.of.Draw)
+
+blood.metj <- blood.metj %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  select(`Coded.Sample.#`, Date.of.Draw)
+
+blood.d <- rbind(blood.adj, blood.met, blood.metj) %>%
+  mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9)) %>%
+  left_join(key) %>%
+  filter(!is.na(`Patient Id`)) %>%
+  mutate(`Blood Draw` = openxlsx::convertToDate(Date.of.Draw)) %>%
+  select(`Patient Id`, `Blood Draw`) %>%
+  filter(!is.na(`Blood Draw`)) %>%
+  left_join(start.key) %>%
+  mutate(Days = `Blood Draw` - `C1D1 date`,
+         Event = "Blood Draw") %>%
+  select(`Patient Id`, Days, Event)
+  
+## COMBINE AND SAVE EVENTS OBJECT
+events <- rbind(start.d, eos.d, mic.d, irae.d, blood.d, scan.d)
+save(events, )
 ```
 
