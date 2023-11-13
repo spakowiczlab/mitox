@@ -8,15 +8,78 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(tidyverse)
 library(ggplot2)
 ```
 
-Figure 1A - Schema
+load data
+```{r}
+load("../../data/clinical.rds")
+load("../../data/events.rds")
+```
 
+Figure 1A - Schema
 Figure 1B - CONSORT
 
 Figure 1C - Timeline 
 ```{r}
-
+events.filt <- events %>%
+  left_join(demographics) %>%
+  # filter to Metastatic
+  filter(Cohort == "Met",
+  # filter to at least one microbiome sample
+         Mic.Samp == "Yes") %>%
+  # create response groups
+  mutate(Response = ifelse(Category %in% c("CR", "PR"), "Responder", 
+                         ifelse(Category %in% c("PD", "SD"), "Non-Responder", "Unknown/Unmeasured")),
+  # save irAE binary in new column
+         irAE.bin = irAE,
+  # create column for each time point type
+         irAE = ifelse(Event == "irAE", Days, NA),
+         Microbiome = ifelse(Event == "Microbiome", Days, NA),
+         CT.scan = ifelse(Event == "CT Scan", Days, NA),
+         Blood = ifelse(Event == "Blood Draw", Days, NA),
+         Endpoints = ifelse(Event %in% c("Start Study", "End Study"), Days, NA)
+  )
 ```
+
+plot
+```{r}
+cols <- c("Yes" = "cadetblue3",
+          "No" = "azure2",
+          "irAE" = "black",
+          "CT Scan" = "orange",
+          "Blood" = "red3",
+          "Microbiome" = "darkgreen")
+
+shape_override <- c(2, 15, 4, 21, NA, NA)
+line_override <- c(NA, NA, NA, NA, 1, 1) 
+stroke_override <- c(1 ,1 , 1 , 1 , 1, 1) 
+size_override <- c(1, 1, 1, 1.8, 1.8, 1)
+
+events.filt %>%
+  # filter(Days > -21,
+  #        Days <= 113) %>%
+  ggplot() + 
+  geom_line(aes(x = Endpoints, y =`Patient Id`, col=irAE.bin, group = `Patient Id`), size=1.8) +
+  #scale_color_manual(values = c("cadetblue3", "azure2")) +
+  geom_point(aes(x = as.numeric(irAE), y =`Patient Id`, col = "irAE"), stroke = 1, shape = 4) +
+  geom_point(aes(x = as.numeric(CT.scan), y = `Patient Id`, col = "CT Scan"), stroke=1, shape=15) +
+  geom_point(aes(x = as.numeric(Blood), y = `Patient Id`, col = "Blood"), stroke=1, shape=2) +
+  geom_point(aes(x = as.numeric(Microbiome), y = `Patient Id`, col = "Microbiome"), stroke= 1, shape=21) +
+  theme_bw() +
+  facet_grid(rows = vars(Response), scales = "free_y", space = "free_y") +
+  scale_color_manual(values = cols, name="Timepoint") +
+    guides(color = guide_legend(
+                        override.aes = list(
+                                stroke = stroke_override,
+                                shape = shape_override,
+                                linetype = line_override,
+                                size = size_override)
+                                )
+  ) +
+  xlab("Days") +
+  ylab("Patient ID")
+```
+
 

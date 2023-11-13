@@ -23,7 +23,7 @@ paths.tdrive <- "/Volumes/spakowicz/"
 ```
 
 read in necessary data
-```{r}
+```{r warning=FALSE}
 # irAEs
 irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")) %>%
   dplyr::select(-`Patient Name`, - MRN)
@@ -60,6 +60,12 @@ blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/
 # Patient log
 pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
   dplyr::select(-`Pt Name`, -MRN)
+
+# Nanostring summary 
+nano.adj <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 2)
+nano.metdis <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 4)
+nano.metval <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 5)
+nano.metnivo <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 6)
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -96,6 +102,10 @@ demographics <- demographics %>%
   mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE),
          `MDSC #` = case_when(`MDSC #` == "N/A"~NA, .default = `MDSC #`))
 
+# filter to MET only
+demographics <- demographics %>%
+  filter(Cohort == "Met")
+
 save(demographics, file = "../../data/clinical.rds")
 ```
 
@@ -107,7 +117,11 @@ irae <- irAE %>%
   dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, Onset, `Symptom Treatment`, `Attribution (Final)`) %>%
   rename(irAE = `Attribution (Final)`) %>%
   filter(!is.na(`Patient Id`),
-         irAE == "Yes") 
+         irAE == "Yes")
+
+# filt to met
+irae <- irae %>%
+  filter(`Patient Id` %in% demographics$`Patient Id`)
 
 save(irae, file = "../../data/irae.rds")
 ```
@@ -140,6 +154,10 @@ samps <- samps %>%
 mic.meta <- left_join(samps, temp.mic) %>%
   rename("Timepoint" = "Category")
 
+# filter to met
+mic.meta <- mic.meta %>%
+  filter(`Patient Id` %in% demographics$`Patient Id`)
+
 save(mic.meta, file = "../../data/microbiome_metadata.rds")
 ```
 ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
@@ -155,7 +173,8 @@ Rows are microbes
 ```{r}
 mic <- taxa %>%
   select(sample, Taxonomy, RelAbun) %>%
-  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) 
+  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) %>%
+  select(Taxonomy, mic.meta$sample)
 
 save(mic, file = "../../data/microbiome.rds")
 ```
@@ -171,7 +190,8 @@ tax.tab <- taxa %>%
            family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
            genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
            species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
-  filter(!is.na(species)) 
+  filter(!is.na(species),
+         sample %in% mic.meta$sample) 
 
 save(tax.tab, file = "../../data/taxonomy.rds")
 ```
@@ -179,10 +199,19 @@ save(tax.tab, file = "../../data/taxonomy.rds")
 Blood data
 Rows are blood samples
 ptID, genes
-
-in nanostring summary
 ```{r}
+nano.adj <- nano.adj %>%
+  select(Sample, ADORA2A:POS_F)
+nano.metdis <- nano.metdis %>%
+  select(Sample, ADORA2A:POS_F)
+nano.metnivo <- nano.metnivo %>%
+  select(Sample, ADORA2A:POS_F)
+nano.metval <- nano.metval %>%
+  select(Sample, ADORA2A:POS_F)
 
+nano <- rbind(nano.adj, nano.metdis, nano.metnivo, nano.metval) %>%
+  filter(!is.na(Sample)) %>%
+  mutate(`MDSC #` = gsub(" ", "-", Sample)) 
 ```
 
 
@@ -299,6 +328,6 @@ blood.d <- rbind(blood.adj, blood.met, blood.metj) %>%
   
 ## COMBINE AND SAVE EVENTS OBJECT
 events <- rbind(start.d, eos.d, mic.d, irae.d, blood.d, scan.d)
-save(events, )
+save(events, file = "../../data/events.rds")
 ```
 
