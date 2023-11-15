@@ -84,7 +84,8 @@ recist.mic <- recist.scan %>%
   filter(!is.na(`Patient Id`))
 
 pfs <- pfs %>%
-  select(`Patient Id`, `12-month PFS`)
+  select(`Patient Id`, `12-month PFS`) %>%
+  filter(!is.na(`12-month PFS`))
 
 irae <- irAE %>%
   dplyr::select(`Patient Id`, `Attribution (Final)`) %>%
@@ -114,7 +115,7 @@ Rows are irAEs
 ptID, grade, type (input to Table S2)
 ```{r}
 irae <- irAE %>%
-  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, Onset, `Symptom Treatment`, `Attribution (Final)`) %>%
+  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, `Attribution (Final)`) %>%
   rename(irAE = `Attribution (Final)`) %>%
   filter(!is.na(`Patient Id`),
          irAE == "Yes")
@@ -174,6 +175,7 @@ Rows are microbes
 mic <- taxa %>%
   select(sample, Taxonomy, RelAbun) %>%
   pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) %>%
+  # filter to MET only
   select(Taxonomy, mic.meta$sample)
 
 save(mic, file = "../../data/microbiome.rds")
@@ -191,6 +193,7 @@ tax.tab <- taxa %>%
            genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
            species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
   filter(!is.na(species),
+         # filter to MET only
          sample %in% mic.meta$sample) 
 
 save(tax.tab, file = "../../data/taxonomy.rds")
@@ -209,9 +212,18 @@ nano.metnivo <- nano.metnivo %>%
 nano.metval <- nano.metval %>%
   select(Sample, ADORA2A:POS_F)
 
+mdsc.key <- demographics %>%
+  select(`Patient Id`, `MDSC #`)
+
+
 nano <- rbind(nano.adj, nano.metdis, nano.metnivo, nano.metval) %>%
   filter(!is.na(Sample)) %>%
-  mutate(`MDSC #` = gsub(" ", "-", Sample)) 
+  mutate(`MDSC #` = gsub(" ", "-", Sample)) %>%
+  left_join(mdsc.key) %>%
+  filter(!is.na(`Patient Id`)) %>%
+  select(`Patient Id`, 2:94)
+
+save(nano, file = "../../data/blood.rds")
 ```
 
 
