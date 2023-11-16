@@ -118,85 +118,14 @@ irae <- irAE %>%
   dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, `Attribution (Final)`) %>%
   rename(irAE = `Attribution (Final)`) %>%
   filter(!is.na(`Patient Id`),
-         irAE == "Yes")
+         irAE == "Yes") %>%
+  select(-irAE)
 
 # filt to met
 irae <- irae %>%
   filter(`Patient Id` %in% demographics$`Patient Id`)
 
 save(irae, file = "../../data/irae.rds")
-```
-
-
-Microbiome sample metadata
-Rows are microbiome samples
-ptID, category label [baseline, 12wk, irae, control], link to 
-```{r}
-temp.mic <- micSamp %>%
-  filter(sample_id != "",
-         Type.of.Sample != "") %>%
-  select(sample_id, Type.of.Sample, record_id) %>%
-  # use sample_id substr instead of record_id, which is missing values
-  mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
-         Type.of.Sample = ifelse(Type.of.Sample == "12Wk", "12wk", Type.of.Sample),
-         #sample_id = substr(sample_id, 0, nchar(sample_id)-2),
-         sample_id = gsub(" ", ".", sample_id)) %>%
-  select(-record_id) %>%
-  rename("Category" = Type.of.Sample) %>% 
-  distinct() 
-
-samps <- samps %>%
-  select("Barcode ID", "Name") %>%
-  mutate(sample_id = gsub("_", ".", Name)) %>%
-  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
-  select(-Name) %>%
-  rename("sample" = "Barcode ID")
-
-mic.meta <- left_join(samps, temp.mic) %>%
-  rename("Timepoint" = "Category")
-
-# filter to met
-mic.meta <- mic.meta %>%
-  filter(`Patient Id` %in% demographics$`Patient Id`)
-
-save(mic.meta, file = "../../data/microbiome_metadata.rds")
-```
-ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
-RESOLVED it is M020
-
-ISSUE M048 has a 12wk microbiome sample but no collection date 
-RESOLVED average days between collection and processing and add collection dates based on processing date 
-
-
-Microbiome data
-Abundances 
-Rows are microbes
-```{r}
-mic <- taxa %>%
-  select(sample, Taxonomy, RelAbun) %>%
-  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) %>%
-  # filter to MET only
-  select(Taxonomy, mic.meta$sample)
-
-save(mic, file = "../../data/microbiome.rds")
-```
-
-Taxonomy table
-```{r}
-tax.tab <- taxa %>%
-   dplyr::select(sample, Taxonomy, RelAbun) %>%
-    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
-           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
-           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
-           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
-           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
-           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
-           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
-  filter(!is.na(species),
-         # filter to MET only
-         sample %in% mic.meta$sample) 
-
-save(tax.tab, file = "../../data/taxonomy.rds")
 ```
 
 Blood data
@@ -216,14 +145,14 @@ mdsc.key <- demographics %>%
   select(`Patient Id`, `MDSC #`)
 
 
-nano <- rbind(nano.adj, nano.metdis, nano.metnivo, nano.metval) %>%
+blood <- rbind(nano.adj, nano.metdis, nano.metnivo, nano.metval) %>%
   filter(!is.na(Sample)) %>%
   mutate(`MDSC #` = gsub(" ", "-", Sample)) %>%
   left_join(mdsc.key) %>%
   filter(!is.na(`Patient Id`)) %>%
   select(`Patient Id`, 2:94)
 
-save(nano, file = "../../data/blood.rds")
+save(blood, file = "../../data/blood.rds")
 ```
 
 
@@ -351,3 +280,76 @@ events <- rbind(start.d, eos.d, mic.d, irae.d, blood.d, scan.d) %>%
 save(events, file = "../../data/events.rds")
 ```
 
+Microbiome sample metadata
+Rows are microbiome samples
+ptID, category label [baseline, 12wk, irae, control], link to 
+```{r}
+temp.mic <- micSamp %>%
+  filter(sample_id != "",
+         Type.of.Sample != "") %>%
+  mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
+         sample_id = gsub(" ", ".", sample_id),
+         #date = Date.Sample.Collected) %>%
+         date = as.Date(Date.Sample.Collected),
+         date_processed = as.Date(date_processed),
+         date = case_when(is.na(date)~ date_processed-x, .default = date)) %>%
+  select(`Patient Id`, sample_id, date) %>%
+  filter(!is.na(`Patient Id`)) %>%
+  distinct() %>%
+  left_join(start.key) %>%
+  mutate(Days = difftime(date, `C1D1 date`, units = "days")) %>%
+  select(`Patient Id`, sample_id, Days)
+
+samps <- samps %>%
+  select("Barcode ID", "Name") %>%
+  mutate(sample_id = gsub("_", ".", Name)) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-Name) %>%
+  rename("sample" = "Barcode ID")
+
+mic.meta <- left_join(samps, temp.mic) %>%
+  distinct()
+
+# filter to met
+mic.meta <- mic.meta %>%
+  filter(`Patient Id` %in% demographics$`Patient Id`)
+
+save(mic.meta, file = "../../data/microbiome_metadata.rds")
+```
+ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
+RESOLVED it is M020
+
+ISSUE M048 has a 12wk microbiome sample but no collection date 
+RESOLVED average days between collection and processing and add collection dates based on processing date 
+
+
+Microbiome data
+Abundances 
+Rows are microbes
+```{r}
+mic <- taxa %>%
+  select(sample, Taxonomy, RelAbun) %>%
+  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) %>%
+  # filter to MET only
+  select(Taxonomy, mic.meta$sample)
+
+save(mic, file = "../../data/microbiome.rds")
+```
+
+Taxonomy table
+```{r}
+tax.tab <- taxa %>%
+   dplyr::select(sample, Taxonomy, RelAbun) %>%
+    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
+           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
+           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
+           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
+           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
+           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
+           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
+  filter(!is.na(species),
+         # filter to MET only
+         sample %in% mic.meta$sample) 
+
+save(tax.tab, file = "../../data/taxonomy.rds")
+```
