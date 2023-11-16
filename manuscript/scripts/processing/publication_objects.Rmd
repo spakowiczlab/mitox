@@ -23,7 +23,7 @@ paths.tdrive <- "/Volumes/spakowicz/"
 ```
 
 read in necessary data
-```{r}
+```{r warning=FALSE}
 # irAEs
 irAE <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Clinical info/Mitoxstudy_patient_symptoms_AM_2.xlsx")) %>%
   dplyr::select(-`Patient Name`, - MRN)
@@ -60,6 +60,12 @@ blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/
 # Patient log
 pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
   dplyr::select(-`Pt Name`, -MRN)
+
+# Nanostring summary 
+nano.adj <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 2)
+nano.metdis <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 4)
+nano.metval <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 5)
+nano.metnivo <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 6)
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -78,7 +84,8 @@ recist.mic <- recist.scan %>%
   filter(!is.na(`Patient Id`))
 
 pfs <- pfs %>%
-  select(`Patient Id`, `12-month PFS`)
+  select(`Patient Id`, `12-month PFS`) %>%
+  filter(!is.na(`12-month PFS`))
 
 irae <- irAE %>%
   dplyr::select(`Patient Id`, `Attribution (Final)`) %>%
@@ -96,6 +103,10 @@ demographics <- demographics %>%
   mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE),
          `MDSC #` = case_when(`MDSC #` == "N/A"~NA, .default = `MDSC #`))
 
+# filter to MET only
+demographics <- demographics %>%
+  filter(Cohort == "Met")
+
 save(demographics, file = "../../data/clinical.rds")
 ```
 
@@ -104,10 +115,14 @@ Rows are irAEs
 ptID, grade, type (input to Table S2)
 ```{r}
 irae <- irAE %>%
-  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, Onset, `Symptom Treatment`, `Attribution (Final)`) %>%
+  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, `Attribution (Final)`) %>%
   rename(irAE = `Attribution (Final)`) %>%
   filter(!is.na(`Patient Id`),
-         irAE == "Yes") 
+         irAE == "Yes")
+
+# filt to met
+irae <- irae %>%
+  filter(`Patient Id` %in% demographics$`Patient Id`)
 
 save(irae, file = "../../data/irae.rds")
 ```
@@ -140,6 +155,10 @@ samps <- samps %>%
 mic.meta <- left_join(samps, temp.mic) %>%
   rename("Timepoint" = "Category")
 
+# filter to met
+mic.meta <- mic.meta %>%
+  filter(`Patient Id` %in% demographics$`Patient Id`)
+
 save(mic.meta, file = "../../data/microbiome_metadata.rds")
 ```
 ISSUE - sid = ruxA0a40xe3f4tyDINSX3  has record_id = M020, but the sample_id = M011.200911.2
@@ -155,7 +174,9 @@ Rows are microbes
 ```{r}
 mic <- taxa %>%
   select(sample, Taxonomy, RelAbun) %>%
-  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) 
+  pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) %>%
+  # filter to MET only
+  select(Taxonomy, mic.meta$sample)
 
 save(mic, file = "../../data/microbiome.rds")
 ```
@@ -171,7 +192,9 @@ tax.tab <- taxa %>%
            family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
            genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
            species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
-  filter(!is.na(species)) 
+  filter(!is.na(species),
+         # filter to MET only
+         sample %in% mic.meta$sample) 
 
 save(tax.tab, file = "../../data/taxonomy.rds")
 ```
@@ -179,10 +202,28 @@ save(tax.tab, file = "../../data/taxonomy.rds")
 Blood data
 Rows are blood samples
 ptID, genes
-
-in nanostring summary
 ```{r}
+nano.adj <- nano.adj %>%
+  select(Sample, ADORA2A:POS_F)
+nano.metdis <- nano.metdis %>%
+  select(Sample, ADORA2A:POS_F)
+nano.metnivo <- nano.metnivo %>%
+  select(Sample, ADORA2A:POS_F)
+nano.metval <- nano.metval %>%
+  select(Sample, ADORA2A:POS_F)
 
+mdsc.key <- demographics %>%
+  select(`Patient Id`, `MDSC #`)
+
+
+nano <- rbind(nano.adj, nano.metdis, nano.metnivo, nano.metval) %>%
+  filter(!is.na(Sample)) %>%
+  mutate(`MDSC #` = gsub(" ", "-", Sample)) %>%
+  left_join(mdsc.key) %>%
+  filter(!is.na(`Patient Id`)) %>%
+  select(`Patient Id`, 2:94)
+
+save(nano, file = "../../data/blood.rds")
 ```
 
 
@@ -205,7 +246,9 @@ eos.d <-  pt_log %>%
   select(`Patient Id`, Days, Event)
 
 start.key <- pt_log %>%
-  select(`Patient Id`, `C1D1 date`)
+  select(`Patient Id`, `C1D1 date`) %>%
+  filter(!is.na(`Patient Id`),
+         !is.na(`C1D1 date`))
 
 start.d <- start.key %>%
   mutate(Days = 0,
@@ -217,12 +260,14 @@ irae.d <- irAE %>%
   select(`Patient Id`, Onset, `Attribution (Final)`) %>%
   rename(irAE = `Attribution (Final)`) %>%
   fill(`Patient Id`) %>%
-  mutate(irAE_date = as.Date(as.character(Onset))) %>%
+  #mutate(irAE_date = as.Date(as.character(Onset))) %>%
+  mutate(irAE_date = Onset) %>%
   filter(irAE == "Yes",
           !is.na(irAE_date)) %>%
   select(`Patient Id`, irAE_date) %>%
   left_join(start.key) %>%
-  mutate(Days = irAE_date - `C1D1 date`,
+  #mutate(Days = irAE_date - `C1D1 date` ,
+  mutate(Days = difftime(irAE_date, `C1D1 date`, units = "days"),
          Event = "irAE") %>%
   select(`Patient Id`, Days, Event)
 
@@ -243,6 +288,7 @@ mic.d <- micSamp %>%
   # use sample_id substr instead of record_id, which is missing values
   mutate(`Patient Id` = ifelse(record_id != "", record_id, substr(sample_id, 0, 4)),
          sample_id = gsub(" ", ".", sample_id),
+         #date = Date.Sample.Collected) %>%
          date = as.Date(Date.Sample.Collected),
          date_processed = as.Date(date_processed)) %>%
   filter(sample_id %in% mic.meta$sample_id) %>%
@@ -251,7 +297,8 @@ mic.d <- micSamp %>%
   mutate(date = case_when(is.na(date)~ date_processed-x, .default = date)) %>%
   select(`Patient Id`, date) %>%
   left_join(start.key) %>%
-  mutate(Days = date - `C1D1 date`,
+  #mutate(Days = date - `C1D1 date`
+  mutate(Days = difftime(date, `C1D1 date`, units = "days"),
          Event = "Microbiome") %>%
   select(`Patient Id`, Days, Event)
 
@@ -268,7 +315,7 @@ scan.d <- recist.scan %>%
   pivot_longer(!`Patient Id`, names_to = "Scan", values_to = "date") %>%
   filter(!is.na(date)) %>%
   left_join(start.key) %>%
-  mutate(Days = date - `C1D1 date`,
+  mutate(Days = difftime(date, `C1D1 date`, units = "days"),
          Event = "CT Scan") %>%
   select(`Patient Id`, Days, Event)
 
@@ -293,12 +340,14 @@ blood.d <- rbind(blood.adj, blood.met, blood.metj) %>%
   select(`Patient Id`, `Blood Draw`) %>%
   filter(!is.na(`Blood Draw`)) %>%
   left_join(start.key) %>%
-  mutate(Days = `Blood Draw` - `C1D1 date`,
+  mutate(Days = difftime(`Blood Draw`, `C1D1 date`, units = "days"),
          Event = "Blood Draw") %>%
   select(`Patient Id`, Days, Event)
   
 ## COMBINE AND SAVE EVENTS OBJECT
-events <- rbind(start.d, eos.d, mic.d, irae.d, blood.d, scan.d)
-save(events, )
+events <- rbind(start.d, eos.d, mic.d, irae.d, blood.d, scan.d) %>%
+  filter(`Patient Id` %in% demographics$`Patient Id`)
+
+save(events, file = "../../data/events.rds")
 ```
 
