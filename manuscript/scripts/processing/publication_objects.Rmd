@@ -110,24 +110,6 @@ demographics <- demographics %>%
 save(demographics, file = "../../data/clinical.rds")
 ```
 
-irAE table
-Rows are irAEs
-ptID, grade, type (input to Table S2)
-```{r}
-irae <- irAE %>%
-  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, `Attribution (Final)`) %>%
-  rename(irAE = `Attribution (Final)`) %>%
-  filter(!is.na(`Patient Id`),
-         irAE == "Yes") %>%
-  select(-irAE)
-
-# filt to met
-irae <- irae %>%
-  filter(`Patient Id` %in% demographics$`Patient Id`)
-
-save(irae, file = "../../data/irae.rds")
-```
-
 Blood data
 Rows are blood samples
 ptID, genes
@@ -352,4 +334,24 @@ tax.tab <- taxa %>%
          sample %in% mic.meta$sample) 
 
 save(tax.tab, file = "../../data/taxonomy.rds")
+```
+
+irAE table
+Rows are irAEs
+ptID, grade, type (input to Table S2)
+```{r}
+irae <- irAE %>%
+  dplyr::select(`Patient Id`, Symptoms, `CTCAE grade (final)`, `Attribution (Final)`, Onset) %>%
+  rename(irAE = `Attribution (Final)`) %>%
+  fill(`Patient Id`) %>%
+  filter(!is.na(`Patient Id`),
+         irAE == "Yes") %>%
+  left_join(start.key) %>%
+  #mutate(Days = irAE_date - `C1D1 date` ,
+  mutate(Days = difftime(Onset, `C1D1 date`, units = "days")) %>%
+  # filt to met
+  filter(`Patient Id` %in% demographics$`Patient Id`) %>%
+  select(-irAE, -Onset, -`C1D1 date`)
+
+save(irae, file = "../../data/irae.rds")
 ```
