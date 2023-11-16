@@ -42,7 +42,7 @@ irae_labelsdoc <-read.csv("C:/Users/wil407/Documents/GitHub/mitox/data/irae_labe
 demographics <- demographics %>%
   mutate(Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
                            ifelse(Category %in% c("SD", "PD"), "Non-Responder", "No Response Info"))) 
-
+#met only
 dem.met <- demographics %>%
   filter(Cohort == "Met")
 
