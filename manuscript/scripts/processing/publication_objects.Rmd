@@ -40,8 +40,9 @@ demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/
    select(-MRN, -Name)
 
 # PFS
+# Nye maybe changed the sheet name to 12-Month PFS ?
 pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
-                               sheet = "12-month PFS")
+                               sheet = "Progression dates")
 
 # microbiome taxonomic data merged metaphlan output 
 taxa <- read.csv("../../../data/mpa_aggregated_long_2023-10-26.csv")

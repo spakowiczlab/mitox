@@ -23,6 +23,7 @@ When you click the **Knit** button a document will be generated that includes bo
 
 ```{r cars}
 dates <- readRDS("../data/dates.rds")
+load("../manuscript/data/events.rds")
 ```
 
 CW added lines to get dates in necessary format
