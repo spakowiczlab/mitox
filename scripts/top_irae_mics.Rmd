@@ -1,0 +1,92 @@
+---
+title: "top_irae_mics"
+author: "Caroline Wheeler"
+date: "2/28/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+load("../manuscript/data/deseq_recist.rds")
+load("../manuscript/data/microbiome.rds")
+load("../manuscript/data/taxonomy.rds")
+load("../manuscript/data/blood.rds")
+```
+
+```{r}
+top.mics <- resPlot_recist %>%
+  arrange(padj) %>%
+  slice_head(n = 12) 
+```
+
+create data frame to append to blood data for RF
+```{r}
+exoRAtowide <- function(data, taxlev){
+  tmp <- data
+  tmp$Taxa <- tmp[[taxlev]]
+  tmp.wide<- tmp %>%
+    filter(!is.na(Taxa)) %>%
+    group_by(sample, Taxa) %>%
+    summarise(ra.tot = sum(RelAbun, na.rm = T)) %>%
+    pivot_wider(names_from = "Taxa", values_from = "ra.tot", values_fill = 0)
+
+  return(tmp.wide)
+}
+
+fam <- exoRAtowide(tax.tab, "family")
+gen <- exoRAtowide(tax.tab, "genus")
+spec <- exoRAtowide(tax.tab, "species")
+
+tmp <- merge(fam, gen)
+tax.wide <- merge(tmp, spec) %>%
+  select(sample, rownames(top.mics)) %>%
+# remove two genus level that only have 1 species, so relAbun is the same
+  select(-g__Jerseyvirus, -g__Rb49virus)
+```
+
+save top mics 
+```{r}
+write.csv(tax.wide, "../data/top_irae_mics.csv", row.names = F)
+```
+
+## Effect Size Plot 
+
+plot effect size
+```{r}
+top.mics %>%
+  rownames_to_column("microbe") %>%
+  filter(microbe %in% colnames(tax.wide)) %>%
+  mutate(microbe = substr(microbe, 4, nchar(microbe))) %>%
+  ggplot(aes(x = log2FoldChange, y = reorder(microbe, log2FoldChange), fill = level)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  ylab("Microbe") +
+  xlab("Effect Size") +
+  scale_fill_manual(values=c("salmon2", "cornflowerblue", "deeppink4")) +
+  # theme(legend.key.size = unit(1, 'cm'), legend.title = element_text(size=18), legend.text = element_text(size=18), axis.text =element_text(size = 18), axis.title=element_text(size=18)) +
+  ggtitle("No <-- irAE --> Yes") +
+  theme(plot.title = element_text(hjust = 0.25))
+
+ggsave(file = "../figures/irAEmics_effectSize.png", dev = "png", width = 6, height = 4, dpi = 600)
+```
+
+## AHR correlation 
+
+prep
+
+# Note - jk let use just baseline 
+```{r}
+ahr <- blood %>%
+  select(`Patient Id`, AHR)
+
+top.mics <- top.mics %>%
+  left_join(mic.meta) %>%
+  left_join(ahr)
+```
+

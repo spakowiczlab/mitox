@@ -21,7 +21,12 @@ load("../../data/microbiome_metadata.rds")
 
 create inputs 
 ```{r}
-clin <- left_join(mic.meta, demographics, by = "Patient Id") %>%
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1)
+
+clin <- left_join(baseline, demographics, by = "Patient Id") %>%
   dplyr::filter(sample %in% tax.tab$sample)
 
 irae <- clin %>% 
@@ -102,7 +107,7 @@ run_deseq <- function(desd, meta, lev){
   dds <- DESeqDataSetFromMatrix(countData = desd,
                                 colData = meta,
                                 # change design = according to which analysis 
-                                design = ~ irAE)
+                                design = ~ Response)
 
   dds <- DESeq(dds)
   res <- results(dds)
@@ -181,8 +186,7 @@ spec_rp <- run_deseq(spec+1, irae, "species")
 
 ```{r}
 resPlot_irae <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
-save(resPlot_irae, file = "../../data/deseq_irae.rds")
-load("../../data/deseq_irae.rds")
+save(resPlot_irae, file = "../../data/deseq_irae_baseline.rds")
 ```
 
 ## RECIST 
@@ -244,7 +248,7 @@ spec_rp <- run_deseq(spec + 1, recist, "species")
 ```{r}
 resPlot_recist <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
-save(resPlot_recist, file = "../../data/deseq_recist.rds")
+save(resPlot_recist, file = "../../data/deseq_recist_baseline.rds")
 ```
 
 
@@ -293,7 +297,7 @@ sub <- sub %>% arrange(factor(sample, levels = colnames(fam))) %>%
 # deseq2 for recist
 ```{r}
 phyl_rp <- run_deseq(phyl, sub, "phylum")
-aclas_rp <- run_deseq(class, sub, "class")
+clas_rp <- run_deseq(class, sub, "class")
 ord_rp <- run_deseq(ord, sub, "order")
 fam_rp <- run_deseq(fam, sub, "family")
 gen_rp <- run_deseq(gen+1, sub, "genus")
@@ -307,7 +311,7 @@ spec_rp <- run_deseq(spec + 1, sub, "species")
 ```{r}
 resPlot_sub <- rbind(phyl_rp, clas_rp, ord_rp, fam_rp, gen_rp, spec_rp)
 
-save(resPlot_sub, file = "../../data/_deseq_subset_results.rds")
+save(resPlot_sub, file = "../../data/deseq_subset_results_baseline.rds")
 ```
 
 ```{r}

@@ -1,0 +1,366 @@
+---
+title: "Random Forest - Blood, Microbiome, Demographic vars"
+author: "Caroline Wheeler"
+date: "2/28/2024"
+output: html_document
+---
+
+## code needs to be adjusted considerably, skeleton from melio 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(randomForest)
+library(ggplot2)
+library(ROCR)
+library(gdata)
+library(vegan)
+```
+
+<!-- read in data -->
+<!-- ```{r} -->
+<!-- # read in metmel sigs -->
+<!-- sigs <- read.csv("../data/signatures-filtered-metastatic-melanoma_20221207.csv") -->
+
+<!-- response <- read.table("/fs/ess/PAS1695/projects/exorien/data/IO_NOVA_clin.txt", header = TRUE) %>% -->
+<!--   dplyr::rename("sample" = Sample_ID, -->
+<!--                 "response" = Response) %>% -->
+<!--   filter(Cancer_Type == "Melanoma") %>% -->
+<!--   dplyr::select(sample, response) %>% -->
+<!--   mutate(response = ifelse(response == 1, "responder", "non-responder")) -->
+
+<!-- # read in microbe data from exorien-melio  -->
+<!-- taxa_all <- read.csv("/fs/ess/PAS1695/projects/exorien/data/drake-output/2022-03-16/2022-03-16_RA-with-taxonomy.csv") %>% -->
+<!--   filter(sample %in% response$sample) -->
+<!--   #mutate(Taxonomy = ifelse(grepl("d__Bacteria", Taxonomy), sub('d','k',Taxonomy), Taxonomy)) -->
+
+<!-- taxa <- taxa_all %>% -->
+<!--   select(sample, species, exo.ra) %>% -->
+<!--   rename(microbe = species) -->
+<!-- ``` -->
+
+<!-- diversity calcs -->
+<!-- ```{r} -->
+<!-- alpha <- taxa %>% -->
+<!--   select(microbe, exo.ra, sample) -->
+<!-- alpha <- spread(alpha, microbe, exo.ra) %>% -->
+<!--   remove_rownames %>% column_to_rownames(var="sample") -->
+<!-- alpha[is.na(alpha)] <- 0 -->
+
+<!-- # simpson  -->
+<!-- test <- as.data.frame(diversity(alpha, index = "simpson")) -->
+<!-- test$sample <- row.names(test) -->
+<!-- rownames(test) <- NULL -->
+<!-- alpha <- test %>% -->
+<!--   dplyr::rename("alpha_diversity" = `diversity(alpha, index = "simpson")`) -->
+
+<!-- # # shannon -->
+<!-- # test <- as.data.frame(diversity(alpha, index = "shannon")) -->
+<!-- # test$sample <- row.names(test) -->
+<!-- # rownames(test) <- NULL -->
+<!-- # shannon <- test %>% -->
+<!-- #   dplyr::rename("alpha_diversity" = `diversity(alpha, index = "shannon")`) -->
+<!-- ``` -->
+
+<!-- get relAbun at all levels and combine into one table -->
+<!-- ```{r} -->
+<!-- # @level is a string containing the taxonomic level we want to calculate relative abundances for -->
+<!-- get_ra <- function(level){ -->
+<!--   df <- taxa_all %>% -->
+<!--     group_by(sample, !!! rlang::syms(level)) %>% -->
+<!--     summarize(exo.ra = sum(exo.ra)) %>% -->
+<!--     rename(microbe = level) -->
+
+<!--   return(df) -->
+<!-- } -->
+
+<!-- dom <- get_ra("domain") -->
+<!-- king <- get_ra("kingdom") -->
+<!-- phyl <- get_ra("phylum") -->
+<!-- class <- get_ra("class") -->
+<!-- ord<- get_ra("order") -->
+<!-- fam <- get_ra("family") -->
+<!-- gen <- get_ra("genus") -->
+
+<!-- taxa <- rbind(taxa, dom, king, phyl, class, ord, fam, gen) -->
+<!-- ``` -->
+<!-- genus level -->
+<!-- ```{r} -->
+<!-- genus <- gen %>% -->
+<!--   select(microbe, exo.ra, sample) -->
+<!-- genus <- spread(genus, microbe, exo.ra)  -->
+<!-- ``` -->
+
+<!-- get individual signatures for testing -->
+<!-- ```{r} -->
+<!-- #689 -->
+<!-- frankelSig_up <- sub("^.+\\|", "", unlist(strsplit(sigs$MetaPhlAn.taxon.names[5],","))) -->
+
+<!-- #679 -->
+<!-- matsonSig_up <- sub("^.+\\|", "", unlist(strsplit(c(sigs$MetaPhlAn.taxon.names[6],sigs$MetaPhlAn.taxon.names[7]), ","))) -->
+<!-- matsonSig_down <- sub("^.+\\|", "", unlist(strsplit(sigs$MetaPhlAn.taxon.names[8],","))) -->
+
+<!-- #688 -->
+<!-- gopaSig_up <- sub("^.+\\|", "", unlist(strsplit(sigs$MetaPhlAn.taxon.names[3] ,","))) -->
+<!-- gopaSig_down <- sub("^.+\\|", "",unlist(strsplit(sigs$MetaPhlAn.taxon.names[4], ","))) -->
+
+<!-- #691 -->
+<!-- windSig_up <- sub("^.+\\|", "", unlist(strsplit(sigs$MetaPhlAn.taxon.names[1] ,","))) -->
+<!-- windSig_down <- sub("^.+\\|", "", unlist(strsplit(sigs$MetaPhlAn.taxon.names[2] ,","))) -->
+<!-- ``` -->
+
+<!-- Calculate signature score -->
+<!-- ```{r} -->
+<!-- # Function to calculate a microbe signature given a set of up and down regulated microbes and the relAbun of sample data -->
+<!-- # -->
+<!-- # @sig_up character vector listing microbes in given signature that are up-regulated -->
+<!-- # @sig_down character vector listing microbes in given signature that are down-regulated -->
+<!-- # @taxa df containing columns 'sample', 'microbe', 'exo.ra' -->
+<!-- # -->
+<!-- getMicroSigScore <- function(sig_up, sig_down, taxa){ -->
+<!--   # z score transform relAbun  -->
+<!--   df <- taxa %>% -->
+<!--     group_by(sample) %>% -->
+<!--     mutate(z_score = scale(exo.ra)) -->
+
+<!--   upMics <- df %>% -->
+<!--     filter(microbe %in% sig_up) -->
+
+<!--   upTotal <- length(unique(upMics$microbe)) -->
+
+<!--   upMics <- upMics %>%   -->
+<!--     group_by(sample) %>% -->
+<!--     summarize(tempUp = sum(exo.ra)) -->
+
+<!--   downMics <- df %>% -->
+<!--     filter(microbe %in% sig_down) -->
+
+<!--   downTotal <- length(unique(downMics$microbe)) -->
+
+<!--   downMics <- downMics %>% -->
+<!--   group_by(sample) %>% -->
+<!--   summarize(tempDown = sum(exo.ra)) -->
+
+<!--   if(upTotal == 0 && downTotal == 0){ -->
+<!--     df <- data.frame(matrix(ncol = 0, nrow = 0)) -->
+<!--   }else if(upTotal == 0){ -->
+<!--     df <- downMics %>% -->
+<!--       mutate(score = tempDown*(1/downTotal)) %>% -->
+<!--       select(sample,score) -->
+<!--   }else if(downTotal == 0){ -->
+<!--     df <- upMics %>% -->
+<!--       mutate(score = tempUp*(1/upTotal)) %>% -->
+<!--       select(sample, score) -->
+<!--   }else{ -->
+<!--     df <- merge(upMics, downMics, by = "sample") %>% -->
+<!--     mutate(score = (tempUp - tempDown)*(1/(upTotal + downTotal))) %>% -->
+<!--     select(sample, score) -->
+<!--   } -->
+
+<!--   return(df) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- get signature scores for sigs from literature -->
+<!-- ```{r} -->
+<!-- wind <- getMicroSigScore(windSig_up, windSig_down, taxa) %>% -->
+<!--   rename(wind = score) -->
+
+<!-- gopa <- getMicroSigScore(gopaSig_up, gopaSig_down, taxa) %>% -->
+<!--   rename(gopa = score) -->
+
+<!-- # currently returns emtpy df - check presence of microbes -->
+<!-- matson <- getMicroSigScore(matsonSig_up, matsonSig_down, taxa) %>% -->
+<!--   rename(matson = score) -->
+
+<!-- frankel <- getMicroSigScore(frankelSig_up, c(), taxa) %>% -->
+<!--   rename(frankel = score)# pass and empty character vector for negatively correlated microbes  -->
+
+<!-- # paa <- getMicroSigScore(paa_up, paa_down, taxa) %>% -->
+<!-- #   rename(paa = score) -->
+<!-- ``` -->
+
+<!-- combine signatures into one table -->
+<!-- ```{r} -->
+<!-- df_list <- list(wind, gopa, frankel, matson) -->
+<!-- microSigs <- df_list %>% reduce(full_join, by='sample') -->
+<!-- ``` -->
+
+<!-- Test signature predictive power -->
+
+<!-- # ```{r} -->
+<!-- # clin_data <- clin -->
+<!-- # feature_data <- feature -->
+<!-- # seed <- seeds[1] -->
+<!-- # ``` -->
+
+<!-- Function for shuffling and creating training / testing groups for getROC  -->
+<!-- ```{r} -->
+<!-- k_validate <- function(clin_data, feature_data, seed){ -->
+<!--   set.seed(seed) -->
+
+<!--   # Grab responder samples # -->
+<!--   responder_clin <- clin_data %>% -->
+<!--     dplyr::filter(response == "responder") -->
+<!--   # Shuffle responder samples via seed # -->
+<!--   responder_clin <- responder_clin[sample(nrow(responder_clin)), ] -->
+
+<!--   # Grab non-responder samples # -->
+<!--   non_responder_clin <- clin_data %>% -->
+<!--     dplyr::filter(response == "non-responder") -->
+<!--   # Shuffle non-responder samples via seed # -->
+<!--   non_responder_clin <- non_responder_clin[sample(nrow(non_responder_clin)), ] -->
+
+<!--     # Creating index data frame for the R/NRs to ensure coverage for each group # -->
+<!--     responder_indexes <- c(rep(1, 8), rep(2, 8), rep(3, 8), rep(4, 8), rep(5, 7)) -->
+<!--     non_responder_indexes <- c(rep(1, 6), rep(2, 7), rep(3, 6), rep(4, 7), rep(5, 6)) -->
+<!--     out <- list() -->
+
+<!--     # Creating testing and training groups # -->
+<!--     for(i in 1:5){ -->
+<!--       rIndexes <- which(responder_indexes == i, arr.ind = TRUE) -->
+<!--       nrIndexes <- which(non_responder_indexes == i, arr.ind = TRUE) -->
+
+<!--       test.clin <- rbind(responder_clin[rIndexes, ], non_responder_clin[nrIndexes, ]) -->
+<!--       train.clin <- rbind(responder_clin[-rIndexes, ], non_responder_clin[-nrIndexes, ]) -->
+
+<!--       test.seq <- feature_data[which(feature_data$sample %in% test.clin$sample), ] -->
+<!--       test.seq <- test.seq[match(test.clin$sample, test.seq$sample), ] -->
+
+<!--       train.seq <- feature_data[which(feature_data$sample %in% train.clin$sample), ] -->
+<!--       train.seq <- train.seq[match(train.clin$sample, train.seq$sample), ] -->
+
+<!--       if(all(train.seq$sample == train.clin$sample) == FALSE){ -->
+<!--         stop("Training Sample_IDs do not match") -->
+<!--       } -->
+<!--       if(all(test.seq$sample == test.clin$sample) == FALSE){ -->
+<!--         stop("Testing Sample_IDs do not match") -->
+<!--       } -->
+
+<!--       # Creating the RF model # -->
+<!--       out[[i]] <- getROC(train.seq, train.clin, test.seq, test.clin) -->
+<!--     } -->
+
+
+<!--   avg_auc <- lapply(out, function(x){ x[[1]]}) -->
+<!--   message("\nAccuracy average: ", (rowMeans(as.data.frame(avg_auc)))) -->
+<!--   return(out) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ROC function -->
+<!-- ```{r} -->
+<!-- # Function create and test RF model # -->
+<!-- getROC <- function(train, clin.train, test, clin.test){ -->
+<!--   model.training <- randomForest(x = train[,-1, drop=FALSE], y = as.factor(clin.train$response)) -->
+<!--   test.preds <- predict(model.training, test[,-1, drop=FALSE]) -->
+
+<!--   print(model.training) -->
+<!--   # Check variable importance -->
+<!--   varImpPlot(model.training) -->
+<!--   # Prediction confusion matrix -->
+<!--   table(observed = clin.test$response, predicted = test.preds) -->
+
+<!--   prediction_for_roc_curve <- predict(model.training,test[,-1, drop=FALSE],type="prob") -->
+<!--   pred <- prediction(prediction_for_roc_curve[,2], clin.test$response, label.ordering = c("non-responder", "responder")) -->
+<!--   perf <- performance(pred, "tpr", "fpr") -->
+
+<!--   auc_ROCR <- performance(pred, measure = "auc") -->
+<!--   print(auc_ROCR) -->
+<!--   auc <- auc_ROCR@y.values[[1]] -->
+<!--   print(auc) -->
+
+<!--   df <- data.frame(FalsePositive=c(perf@x.values[[1]]), -->
+<!--                    TruePositive=c(perf@y.values[[1]])) -->
+<!--   out <- list(auc, df) -->
+
+<!--   return(out) -->
+<!-- } -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # Grabbing AUROC values from input models # -->
+<!-- grabVals <- function(input){ -->
+<!--   out <- list() -->
+<!--   for(i in 1:5){ -->
+<!--     for(j in 1:5){ -->
+<!--       out <- append(out, input[[i]][[j]][[1]]) -->
+<!--     } -->
+<!--   } -->
+<!--   out -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- # ```{r} -->
+<!-- # clin <- response -->
+<!-- # feature <- microSigs -->
+<!-- # seeds <- seed_list -->
+<!-- # ``` -->
+
+<!-- ```{r} -->
+<!-- # Main function call to generate RF models using 5 seeds # -->
+<!-- kTest <- function(clin, feature, seeds){ -->
+<!--   out <- list() -->
+<!--   for(i in 1:length(seeds)){ -->
+<!--     out[[i]] <- k_validate(clin, feature, seed = seeds[i]) -->
+<!--   } -->
+<!--   out <- grabVals(out) -->
+
+<!--   # CW edit to function  -->
+<!--   out <- do.call(rbind.data.frame, out) -->
+<!--   colnames(out) <- c("AUC") -->
+<!--   out -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- seed_list <- c(12345,12346,12347,12348,12349) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- g <- microSigs %>% select(sample, gopa) -->
+<!-- gopa_auc <- kTest(response, g, seed_list)  -->
+<!-- gopa_auc$signature <- "gopa" -->
+
+<!-- f <- microSigs %>% select(sample, frankel) -->
+<!-- frankel_auc <- kTest(response, f, seed_list) -->
+<!-- frankel_auc$signature <- "frankel" -->
+
+<!-- m <- microSigs %>% select(sample, matson) -->
+<!-- matson_auc <- kTest(response, m, seed_list) -->
+<!-- matson_auc$signature <- "matson" -->
+
+<!-- w <- microSigs %>% select(sample, wind) -->
+<!-- wind_auc <- kTest(response, w, seed_list) -->
+<!-- wind_auc$signature <- "wind" -->
+
+<!-- alpha_auc <- kTest(response, alpha, seed_list) -->
+<!-- alpha_auc$signature <- "alpha diversity" -->
+
+<!-- genus_auc <- kTest(response, genus, seed_list) -->
+<!-- genus_auc$signature <- "genus" -->
+
+<!-- # paa_auc <- kTest(response, paa, seed_list) -->
+<!-- # paa_auc$signature <- "paa" -->
+<!-- ``` -->
+
+<!-- prep for boxplot -->
+<!-- ```{r} -->
+<!-- aucs <- rbind(matson_auc, gopa_auc, frankel_auc, wind_auc, genus_auc, alpha_auc) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- plot <- ggplot(data=aucs, mapping=aes(x=reorder(signature, AUC), y=AUC, col=signature)) + -->
+<!--   geom_boxplot() + -->
+<!--   geom_jitter(size=0.4, alpha=0.9) + -->
+<!--   theme_bw() -->
+
+<!-- plot -->
+<!-- ``` -->
+
+<!-- save -->
+<!-- ```{r} -->
+<!-- ggsave(plot = plot, file = "../figures/sig_boxplot.png", dev = "png", width = 6, height = 5, dpi = 600) -->
+<!-- ``` -->
