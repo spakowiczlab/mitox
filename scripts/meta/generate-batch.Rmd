@@ -1,0 +1,91 @@
+---
+title: "processing script"
+author: "Caroline Wheeler"
+date: "4/3/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+find ./PRJNA541981 -mindepth 2 -type f -exec mv {} ./PRJNA541981/ \;
+find ./PRJNA541981 -mindepth 1 -type d -empty -delete
+^ this step should/could be added to the download batch job to get the files where we want them
+
+## get sample names
+```{r cars}
+generate_humann3 <- function(proj, samps){
+  fileOut <- file(paste0("/fs/ess/PAS1695/projects/meta-analysis/batch/", proj, "_humann3.pbs"))
+  writeLines(c(paste0("#PBS -N humann3_", proj),
+               "#PBS -A PAS1695",
+               "#PBS -l walltime=24:00:00",
+               "#PBS -l nodes=1:ppn=28",
+               "#PBS -j oe",
+               "",
+               
+               #List sample naames in a way that can be indexed
+               paste0("snames=('", paste(samps, collapse = "' '"), "')"),
+               "",
+               paste0("cd /fs/ess/PAS1695/projects/meta-analysis/data/", proj, "/concat_fastqs"),
+               "module load python/3.9-2022.05",
+               "source activate humann3",
+               "source activate metaphlan3",
+               "",
+               paste0("humann -i ${snames[$PBS_ARRAY_INDEX]}.fastq.gz -o ../humann3/${snames[$PBS_ARRAY_INDEX]}",
+                      " --threads 28 --input-format fastq.gz --nucleotide-database",
+                      " /fs/ess/PAS1695/db/chocophlan/chocophlan --protein-database", 
+                      " /fs/ess/PAS1695/db/chocophlan/uniref"),
+               ""
+    ),
+    fileOut
+  )
+}
+
+generate_batch <- function(project){
+  fastq.dir <- file.path("/fs", "ess", "PAS1695","projects", "meta-analysis", "data", project, "fastqs")
+  proj.dir <- file.path("/fs", "ess", "PAS1695","projects", "meta-analysis", "data", project)
+  all.files <- list.files(fastq.dir, pattern = ".fastq")
+  snames <- gsub("_.*$", "", all.files)
+  samples <- unique(snames)
+  
+  # commented out b/c ran separately for first 4 projects
+  # this is to get the ENA files in the folder structure we want, in future can add this to the download batch job
+  # cd.command <- paste0("cd ", proj.dir)
+  # mv.command <- paste0("find ./", project, " -mindepth 2 -type f -exec mv {} ./", project, "/ \;")
+  # rm.command <- paste0("find ./", project, " -mindepth 1 -type d -empty -delete")
+  # system(cd.command)
+  # system(mv.command)
+  # system(rm.command)
+  
+  # for(s in samples){
+  #   concat.command <- paste0("cat ", fastq.dir, "/", s, "_1.fastq.gz ", fastq.dir, "/", s, "_2.fastq.gz > ",
+  #                            proj.dir, "/concat_fastqs/", s, ".fastq.gz")
+  #   system(concat.command)
+  # }
+  generate_humann3(project, samples)
+}
+```
+ fileOut<-file(paste0("/fs/scratch/PDE0023/georgia/batch/STAR_align.pbs"))
+  
+  # these two are getting the fastq files
+  fastq1 <- paste0("/fs/ess/PDE0023/georgia/fastqs/${snames[$PBS_ARRAY_INDEX]}_R1_001.fastq.gz")
+  fastq2 <- paste0("/fs/ess/PDE0023/georgia/fastqs/${snames[$PBS_ARRAY_INDEX]}_R2_001.fastq.gz")
+  
+  # The actual content in job scripts
+  writeLines(c(paste0("#PBS -N georgia_STAR_align"),
+               "#PBS -l walltime=20:00:00",
+               "#PBS -l nodes=1:ppn=28",
+               "#PBS -j oe",
+               "#PBS -m ae",
+               "#PBS -A PAS1695",
+               "",
+```{r}
+generate_batch("PRJEB22893")
+# generate_batch("PRJNA397906")
+# generate_batch("PRJNA399742")
+# generate_batch("PRJNA541981")
+# generate_batch("PRJNA762360")
+```
