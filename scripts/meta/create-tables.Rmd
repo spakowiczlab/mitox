@@ -11,17 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
+find ./humann3 -mindepth 1 -type f -exec mv {} ./humann3/ 
+^ move met output out of subdirs
+
 ```{r}
 organize_output <- function(project){
-  fastq.dir <- file.path("/fs", "ess", "PAS1695","projects", "meta-analysis", "data", project, "fastqs")
-  all.files <- list.files(fastq.dir, pattern = ".fastq")
-  snames <- gsub("_.*$", "", all.files)
-  samples <- unique(snames)
+  dir <- file.path("/fs", "ess", "PAS1695","projects", "meta-analysis", "data", project, "humann3")
+  samples <- list.dirs(dir, recursive = F, full.names = F)
+  #res.dir <- paste0("/fs/ess/PAS1695/projects/meta-analysis/", project, "/humann3/")
+  res.files <- list.files(dir)
   
-  res.dir <- paste0("/fs/ess/PAS1695/projects/meta-analysis/", project, "/humann3/")
-  res.files <- list.files(res.dir)
-  
-  mettab.ls <- lapply(samples, function(x) read.table(paste0("/fs/ess/PAS1695/projects/meta-analysis/", project, "/humann3/",
+  mettab.ls <- lapply(samples, function(x) read.table(paste0("/fs/ess/PAS1695/projects/meta-analysis/data/", project, "/humann3/",
                                                                    x, "/",x, "_humann_temp/", x, "_metaphlan_bugs_list.tsv"),
                                                             header = F, sep = "\t", stringsAsFactors = F) %>%
                       mutate(V2 = as.character(V2)))
@@ -30,15 +30,15 @@ organize_output <- function(project){
   metab.df <- bind_rows(lapply(samples, function(x) mettab.ls[[x]] %>% mutate(sample = x)))
   
   metab.df.form <- metab.df %>%
-  rename("Taxonomy" = "V1",
+  dplyr::rename("Taxonomy" = "V1",
          "TaxNum" = "V2",
          "RelAbun" = "V3",
          "Alternative.Tax" = "V4")
   
-  out.dir.m <- paste0("/fs/ess/PAS1695/projects/meta-analysis/", project, "/", project, "_mpa-aggregate.csv")
+  out.dir.m <- paste0("/fs/ess/PAS1695/projects/meta-analysis/data/", project, "/", project, "_mpa-aggregate.csv")
   write.csv(metab.df.form, out.dir.m, row.names = F)
   
-  humann.ls <- lapply(samples, function(x) read.table(paste0(res.dir, x, "/",x, "_pathabundance.tsv"),
+  humann.ls <- lapply(samples, function(x) read.table(paste0(dir, "/", x, "/", x, "_pathabundance.tsv"),
                                                        header = F, sep = "\t", stringsAsFactors = F) %>%
                          mutate(sample = x))
   humann3.df <- humann.ls %>%
@@ -46,7 +46,7 @@ organize_output <- function(project){
   rename("Pathway" = "V1",
          "PathAbun" = "V2")
   
-  out.dir.h <- paste0("/fs/ess/PAS1695/projects/meta-analysis/", project, "/", project, "_humann3-aggregate.csv")
+  out.dir.h <- paste0("/fs/ess/PAS1695/projects/meta-analysis/data/", project, "/", project, "_humann3-aggregate.csv")
   write.csv(humann3.df, out.dir.h, row.names = F)
 }
 ```
