@@ -17,7 +17,7 @@ library(openxlsx)
 
 load timeline.RDS from github - created in date_cleanup.Rmd
 ```{r}
- dates <- readRDS("~/Documents/GitHub/mitox/data/dates.rds")
+dates <- readRDS("~/Documents/GitHub/mitox/data/dates.rds")
 
 # met key
 met.key<- readxl::read_xlsx("/Volumes/spakowicz/mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx") %>%

@@ -27,6 +27,14 @@ dem.met <- demographics %>%
   filter(Cohort == "Met")
 ```
 
+
+#pts with samps only
+```{r}
+dem.metsamps <- dem.met %>%
+  filter(Mic.Samp == "Yes")
+```
+
+
 function to get p-value 
 ```{r}
 pvalue <- function(x, ...) {
@@ -54,7 +62,7 @@ Table 1
 ```{r}
 
 table1(~ Age + Sex + Race + Treatment + irAE | Response,
-       data=dem.met, overall="Total", extra.col=list(`P-value`=pvalue), 
+       data=dem.metsamps, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 ```
 

@@ -1,0 +1,63 @@
+---
+title: "univariate models - top irae genes"
+author: "Caroline Wheeler"
+date: "3/1/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load("../manuscript/data/blood.rds")
+load("../manuscript/data/clinical.rds")
+```
+
+prep
+```{r}
+
+```
+
+format model input
+```{r}
+exo.zv <- unlist(lapply(exo.w[,-1], var))
+names(subset(exo.zv, exo.zv == 0))
+microbes <- names(exo.w[,-1])
+
+modin <- key %>%
+  left_join(exo.w) %>%
+  dplyr::rename("record_id" = subNum) %>%
+  left_join(fsfi) %>%
+  select(-c(ptID:Timepoint)) %>%
+  filter(!is.na(bin)) %>%
+  mutate(bin.code = ifelse(bin == "Worsened", 1, 0))
+```
+
+
+## Analysis
+```{r}
+capture.models.univ <- function(outcome, lfun, modin.dat){
+  mods.list <- lapply(microbes, function(x)
+    try({glm(as.formula(paste0(outcome, " ~ `", x, "`")), 
+             family = lfun,
+             data = modin.dat) %>%
+        tidy()})
+  )
+  
+  mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
+  mods.df <- bind_rows(mods.list.clean)
+  return(mods.df)
+}
+```
+
+```{r, warning=FALSE}
+g.res <- capture.models.univ("bin.code", "binomial", modin)
+g.res <- g.res %>%
+  filter(term != "(Intercept)") %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
+```
+
+```{r}
+# write.csv(g.res, "../data/naa_univariate_modeling.csv")
+```
