@@ -16,11 +16,7 @@ library(ggrepel)
 
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Read in modeling results
 
 ```{r}
 df1 <- read_csv("../data/recist_deseq2_results.csv")
@@ -33,17 +29,7 @@ df3 <- read_csv("../data/irAEsubset_deseq2_results.csv")
 ```{r}
 df1_nona <- df1 %>%
   drop_na(padj)
-
-
 ```
-
-
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
 
 ```{r volcano plot}
 
@@ -266,6 +252,36 @@ ggsave("../figures/mitox_volcanoplot_iraesubset.png",
        dpi=400)
 
 ```
+Version of the irAE subset plot for the CCTS23 grant application
+```{r}
+tax_names_df3 %>%
+  mutate(Blaut.Osc = if_else(grepl("Blautia|Oscilli", taxnames),
+                             true = taxnames, 
+                             false = NA)) %>%
+  ggplot(aes(x = log2FoldChange,
+             y = -log(padj))) + 
+  geom_point(aes(color= Taxonomic_Level),
+             show.legend = FALSE) +
+  geom_hline(yintercept = -log(0.05),
+             linetype = "dashed") + 
+  geom_vline(xintercept = c(log2(0.5), log2(2)),
+             linetype = "dashed") + 
+  #scale_color_brewer(palette = "BrBG",na.value = "grey50") +
+  theme_bw() +
+  scale_color_manual(values = brbgval) +
+  geom_label_repel(aes(label = Blaut.Osc),
+                  max.overlaps = 5,
+                  force = 50,
+                  force_pull = 10,
+                  min.segment.length = 0.005) 
+  # geom_label_repel(data = df3.blautia,
+  #                  aes(label = taxnames),
+  #                  max.overlaps = 5,
+  #                  force = 50,
+  #                  force_pull = 10,
+  #                  min.segment.length = 0.005)
 
+ggsave("../figures/CCTS23_resp-subset_irae.png",
+       height = 3, width = 4.5)
+```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
