@@ -37,7 +37,7 @@ r1 <- r1 %>%
          group = "vehicle",
          start = sos) %>%
   pivot_longer(cols = 1:19, names_to = "date", values_to = "weight") %>%
-  mutate(days = as.Date(date) - as.Date(start)) %>%
+  mutate(days = as.integer(as.Date(date) - as.Date(start))) %>%
   select(mouse, group, date, days, weight)
 
 r2 <- r2 %>%
@@ -48,10 +48,11 @@ r2 <- r2 %>%
          group = "IgG2a",
          start = sos) %>%
   pivot_longer(cols = 1:19, names_to = "date", values_to = "weight") %>%
-  mutate(days = as.Date(date) - as.Date(start)) %>%
+  mutate(days = as.integer(as.Date(date) - as.Date(start))) %>%
   select(mouse, group, date, days, weight)
 
-x <- rbind(r1, r2)
+x <- rbind(r1, r2) %>%
+  filter(!is.na(weight))
 ```
 
 save cleaned

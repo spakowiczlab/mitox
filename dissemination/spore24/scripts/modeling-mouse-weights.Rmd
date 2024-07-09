@@ -1,0 +1,73 @@
+---
+title: "longitudinal mixed model"
+author: "Caroline Wheeler"
+date: "2024-07-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(nlme)
+library(pass.lme)
+library(EMAtools)
+```
+
+```{r}
+x <- read.csv("../data/2024-07-02_irAE mouse weights-cleaned.csv") 
+```
+
+linear mixed model with only random intercept
+```{r}
+lmm.ri <- lme(weight ~ group*days, data = x, random = ~1 | mouse)
+
+summary(lmm.ri)
+```
+
+linear mixed model with random intercept and random slope
+```{r}
+lmm.ri.rs <- lme(weight ~ group*days, data = x, random = ~ days | mouse)
+summary(lmm.ri.rs)
+```
+
+The more complex model is significantly better per the pval - so random slopes and intercepts
+```{r}
+anova(lmm.ri, lmm.ri.rs)
+```
+try different correlation structures
+```{r}
+lmm1 <- lme(weight ~ group*days, data = x, random = ~ days | mouse, correlation = corCompSymm(form = ~1 | mouse))
+lmm2 <- lme(weight ~ group*days, data = x, random = ~ days | mouse, correlation = corAR1(form = ~1 | mouse))
+lmm3 <- lme(weight ~ group*days, data = x, random = ~ days | mouse, correlation = corExp(form = ~1 | mouse))
+```
+
+```{r}
+anova(lmm.ri.rs, lmm1)
+anova(lmm.ri.rs, lmm2)
+anova(lmm.ri.rs, lmm3)
+```
+
+```{r}
+anova(lmm3)
+```
+
+<!-- ```{r} -->
+<!-- library(lmerTest) -->
+
+<!-- fit_lmm <- lmer(weight ~ days + (days | group), x) -->
+<!-- fit_lmm -->
+<!-- anova(fit_lmm) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- B <- matrix(c(100,-0.5),2,1) -->
+<!-- D <- matrix(c(2,1,1,2),2,2) -->
+<!-- R <- 0.2 -->
+<!-- X <- cbind(rep(1,3),1:3) -->
+<!-- Z <- X -->
+<!-- theta <- lme.Lb.dist.theta(B,D,R,X,Z) -->
+<!-- pass.lme.CLb.test(list(theta),alpha=0.05,power=0.8) -->
+<!-- pass.lme.CLb.test(list(theta),alpha=0.05,n=66) -->
+<!-- ``` -->
+
+
