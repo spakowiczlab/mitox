@@ -1,0 +1,61 @@
+---
+title: "power calculation"
+author: "Caroline Wheeler"
+date: "2024-07-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(lubridate)
+```
+
+read in OG data
+```{r}
+r1 <- read_xlsx("../data/2024-07-02_irAE mouse weights.xlsx", 
+                sheet=1, range = "A1:AL8")
+r2 <- read_xlsx("../data/2024-07-02_irAE mouse weights.xlsx", 
+                sheet=1, range = "A10:AL16")
+```
+```{r}
+dates <- as.Date(as.integer(colnames(r1 %>% select(!contains("vehicle")))), origin = "1899-12-30") 
+
+r1.m <- r1$`44775`
+r2.m <- r2$...1
+
+r1 <- r1 %>%
+  select(contains("vehicle")) 
+colnames(r1) <- dates
+
+sos <- colnames(r1)[1]
+
+r1 <- r1 %>%
+  mutate(mouse = r1.m,
+         group = "vehicle",
+         start = sos) %>%
+  pivot_longer(cols = 1:19, names_to = "date", values_to = "weight") %>%
+  mutate(days = as.Date(date) - as.Date(start)) %>%
+  select(mouse, group, date, days, weight)
+
+r2 <- r2 %>%
+  select(contains("IgG"))
+colnames(r2) <- dates
+r2 <- r2 %>%
+  mutate(mouse = r2.m,
+         group = "IgG2a",
+         start = sos) %>%
+  pivot_longer(cols = 1:19, names_to = "date", values_to = "weight") %>%
+  mutate(days = as.Date(date) - as.Date(start)) %>%
+  select(mouse, group, date, days, weight)
+
+x <- rbind(r1, r2)
+```
+
+save cleaned
+```{r}
+write.csv(x, "../data/2024-07-02_irAE mouse weights-cleaned.csv", row.names = F)
+```
+
