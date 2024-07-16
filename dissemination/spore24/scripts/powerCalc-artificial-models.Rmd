@@ -1,0 +1,22 @@
+---
+title: "artificial models"
+author: "Caroline Wheeler"
+date: "2024-07-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lme4)
+
+```
+
+```{r}
+# formula for artificial model
+forumla <- weight ~ group * days + (1|mouse)
+
+formula <- Correct ~ NativeLanguage * Frequency + (1 | Subject) + (1 | Word)
+```
+

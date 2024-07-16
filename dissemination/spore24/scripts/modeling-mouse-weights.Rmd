@@ -11,11 +11,21 @@ knitr::opts_chunk$set(echo = TRUE)
 library(nlme)
 library(pass.lme)
 library(EMAtools)
+library(lmerTest)
+library(lme4)
+library(effectsize)
+library(tidyverse)
 ```
 
 ```{r}
 x <- read.csv("../data/2024-07-02_irAE mouse weights-cleaned.csv") 
 ```
+
+group w/o days included in the model
+```{r}
+cohens_d(weight ~ group, data = x)
+```
+
 
 linear mixed model with only random intercept
 ```{r}
@@ -28,13 +38,14 @@ linear mixed model with random intercept and random slope
 ```{r}
 lmm.ri.rs <- lme(weight ~ group*days, data = x, random = ~ days | mouse)
 summary(lmm.ri.rs)
+anova(lmm.ri.rs)
 ```
 
 The more complex model is significantly better per the pval - so random slopes and intercepts
 ```{r}
 anova(lmm.ri, lmm.ri.rs)
 ```
-try different correlation structures
+try different correlation structures?
 ```{r}
 lmm1 <- lme(weight ~ group*days, data = x, random = ~ days | mouse, correlation = corCompSymm(form = ~1 | mouse))
 lmm2 <- lme(weight ~ group*days, data = x, random = ~ days | mouse, correlation = corAR1(form = ~1 | mouse))
