@@ -1,0 +1,82 @@
+---
+title: "try simulating data"
+author: "Caroline Wheeler"
+date: "2024-07-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(lme4)
+library(mixedpower)
+library(simr)
+library(tidyverse)
+```
+
+```{r}
+x <- read.csv("../data/2024-07-02_irAE mouse weights-cleaned.csv") 
+```
+
+give uniq num id to mice
+```{r}
+x <- x %>%
+    mutate(subject = as.numeric(factor(mouse)))
+```
+
+
+```{r}
+lmm.model <- lmer(weight ~ group*days + (1|subject), data = x)
+summary(lmm.model)
+```
+
+```{r}
+power_FLP <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(8, 10, 12, 14, 16), # which sample sizes do we want to look at?
+                        critical_value = 2, # which t/z value do we want to use to test for significance?
+                        n_sim = 1000) # how many single simulations should be used to estimate power?
+
+power_FLP
+```
+                      8    10    12    14    16      mode            effect
+groupvehicle      0.458 0.532 0.559 0.649 0.701 databased      groupvehicle
+days              0.875 0.942 0.968 0.968 0.984 databased              days
+groupvehicle:days 1.000 1.000 1.000 1.000 1.000 databased groupvehicle:days
+
+```{r}
+multiplotPower(power_FLP)
+```
+
+
+```{r}
+SESOI <- c(3.66, 0.75, -0.065, 0.09) # specify SESOI - smallest effect size of interest??
+
+power_SESOI <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(8, 10, 12, 14, 16), # which sample sizes do we want to look at?
+                        critical_value = 2, # which t/z value do we want to use to test for significance?
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = T) # how many single simulations should be used to estimate power?
+
+power_SESOI
+```
+
+                       8    10    12    14    16      mode            effect
+groupvehicle       0.465 0.524 0.562 0.621 0.678 databased      groupvehicle
+days               0.863 0.946 0.970 0.969 0.985 databased              days
+groupvehicle:days  1.000 1.000 1.000 1.000 1.000 databased groupvehicle:days
+groupvehicle1      0.219 0.225 0.259 0.277 0.317     SESOI      groupvehicle
+days1              1.000 1.000 1.000 1.000 1.000     SESOI              days
+groupvehicle:days1 1.000 1.000 1.000 1.000 1.000     SESOI groupvehicle:days
+
+
+```{r}
+multiplotPower(power_SESOI)
+```
+
