@@ -21,9 +21,51 @@ library(tidyverse)
 x <- read.csv("../data/2024-07-02_irAE mouse weights-cleaned.csv") 
 ```
 
-group w/o days included in the model
 ```{r}
-cohens_d(weight ~ group, data = x)
+group1 <- x %>% 
+  filter(group == "vehicle")
+group1 <- group1$weight
+
+group2 <- x %>% 
+  filter(group != "vehicle")
+group2 <- group2$weight
+summary(group1)
+sd(group1)
+summary(group2)
+sd(group2)
+
+t.test(group1,group2)
+```
+Cohen's d considers just group, but does not incorporate days 
+
+d = (mean 1–mean 2)/(the average standard deviation of the two groups)
+```{r}
+(mean(group1) - mean(group2)) / ((sd(group1) + sd(group2))/2)
+```
+
+
+```{r}
+group1 <- x %>% 
+  filter(group == "vehicle") %>%
+  group_by(mouse) %>%
+  summarize(mean(weight))
+group1 <- group1$`mean(weight)`
+
+group2 <- x %>% 
+  filter(group != "vehicle") %>%
+  group_by(mouse) %>%
+  summarize(mean(weight))
+group2 <- group2$`mean(weight)`
+
+summary(group1)
+sd(group1)
+summary(group2)
+sd(group2)
+
+t.test(group1,group2)
+```
+```{r}
+(mean(group1) - mean(group2)) / ((sd(group1) + sd(group2))/2)
 ```
 
 
@@ -38,13 +80,24 @@ linear mixed model with random intercept and random slope
 ```{r}
 lmm.ri.rs <- lme(weight ~ group*days, data = x, random = ~ days | mouse)
 summary(lmm.ri.rs)
-anova(lmm.ri.rs)
 ```
 
-The more complex model is significantly better per the pval - so random slopes and intercepts
+The more complex model is significantly better > random slopes and intercepts
 ```{r}
 anova(lmm.ri, lmm.ri.rs)
 ```
+```{r}
+summary(lmm.ri.rs)
+```
+```{r}
+anova(lmm.ri.rs)
+```
+
+
+
+
+
+
 try different correlation structures?
 ```{r}
 lmm1 <- lme(weight ~ group*days, data = x, random = ~ days | mouse, correlation = corCompSymm(form = ~1 | mouse))
@@ -58,9 +111,6 @@ anova(lmm.ri.rs, lmm2)
 anova(lmm.ri.rs, lmm3)
 ```
 
-```{r}
-anova(lmm3)
-```
 
 <!-- ```{r} -->
 <!-- library(lmerTest) -->

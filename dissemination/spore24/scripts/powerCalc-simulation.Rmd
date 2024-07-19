@@ -5,13 +5,14 @@ date: "2024-07-15"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=F}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(lme4)
 library(mixedpower)
 library(simr)
 library(tidyverse)
+library(ggpubr)
 ```
 
 ```{r}
@@ -24,59 +25,326 @@ x <- x %>%
     mutate(subject = as.numeric(factor(mouse)))
 ```
 
-
+Model with random intercepts 
 ```{r}
 lmm.model <- lmer(weight ~ group*days + (1|subject), data = x)
 summary(lmm.model)
 ```
 
+
+Need to run separately for each sample size since critical value varies so much 
+sample size is small 
+
+critical values based on n-1, 95% CI on the two-tailed t-table.
+https://www.scribbr.com/wp-content/uploads/2022/06/Critical-values-of-t-for-two-tailed-tests-l.webp
+
+should this vary based on variable?
+i.e. DF for each effect ??
+
+should it be n1 + n2 - 2 OR n-1 ?
+Going with n - 1 to be conservative 
+
+
+Get databased and SESOI -15%
 ```{r}
-power_FLP <- mixedpower(model = lmm.model, 
+# desired beta coefficients for all specified fixed effects
+# try reducing all beta coefficients by 15% 
+# leave intercept the same 
+SESOI <- c(18.863, -1.147, -0.012,  0.057) 
+
+power3 <- mixedpower(model = lmm.model, 
                         data = x,
                         fixed_effects = c("group", "days") ,
                         simvar = "subject", 
-                        steps =  c(8, 10, 12, 14, 16), # which sample sizes do we want to look at?
-                        critical_value = 2, # which t/z value do we want to use to test for significance?
-                        n_sim = 1000) # how many single simulations should be used to estimate power?
-
-power_FLP
-```
-                      8    10    12    14    16      mode            effect
-groupvehicle      0.458 0.532 0.559 0.649 0.701 databased      groupvehicle
-days              0.875 0.942 0.968 0.968 0.984 databased              days
-groupvehicle:days 1.000 1.000 1.000 1.000 1.000 databased groupvehicle:days
-
-```{r}
-multiplotPower(power_FLP)
-```
-
-
-```{r}
-SESOI <- c(3.66, 0.75, -0.065, 0.09) # specify SESOI - smallest effect size of interest??
-
-power_SESOI <- mixedpower(model = lmm.model, 
-                        data = x,
-                        fixed_effects = c("group", "days") ,
-                        simvar = "subject", 
-                        steps =  c(8, 10, 12, 14, 16), # which sample sizes do we want to look at?
-                        critical_value = 2, # which t/z value do we want to use to test for significance?
+                        steps =  c(3), 
+                        critical_value = 4.303, 
                         n_sim = 1000,
                         SESOI = SESOI,
-                        databased = T) # how many single simulations should be used to estimate power?
+                        databased = T) 
+
+power4 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(4), 
+                        critical_value = 3.182, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = T) 
+
+power6 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(6), 
+                        critical_value = 2.571, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = T) 
+
+power8 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(8), 
+                        critical_value = 2.365, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = T) 
+
+power10 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(10), 
+                        critical_value = 2.262, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = T) 
+
+power12 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(12), 
+                        critical_value = 2.201, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = T) 
+
+```
+
+combine
+```{r}
+df_list <- list(power3, power4, power6, power8, power10, power12)
+power_SESOI <- Reduce(function(x, y) merge(x, y, all=TRUE, by = c("mode", "effect")), df_list, accumulate=FALSE)
 
 power_SESOI
 ```
 
-                       8    10    12    14    16      mode            effect
-groupvehicle       0.465 0.524 0.562 0.621 0.678 databased      groupvehicle
-days               0.863 0.946 0.970 0.969 0.985 databased              days
-groupvehicle:days  1.000 1.000 1.000 1.000 1.000 databased groupvehicle:days
-groupvehicle1      0.219 0.225 0.259 0.277 0.317     SESOI      groupvehicle
-days1              1.000 1.000 1.000 1.000 1.000     SESOI              days
-groupvehicle:days1 1.000 1.000 1.000 1.000 1.000     SESOI groupvehicle:days
+get SESOI -25%
+```{r}
+SESOI <- c(18.863,  -1.012, -0.011,  0.050) 
+
+power3 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(3), 
+                        critical_value = 4.303, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power4 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(4), 
+                        critical_value = 3.182, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power6 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(6), 
+                        critical_value = 2.571, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power8 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(8), 
+                        critical_value = 2.365, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power10 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(10), 
+                        critical_value = 2.262, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power12 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(12), 
+                        critical_value = 2.201, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+```
+combine SESOI -25%
+```{r}
+df_list <- list(power3, power4, power6, power8, power10, power12)
+power_SESOI2 <- Reduce(function(x, y) merge(x, y, all=TRUE, by = c("mode", "effect")), df_list, accumulate=FALSE) %>%
+  mutate(mode = "SESOI-25%")
+
+power_SESOI <- rbind(power_SESOI, power_SESOI2) 
+power_SESOI
+```
+
+get SESOI -50%
+```{r}
+SESOI <- c(18.863, -0.675, -0.007, 0.033) 
+
+power3 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(3), 
+                        critical_value = 4.303, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power4 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(4), 
+                        critical_value = 3.182, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power6 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(6), 
+                        critical_value = 2.571, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power8 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(8), 
+                        critical_value = 2.365, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power10 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(10), 
+                        critical_value = 2.262, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+
+power12 <- mixedpower(model = lmm.model, 
+                        data = x,
+                        fixed_effects = c("group", "days") ,
+                        simvar = "subject", 
+                        steps =  c(12), 
+                        critical_value = 2.201, 
+                        n_sim = 1000,
+                        SESOI = SESOI,
+                        databased = F) 
+```
+
+combine SESOI -50%
+```{r}
+df_list <- list(power3, power4, power6, power8, power10, power12)
+power_SESOI2 <- Reduce(function(x, y) merge(x, y, all=TRUE, by = c("mode", "effect")), df_list, accumulate=FALSE) %>%
+  mutate(mode = "SESOI-50%")
+
+power_SESOI <- rbind(power_SESOI, power_SESOI2) 
+power_SESOI
+```
 
 
 ```{r}
-multiplotPower(power_SESOI)
+power_SESOI <- power_SESOI %>%
+  mutate(mode = case_when(mode == "databased" ~ "Model",
+                          mode == "SESOI" ~ "SESOI-15%",
+                          mode == "SESOI-25%" ~ mode,
+                          mode == "SESOI-50%" ~ mode),
+         effect = case_when(effect == "groupvehicle" ~ "group",
+                            effect == "groupvehicle:days" ~ "group:days",
+                            effect == "days" ~ effect))
 ```
+
+```{r}
+mplot <- function(output_data){
+  
+  plot_data_all <- output_data %>%
+    pivot_longer(!c("mode", "effect"), names_to = "sample_size", values_to = "value") %>%
+    mutate(sample_size = as.integer(sample_size))
+  # plot_data_all <- reshape2::melt(output_data,
+  #                       id.vars = c("mode", "effect"),
+  #                       variable.name = "sample_size")
+
+  fixeffects <- unique(output_data$effect)
+
+  cbPalette <- c("#882255", "#E69F00", "#6699CC","#999933")
+
+  all_plots <- list()
+
+  i <- 1 
+  for (fixeff in fixeffects){
+
+    plot_data <- subset(plot_data_all,  effect == fixeff,
+                        select = c(mode, sample_size,value))
+
+
+    p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = sample_size, y = value, color=mode, group = mode, alpha = mode)) + 
+      ggplot2::geom_point() + 
+      ggplot2::geom_line()+
+      ggplot2::xlab("mice per group") + 
+      ggplot2::ylab("power") + 
+      ggplot2::theme(axis.line = ggplot2::element_line(color = "black"), 
+            panel.background = ggplot2::element_rect(fill = "white"), 
+            legend.title = ggplot2::element_blank()) + 
+      ggplot2::scale_color_manual(values = cbPalette) +
+      ggplot2::expand_limits(y = c(0,1)) + 
+      ggplot2::ggtitle(fixeff) +
+      ggplot2::scale_alpha_discrete(range = c(1, 0.35, 0.35, 0.35)) + 
+      ggplot2::scale_x_continuous(breaks=c(3, 4, 6, 8, 10, 12)) +
+      aes(group=rev(mode)) 
+
+    all_plots[[i]] <- p
+    i <- i+1
+  }
+
+
+  effect_num = length(fixeffects)
+  ncol = 3
+  if (effect_num%%3 == 0) {
+    nrow = effect_num/3
+  } else {
+    nrow = floor(effect_num/3) + 1
+  }
+
+  return(all_plots)
+
+} 
+```
+
+```{r}
+p <- mplot(power_SESOI)
+
+ggarrange(p[[1]], p[[2]], p[[3]], ncol = 3)
+
+ggsave("../figures/powerSimulation.png", height = 2, width = 10, dpi = 400)
+```
+
 
