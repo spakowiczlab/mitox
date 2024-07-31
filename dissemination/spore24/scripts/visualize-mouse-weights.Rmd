@@ -1,0 +1,28 @@
+---
+title: "cleaned up visualization"
+author: "Caroline Wheeler"
+date: "2024-07-31"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+x <- read.csv("../data/2024-07-02_irAE mouse weights-cleaned.csv") 
+```
+
+```{r}
+x %>%
+  ggplot(aes(x = days, y = weight, color = group)) +
+  geom_point() +
+  theme_minimal() +
+  stat_smooth()
+
+ggsave("../figures/mouse-weights-time.png", height = 4, width = 6)
+```
+
