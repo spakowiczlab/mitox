@@ -41,3 +41,4 @@ rsconnect/
 # don't overwrite other people's paths please
 mitox.json
 scripts/00-paths.R
+.DS_Store
