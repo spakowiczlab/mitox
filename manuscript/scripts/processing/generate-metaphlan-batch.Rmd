@@ -39,12 +39,12 @@ writeLines(c(paste0("#PBS -N mitox-metaphlan"),
                # List sample names in a way that can be indexed
                paste0("snames=('", paste(snames, collapse = "' '"), "')"),
                
-               "",
+               "cd /users/PAS1695/whee57/.local/bin",
                "module load python",
                "source activate metaphlan4",
                "",
           
-               "metaphlan --input_type fastq --read_min_len 50 --profile_vsc --nproc 28 --bowtie2out /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_bowties/${snames[$PBS_ARRAY_INDEX]}.fastq.gz.bowtie2out.txt ${fnames[$PBS_ARRAY_INDEX]} /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_metaphlan/${snames[$PBS_ARRAY_INDEX]}.txt",
+               "metaphlan --input_type fastq --read_min_len 50 --profile_vsc --nproc 28 --vsc_out /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_vsc/${snames[$PBS_ARRAY_INDEX]}.vsc.txt --bowtie2out /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_bowties/${snames[$PBS_ARRAY_INDEX]}.fastq.gz.bowtie2out.txt ${fnames[$PBS_ARRAY_INDEX]} /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_metaphlan/${snames[$PBS_ARRAY_INDEX]}.txt",
              ""
   
   ),

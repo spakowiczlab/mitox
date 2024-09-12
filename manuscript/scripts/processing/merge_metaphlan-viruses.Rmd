@@ -1,0 +1,88 @@
+---
+title: "check metaphlan ouput"
+author: "Caroline Wheeler"
+date: "9/9/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+# fastqs
+fastq.dir1 <- "/fs/ess/PAS1695/projects/mitox/data/2022-01-31_fastqs"
+fastq.dir2 <- "/fs/ess/PAS1695/projects/mitox/data/2022-08-08_fastqs"
+
+all.files1 <- list.files(fastq.dir1, full.names = T)
+all.files2 <- list.files(fastq.dir2, full.names = T)
+all.files <- c(all.files1, all.files2)
+fnames <- gsub(".fastq.gz", "", c(list.files(fastq.dir1), list.files(fastq.dir2)))
+
+# metaphlan output 
+met.dir <- "/fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_metaphlan"
+met.files <- list.files(met.dir, full.names = T)
+mnames <- gsub(".txt", "", list.files(met.dir, full.names = F))
+```
+
+```{r}
+fnames == mnames
+```
+combine metaphlan ouput
+```{r}
+mettab.ls <- lapply(met.files, function(x) read.table(paste0(x),
+                                                            header = F, sep = "\t", stringsAsFactors = F))
+
+names(mettab.ls) <- mnames
+
+mettab.ls <- lapply(mettab.ls, function(x) mutate(x,
+           V2 = as.character(V2)))
+
+
+metab.df <- bind_rows(lapply(mnames, function(x) mettab.ls[[x]] %>% mutate(sample = x)))
+
+metab.df.form <- metab.df %>%
+  rename("Taxonomy" = "V1",
+         "TaxNum" = "V2",
+         "RelAbun" = "V3",
+         "Alternative.Tax" = "V4")
+```
+
+save combined taxonomic profiling 
+```{r}
+write.csv(metab.df.form, "/fs/ess/PAS1695/projects/mitox/data/2024-08-30_mpa_aggregated_long.csv", row.names = F)
+```
+
+combine virus output
+```{r}
+# vsc output 
+vir.dir <- "/fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_vsc"
+vir.files <- list.files(vir.dir, full.names = T)
+vnames <- gsub(".vsc.txt", "", list.files(vir.dir, full.names = F))
+
+vnames == fnames
+```
+
+```{r}
+virtab.ls <- lapply(vir.files, function(x) read.table(paste0(x),
+                                                            header = T, sep = "\t", stringsAsFactors = F))
+
+names(virtab.ls) <- vnames
+
+virtab.ls <- lapply(virtab.ls, function(x) mutate(x, M.Group.Cluster = as.character(M.Group.Cluster)))
+virtab.ls <- lapply(virtab.ls, function(x) mutate(x, genomeName = as.character(genomeName)))
+virtab.ls <- lapply(virtab.ls, function(x) mutate(x, M.Group.Type..k.u. = as.character(M.Group.Type..k.u.)))
+virtab.ls <- lapply(virtab.ls, function(x) mutate(x, First.Genome.in.Cluster = as.character(First.Genome.in.Cluster)))
+virtab.ls <- lapply(virtab.ls, function(x) mutate(x, Other.Genomes = as.character(Other.Genomes)))
+
+virtab.df <- bind_rows(lapply(vnames, function(x) virtab.ls[[x]] %>% mutate(sample = x)))
+```
+
+save combined virus output
+```{r}
+write.csv(virtab.df, "/fs/ess/PAS1695/projects/mitox/data/2024-08-30_vsc_aggregated_long.csv", row.names = F)
+```
+
+

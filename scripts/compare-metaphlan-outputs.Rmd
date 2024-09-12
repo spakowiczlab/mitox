@@ -1,0 +1,123 @@
+---
+title: "compare met output"
+author: "Caroline Wheeler"
+date: "9/10/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(ggforce)
+```
+
+read in data
+```{r}
+# only has first 109 samples, no viruses 
+old <- read.csv("/fs/ess/PAS1695/projects/mitox/data/2022-02-01_mpa_aggregated_long.csv")
+
+# has all 141 samples and viruses 
+oldv <- read.csv("/fs/ess/PAS1695/projects/mitox/data/2023-10-26_mpa_aggregated_long.csv")
+
+# has all 141 samples, virus output separate 
+new <- read.csv("/fs/ess/PAS1695/projects/mitox/data/2024-08-30_mpa_aggregated_long.csv") 
+```
+
+split into levels and get phylum 
+```{r}
+get_phyl <- function(tax){
+  tax <- tax %>%
+    select(sample, Taxonomy, RelAbun)
+  
+  taxa <- tax %>% 
+    separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "t"), "\\|")
+  
+  temp <- taxa %>%
+    filter(is.na(taxa[,"Class"]),
+           !is.na(Phylum)) %>%
+    select(sample, Phylum, RelAbun)
+}
+
+new.p <- get_phyl(new)
+old.p <- get_phyl(old)
+oldv.p <- get_phyl(oldv)
+```
+
+function to get top 7 phyla across all 3 sets 
+```{r}
+getLargePhyla <- function(tax){
+  # remove duplicates
+  tax.nodup <- tax %>%
+    distinct() %>%
+    group_by(Phylum) %>%
+    dplyr::summarize(median.ra = median(RelAbun)) %>%
+    arrange(desc(median.ra)) %>%
+    mutate(x = row_number()) %>%
+    dplyr::filter(x <= 5)
+}
+
+new.top <- getLargePhyla(new.p) 
+old.top <- getLargePhyla(old.p)
+# oldv.top <- getLargePhyla(oldv.p)
+
+# 8 top mics in the combined group 
+# Bacteroidetes and Bacteroidota are the same presumably
+# Should highlight the differences 
+comb.top <- rbind(new.top, old.top) %>%
+  select(Phylum) %>%
+  distinct()
+
+# summarize phylums
+new.p <- new.p %>%
+  mutate(group = ifelse(Phylum %in% comb.top$Phylum, Phylum, "Other"),
+         met = "Metaphlan4 (141 samples)")
+old.p <- old.p %>%
+  mutate(group = ifelse(Phylum %in% comb.top$Phylum, Phylum, "Other"),
+         met = "Metaphlan3 (109 samples)")
+
+all.in <- rbind(new.p, old.p)
+```
+
+function to plot stacked bar 
+```{r}
+plotStackedBar <- function(tax){
+  g <- tax %>% 
+  ggplot(aes(x = sample, y = RelAbun, fill = group)) +
+    geom_bar(position="fill", stat = "identity") +
+    labs(x = "", y = "") +
+    scale_fill_manual(values = c("red3","darkolivegreen4","cadetblue3", "darkgoldenrod2", "cyan4", "coral3", "deeppink4", "blue",  "slateblue1"), name = "Taxa") +
+    theme_minimal(base_size = 7) +
+    theme(axis.text.x = element_blank(), 
+          axis.ticks.x = element_blank(),
+          axis.text.y = element_blank(),
+          panel.grid.major = element_blank())  +
+    facet_row(vars(met), scales = "free_x", space = "free") +
+   theme(
+    text = element_text(size = 7), legend.position = "bottom") 
+
+g
+}
+
+plotStackedBar(all.in)
+
+ggsave("../figures/stackedBar-metaphlan-comp.png", height = , width = )
+```
+
+
+```{r}
+# get phylum level counts and identify top 7, create 'Other' category
+new.p <- getPhyla(new.t)
+old.p <- getPhyla(old.t)
+oldv.p <- getPhyla(oldv.t)
+
+# get most prominent Phyla across all 3 sets
+all.tax <- rbind(ap.tax, cm.tax)
+all.tax <- rbind(all.tax, ob.tax)
+large.phyls <- getLargePhyla(all.tax)
+
+
+```
+
+
