@@ -64,6 +64,8 @@ old.top <- getLargePhyla(old.p)
 
 # 8 top mics in the combined group 
 # Bacteroidetes and Bacteroidota are the same presumably
+# will update in old results after combining 
+
 # Should highlight the differences 
 comb.top <- rbind(new.top, old.top) %>%
   select(Phylum) %>%
@@ -77,7 +79,8 @@ old.p <- old.p %>%
   mutate(group = ifelse(Phylum %in% comb.top$Phylum, Phylum, "Other"),
          met = "Metaphlan3 (109 samples)")
 
-all.in <- rbind(new.p, old.p)
+all.in <- rbind(new.p, old.p) %>%
+  mutate(group = ifelse(group == "p__Bacteroidetes", "p__Bacteroidota", group))
 ```
 
 function to plot stacked bar 
