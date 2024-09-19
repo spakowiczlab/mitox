@@ -14,7 +14,9 @@ library(tidyverse)
 
 load data
 ```{r}
-load("../../data/taxonomy.rds")
+load("../../../data/old-processing-objects/taxonomy.rds")
+
+load("../../data/taxonomy-long.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 ```
@@ -27,38 +29,38 @@ baseline <- mic.meta %>%
   slice_head(n = 1)
 
 clin <- left_join(baseline, demographics, by = "Patient Id") %>%
-  dplyr::filter(sample %in% tax.tab$sample)
+  dplyr::filter(sample %in% tax.l$sample)
 
 irae <- clin %>% 
   dplyr::select(sample, irAE) %>%
-  dplyr::filter(sample %in% tax.tab$sample)
+  dplyr::filter(sample %in% tax.l$sample)
 
-taxa_irae <- tax.tab %>%
+taxa_irae <- tax.l %>%
   dplyr::filter(sample %in% irae$sample)
 
 # response as ifelse(Category == "PD", "NR", "R")) for deseq
 recist <- clin %>%
   dplyr::mutate(Response = ifelse(Category == "PD", "NR", "R")) %>%
   dplyr::select(sample, Response) %>%
-  dplyr::filter(sample %in% tax.tab$sample,
+  dplyr::filter(sample %in% tax.l$sample,
                 !is.na(Response))
 
-taxa_res <- tax.tab %>%
+taxa_res <- tax.l %>%
   dplyr::filter(sample %in% recist$sample)
 
 sub <- clin %>%
   dplyr::filter(Category != "PD",
                 !is.na(Category),
-                sample %in% tax.tab$sample) %>%
+                sample %in% tax.l$sample) %>%
   dplyr::select(sample, irAE)
 
-taxa_sub <- tax.tab %>%
+taxa_sub <- tax.l %>%
   dplyr::filter(sample %in% sub$sample)
 ```
 
-
 ```{r}
-ggplot(tax.tab, aes(-log10(RelAbun*2083.33333333))) + geom_histogram(binwidth = 0.5)
+spec.ra <- tax.l %>% filter(grepl("s__", microbe))
+ggplot(spec.ra, aes(-log10(RelAbun*2083.33333333))) + geom_histogram(binwidth = 0.5)
 ```
 
 

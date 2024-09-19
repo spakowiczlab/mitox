@@ -11,10 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 
-# source("00-paths.R")
+ #source("00-paths.R")
 ```
 
-Publication objects = cleaned R objects in the repo, without PHI, that are the inputs to ALL of the figures
+Publication objects = cleaned R objects in the repo, without PHI, that are the 
+inputs to ALL  figures
+
+need to remove problem sample - FF08034522
+it is in the adj cohort, so no problem here.
+
+Should we remove M032 since we don't have response information and no irAE?
+  Will leave in at this stage. 
 
 file path 
 ```{r}
@@ -42,10 +49,17 @@ demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/
 # PFS
 # Nye maybe changed the sheet name to 12-Month PFS ?
 pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
-                               sheet = "Progression dates")
+                               sheet = "12-month PFS")
 
 # microbiome taxonomic data merged metaphlan output 
-taxa <- read.csv("../../../data/mpa_aggregated_long_2023-10-26.csv")
+# old processing 
+# taxa.o <- read.csv("../../../data/mpa_aggregated_long_2023-10-26.csv")
+# new processing
+taxa <- read.csv("../../../data/2024-08-30_mpa_aggregated_long.csv")
+# counts
+counts <- read.csv("../../../data/2024-08-30_mpa-counts_aggregated_long.csv")
+# virus output
+vir <- read.csv("../../../data/2024-08-30_vsc_aggregated_long.csv")
 
 # microbiome sample matching 
 samps <- read_xlsx( file.path(paths$oneDrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx"))
@@ -305,37 +319,52 @@ RESOLVED it is M020
 ISSUE M048 has a 12wk microbiome sample but no collection date 
 RESOLVED average days between collection and processing and add collection dates based on processing date 
 
-
-Microbiome data
-Abundances 
-Rows are microbes
+Microbiome data RA 
+Rows are microbes, note sum for each level will by 100, but sum of all will not
+be meaningful
 ```{r}
-mic <- taxa %>%
+ra.w <- taxa %>%
   select(sample, Taxonomy, RelAbun) %>%
+  filter(Taxonomy != "UNCLASSIFIED") %>%
   pivot_wider(names_from = sample, values_from = RelAbun, values_fill = 0) %>%
+  mutate(microbe = sub(".*\\|", "", Taxonomy)) %>%
   # filter to MET only
-  select(Taxonomy, mic.meta$sample)
+  select(microbe, mic.meta$sample)
 
-save(mic, file = "../../data/microbiome.rds")
+ra.l <- tax.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "RelAbun")
+
+save(tax.w, file = "../../data/ra-wide.rds")
+save(tax.l, file = "../../data/ra-long.rds")
 ```
 
-Taxonomy table
+estimated counts
 ```{r}
-tax.tab <- taxa %>%
-   dplyr::select(sample, Taxonomy, RelAbun) %>%
-    mutate(kingdom = gsub("(k__\\w+).*", "\\1", Taxonomy),
-           phylum = ifelse(grepl("p__", Taxonomy),gsub(".*(p__\\w+).*", "\\1", Taxonomy), NA),
-           order = ifelse(grepl("o__", Taxonomy),gsub(".*(o__\\w+).*", "\\1", Taxonomy), NA),
-           class = ifelse(grepl("c__", Taxonomy),gsub(".*(c__\\w+).*", "\\1", Taxonomy), NA),
-           family = ifelse(grepl("f__", Taxonomy),gsub(".*(f__\\w+).*", "\\1", Taxonomy), NA),
-           genus = ifelse(grepl("g__", Taxonomy),gsub(".*(g__\\w+).*", "\\1", Taxonomy), NA),
-           species = ifelse(grepl("s__", Taxonomy), gsub(".*(s__.*)", "\\1", Taxonomy), NA)) %>%
-  filter(!is.na(species),
-         # filter to MET only
-         sample %in% mic.meta$sample) 
+counts.w <- counts %>%
+  select(sample, Taxonomy, est.reads) %>%
+  pivot_wider(names_from = sample, values_from = est.reads, values_fill = 0) %>%
+  mutate(microbe = sub(".*\\|", "", Taxonomy)) %>%
+  # filter to MET only
+  select(microbe, mic.meta$sample)
 
-save(tax.tab, file = "../../data/taxonomy.rds")
+counts.l <- counts.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "counts")
+
+save(counts.w, file = "../../data/counts-wide.rds")
+save(counts.l, file = "../../data/counts-long.rds")
 ```
+
+
+Virus output 
+don't know how we are using yet so will leave in current format 
+```{r}
+vir <- vir %>%
+  # filter to MET only
+  filter(sample %in% mic.meta$sample)
+
+save(vir, file = "../../data/vsc.rds")
+```
+
 
 irAE table
 Rows are irAEs
