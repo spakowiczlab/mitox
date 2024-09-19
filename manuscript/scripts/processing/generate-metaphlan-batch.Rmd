@@ -52,3 +52,39 @@ writeLines(c(paste0("#PBS -N mitox-metaphlan"),
   fileOut
   )
 ```
+
+retroactively get estimated counts using bowties as input 
+RelAbun will be the same, just includes "estimated number of reads from the clade" 
+to be used for deseq2 analysis 
+
+generate batch job
+```{r}
+fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/scripts/batch/2024-metaphlan-counts.pbs"))
+ 
+writeLines(c(paste0("#PBS -N mitox-metaphlan-counts"),
+               "#PBS -l walltime=24:00:00",
+               "#PBS -l nodes=1:ppn=28",
+               "#PBS -j oe",
+               "#PBS -m ae",
+               "#PBS -A PAS1695",
+               "",
+
+               # List sample names in a way that can be indexed
+               paste0("snames=('", paste(snames, collapse = "' '"), "')"),
+               
+               "cd /users/PAS1695/whee57/.local/bin",
+               "module load python",
+               "source activate metaphlan4",
+               "",
+               "cd /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_bowties",
+               "",
+             
+               "metaphlan ${snames[$PBS_ARRAY_INDEX]}.fastq.gz.bowtie2out.txt -t rel_ab_w_read_stats -o /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_metaphlan-counts/${snames[$PBS_ARRAY_INDEX]}.tsv --input_type bowtie2out --nproc 28",
+             ""
+  
+  ),
+  
+  fileOut
+  )
+```
+

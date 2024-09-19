@@ -1,0 +1,26 @@
+---
+title: "examine count output"
+author: "Caroline Wheeler"
+date: "9/19/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+count <- read.table("/fs/ess/PAS1695/projects/mitox/data/test-counts.tsv", stringsAsFactors = F)
+ra <- read.table("/fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_metaphlan/FF08034077.txt", header = F, sep = "\t", stringsAsFactors = F)
+
+colnames(ra) <- c("clade_name"	,"taxid",	"relative_abundance",	"additional_species")
+colnames(count) <- c("clade_name",	"taxid",	"relative_abundance",	"coverage",	"estimated_number_of_reads_from_the_clade")
+```
+
+```{r}
+all.equal(count$clade_name, ra$clade_name)
+all.equal(count$taxid, ra$taxid)
+all.equal(count$relative_abundance, ra$relative_abundance)
+```
+
+
