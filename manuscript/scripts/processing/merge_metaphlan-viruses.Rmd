@@ -28,9 +28,10 @@ mnames <- gsub(".txt", "", list.files(met.dir, full.names = F))
 ```
 
 ```{r}
-fnames == mnames
+all.equal(fnames, mnames)
 ```
-combine metaphlan ouput
+
+## combine metaphlan ouput
 ```{r}
 mettab.ls <- lapply(met.files, function(x) read.table(paste0(x),
                                                             header = F, sep = "\t", stringsAsFactors = F))
@@ -47,7 +48,8 @@ metab.df.form <- metab.df %>%
   rename("Taxonomy" = "V1",
          "TaxNum" = "V2",
          "RelAbun" = "V3",
-         "Alternative.Tax" = "V4")
+         "Alternative.Tax" = "V4") %>%
+  filter(Taxonomy != "UNCLASSIFIED")
 ```
 
 save combined taxonomic profiling 
@@ -55,14 +57,14 @@ save combined taxonomic profiling
 write.csv(metab.df.form, "/fs/ess/PAS1695/projects/mitox/data/2024-08-30_mpa_aggregated_long.csv", row.names = F)
 ```
 
-combine virus output
+## combine virus output
 ```{r}
 # vsc output 
 vir.dir <- "/fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_vsc"
 vir.files <- list.files(vir.dir, full.names = T)
 vnames <- gsub(".vsc.txt", "", list.files(vir.dir, full.names = F))
 
-vnames == fnames
+all.equal(vnames, fnames)
 ```
 
 ```{r}
@@ -85,4 +87,52 @@ save combined virus output
 write.csv(virtab.df, "/fs/ess/PAS1695/projects/mitox/data/2024-08-30_vsc_aggregated_long.csv", row.names = F)
 ```
 
+## combine estimated count output
+```{r}
+# count output 
+c.dir <- "/fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_metaphlan-counts"
+c.files <- list.files(c.dir, full.names = T)
+cnames <- gsub(".tsv", "", list.files(c.dir, full.names = F))
+
+all.equal(cnames, fnames)
+```
+
+```{r}
+ctab.ls <- lapply(c.files, function(x) read.table(paste0(x),
+                                                            header = F, sep = "\t", stringsAsFactors = F))
+
+names(ctab.ls) <- cnames
+
+ctab.ls <- lapply(ctab.ls, function(x) mutate(x,
+           V2 = as.character(V2)))
+
+
+ctab.df <- bind_rows(lapply(cnames, function(x) ctab.ls[[x]] %>% mutate(sample = x)))
+
+ctab.df.form <- cab.df %>%
+  rename("Taxonomy" = "V1",
+         "TaxNum" = "V2",
+         "RelAbun" = "V3",
+         "coverage" = "V4",
+         "est.reads" = "V5") %>%
+  filter(Taxonomy != "unclassified")
+```
+
+est.read dervied via...
+In brief, this is estimated by normalizing the observed average coverage of the marker genes with respect to the genome size. So if we have 100 reads mapping against the markers of a species A and if the markers of species A are covering 10% of the genome, the estimated number of reads coming from the target genome is 1000. 
+
+check equalities
+```{r}
+all.equal(ctab.df.form$Taxonomy, metab.df.form$Taxonomy)
+all.equal(ctab.df.form$TaxNum, metab.df.form$TaxNum)
+all.equal(ctab.df.form$RelAbun, metab.df.form$RelAbun)
+```
+
+so we can just use this one table for RA and counts. Note: these numbers will not directly correspond 
+due to metaphlan methods of estimatation. RA centric..
+
+save 
+```{r}
+write.csv(ctab.df.form, "/fs/ess/PAS1695/projects/mitox/data/2024-08-30_mpa-counts_aggregated_long.csv", row.names = F)
+```
 
