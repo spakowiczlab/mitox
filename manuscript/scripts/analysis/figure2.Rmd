@@ -5,16 +5,43 @@ date: "2023-10-24"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(ggplot2)
 library(ggrepel)
+library(tidyverse)
 ```
 
-Figure 2A - Stacked Bar
+# Load data 
 ```{r}
+load("../../data/deseq_recist_baseline.rds")
+load("../../data/ra-long.rds")
+# load("../../data/counts-long.rds")
+```
 
+Figure 2A - Stacked Bar (RA)
+```{r}
+phyl.ra <- ra.l %>%
+  filter(grepl("p__", microbe))
+
+top.phyl <- phyl.ra %>%
+  group_by(microbe) %>%
+  summarise(med.abun = median(RelAbun)) %>%
+  arrange(desc(med.abun)) %>%
+  filter(med.abun > 0)
+
+phyl.ra <- phyl.ra %>%
+  mutate(Phylum = ifelse(microbe %in% top.phyl$microbe, gsub("p__", "", microbe), "Other"))
+
+phyl.ra %>%
+  filter(RelAbun > 0) %>%
+  ggplot(aes(x = RelAbun)) +
+  facet_wrap(vars(microbe)) +
+  geom_histogram() 
+
+
+  
 ```
 
 Figure 2B - UMAP Clustering 
@@ -24,7 +51,12 @@ Figure 2B - UMAP Clustering
 
 Figure 2C - Volcano Plot R vs. NR
 ```{r}
+g <- ggplot(resPlot_recist, aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
+  geom_point() + 
+  geom_text_repel() +
+  theme_minimal()
 
+g
 ```
 
 Figure 2D - Effect Size

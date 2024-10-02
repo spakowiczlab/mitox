@@ -12,16 +12,33 @@ library(ggplot2)
 library(ggrepel)
 ```
 
+# Load data
+```{r}
+load("../../data/deseq_irae_baseline.rds")
+load("../../data/deseq_subset_baseline.rds")
+```
+
+
 Figure 3
 
 Figure 3 - Volcano Plot - irAE yes vs. irAE no
 ```{r}
+g <- ggplot(resPlot_irae, aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
+  geom_point() + 
+  geom_text_repel() +
+  theme_minimal()
 
+g
 ```
 
 
 Figure 3 - Volcano Plot - Within subset of non-PD irAE yes vs. irAE no
 ```{r}
+g <- ggplot(resPlot_sub, aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
+  geom_point() + 
+  geom_text_repel() +
+  theme_minimal()
 
+g
 ```
 

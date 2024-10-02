@@ -21,6 +21,14 @@ load("../../data/events.rds")
 Figure 1A - Schema
 Figure 1B - CONSORT
 
+# Restrict dates 
+```{r}
+events <- events %>%
+  filter(Days <= 113,
+         Days > -21) 
+```
+
+
 Figure 1C - Timeline 
 ```{r}
 events.filt <- events %>%
@@ -28,7 +36,8 @@ events.filt <- events %>%
   # filter to Metastatic
   filter(Cohort == "Met",
   # filter to at least one microbiome sample
-         Mic.Samp == "Yes") %>%
+        Mic.Samp == "Yes",
+        !is.na(Category)) %>%
   # create response groups
   mutate(Response = ifelse(Category %in% c("CR", "PR"), "Responder", 
                          ifelse(Category %in% c("PD", "SD"), "Non-Responder", "Unknown/Unmeasured")),
@@ -80,6 +89,12 @@ events.filt %>%
   ) +
   xlab("Days") +
   ylab("Patient ID")
+
+# version with no limits
+# ggsave("../../figures/timeline-MET.png", width = 7, height = 9)
+
+# version with limits 
+ggsave("../../figures/timeline-MET-restricted-dates.png", width = 5, height = 9)
 ```
 
 
