@@ -17,7 +17,35 @@ library(tidyverse)
 ```{r}
 load("../../data/deseq_recist_baseline.rds")
 load("../../data/ra-long.rds")
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
 # load("../../data/counts-long.rds")
+taxa <- read.csv("../../../data/2024-08-30_mpa_aggregated_long.csv")
+```
+
+# Figure Features 
+```{r}
+colors <- c("#CC6677","#999933","#6699CC","#DDCC77","#44AA99", "#882255")
+
+# Response ID's
+resp.id <- mic.meta %>%
+  left_join(demographics) %>%
+   mutate(Response = ifelse(Category %in% c("PR", "CR", "SD"), "Responder", 
+                           ifelse(Category %in% c("PD"), "Non-Responder", 
+                                  "No Response Info"))) %>%
+  select(sample, Days, Response)
+
+# make phylum level labels for every microbe
+phyl_labels <- taxa %>%
+  select(Taxonomy) 
+# need to string split by | character 
+
+# baseline samples 
+base.samps <- mic.meta %>% 
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
 ```
 
 Figure 2A - Stacked Bar (RA)
@@ -32,7 +60,9 @@ top.phyl <- phyl.ra %>%
   filter(med.abun > 0)
 
 phyl.ra <- phyl.ra %>%
-  mutate(Phylum = ifelse(microbe %in% top.phyl$microbe, gsub("p__", "", microbe), "Other"))
+  mutate(Phylum = ifelse(microbe %in% top.phyl$microbe, gsub("p__", "", microbe), 
+                         "Other")) %>%
+  left_join(resp.id)
 
 phyl.ra %>%
   filter(RelAbun > 0) %>%
@@ -40,8 +70,43 @@ phyl.ra %>%
   facet_wrap(vars(microbe)) +
   geom_histogram() 
 
+# all samples 
+phyl.ra %>%
+  ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
+  geom_bar(position="fill", stat = "identity") +
+  scale_fill_manual(values = colors) + 
+  labs(x = "", y = "") +
+  theme_minimal(base_size = 7) +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major = element_blank(),
+        legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.title = element_blank()) +
+  facet_grid(~Response, scales = "free_x", space = "free") +
+  guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
-  
+ggsave("../../figures/fig2a-stackedbar.png", height = 4, width = 6)
+
+#baseline samples only
+phyl.ra %>%
+  filter(sample %in% base.samps$sample) %>%
+  ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
+  geom_bar(position="fill", stat = "identity") +
+  scale_fill_manual(values = colors) + 
+  labs(x = "", y = "") +
+  theme_minimal(base_size = 7) +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major = element_blank(),
+        legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.title = element_blank()) +
+  facet_grid(~Response, scales = "free_x", space = "free") +
+  guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
+ggsave("../../figures/fig2a-stackedbar-baseline.png", height = 4, width = 6)
 ```
 
 Figure 2B - UMAP Clustering 

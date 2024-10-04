@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(table1)
+library(papaja)
 ```
 
 ```{r}
@@ -19,22 +20,10 @@ load("../../data/irae.rds")
 
 create response var
 ```{r}
-demographics <- demographics %>%
-  mutate(Response = ifelse(Category %in% c("PR", "CR"), "Responder", 
-                           ifelse(Category %in% c("SD", "PD"), "Non-Responder", "No Response Info"))) 
-
 dem.met <- demographics %>%
-  filter(Cohort == "Met")
+  mutate(Response = ifelse(Category %in% c("PR", "CR", "SD"), "Responder", 
+                           ifelse(Category %in% c("PD"), "Non-Responder", "No Response Info"))) 
 ```
-
-
-#pts with samps only
-```{r}
-dem.metsamps <- dem.met %>%
-  filter(Mic.Samp == "Yes")
-```
-
-
 function to get p-value 
 ```{r}
 pvalue <- function(x, ...) {
@@ -57,12 +46,22 @@ pvalue <- function(x, ...) {
 
 ```
 
-
 Table 1
 ```{r}
-
-table1(~ Age + Sex + Race + Treatment + irAE | Response,
-       data=dem.metsamps, overall="Total", extra.col=list(`P-value`=pvalue), 
+tab1 <- table1(~ Age + Sex + Race + Treatment + irAE | Response,
+       data=dem.met, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
+
+tab1
 ```
+Try something 
+```{r}
+x <- attr(tab1, "obj")
+names(x) <- lapply(x, function(x){rownames(x)[[1L]]})
+x <- lapply(x, function(x){x[-1L, ]})
+
+# Use apa_table()
+apa_table(x)
+```
+
 
