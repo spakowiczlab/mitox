@@ -1,0 +1,210 @@
+---
+title: "deseq-trial other methods"
+output: html_document
+date: "2024-10-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(DESeq2)
+library(tidyverse)
+```
+
+## COUNTS psuedo count + 1 
+
+load data
+```{r}
+load("../manuscript/data/counts-long.rds")
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+```
+
+create inputs for counts
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts.l$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% counts.l$sample) %>%
+  distinct()
+
+taxa_irae <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample)
+```
+
+Only used if estimating counts from RA 
+# ```{r}
+# spec.ra <- tax.l %>% filter(grepl("s__", microbe))
+# ggplot(spec.ra, aes(-log10(RelAbun*2083.33333333))) + geom_histogram(binwidth = 0.5)
+# ```
+
+## Define functions
+
+```{r}
+write_desd <- function(tax){
+  
+  levs <- c("phylum", "class", "order", "family", "genus", "species")
+  desd.list <- list()
+  
+  for (i in 1:length(levs)){
+    desd <- tax %>%
+      filter(grepl(paste0(substr(levs[i], 0, 1), "__"), microbe)) %>% 
+      mutate(counts = counts + 1) %>%
+      pivot_wider(names_from = sample, values_from = counts) %>%
+      column_to_rownames("microbe") %>%
+      filter_all(any_vars(. != 0))
+    
+    desd.list[[i]] <- desd
+
+  }
+
+  names(desd.list) <- levs
+  return(desd.list)  
+}
+
+# function to run deseq2 given a list of count tables
+# maybe loop by index instead ? 
+# that way you can get name
+# add ifesle to handle irae vs recist!
+
+run_deseq <- function(desd.list, meta, design){
+  
+  results.list <- list()
+  
+  for (i in 1:length(desd.list)) {
+    desd <- desd.list[[i]]
+    ord <- rownames(meta)
+    desd <- desd[, ord]
+    
+    if(colnames(meta)[1] == "irAE"){
+       dds <- DESeqDataSetFromMatrix(countData = desd,
+                                  colData = meta,
+                                  design = ~ irAE)
+    }else{
+          dds <- DESeqDataSetFromMatrix(countData = desd,
+                                  colData = meta,
+                                  design = ~ Response)
+    }
+
+    dds <- DESeq(dds)
+    res <- results(dds)
+
+    pd <- res$log2FoldChange
+
+    resPlot <- data.frame(res) %>% 
+      mutate(threshold = padj < 0.05,
+             microbe = rownames(.),
+             level = names(desd.list)[i])
+    
+    results.list[[i]] <- resPlot
+  }
+
+  resPlot <- do.call("rbind", results.list)
+  return(resPlot)
+}
+```
+
+
+ERROR for genus and species levels 
+Error in estimateSizeFactorsForMatrix(counts(object), locfunc = locfunc, :
+every gene contains at least one zero, cannot compute log geometric means
+
+- only known fix is adding a pseudo count 
+- looks like specfiying sfType = "poscounts" also works
+- have asked on the forum about this argument 
+
+
+## irAE
+
+# get irAE data set up 
+
+```{r}
+# get list of count tables 
+irae.levs <- write_desd(taxa_irae)
+
+# make sure order of samples matches 
+irae <- irae %>% arrange(factor(sample, levels = colnames(irae.levs$phylum))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample") %>%
+  mutate(irAE = as.factor(irAE))
+
+resPlot_irae <- run_deseq(irae.levs, irae)
+```
+
+```{r}
+save(resPlot_irae, file = "../../data/deseq_counts-psuedo.rds")
+```
+
+
+### RA 
+
+load data
+```{r}
+load("../manuscript/data/ra-long.rds")
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+```
+
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% ra.l$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% ra.l$sample) %>%
+  distinct()
+
+taxa_irae <- ra.l %>%
+  dplyr::filter(sample %in% irae$sample)
+```
+
+need to estimate counts from RA 
+nonzero min is 0.00017
+we could scale all together, or find a scale param for each sample ?
+```{r}
+ggplot(taxa_irae, aes(-log10(RelAbun))) + geom_histogram(binwidth = 0.5)
+ggplot(taxa_irae, aes(-log10(RelAbun*5882.353))) + geom_histogram(binwidth = 0.5)
+```
+```{r}
+sample_mins <- taxa_irae %>%
+  filter(RelAbun > 0) %>%
+  group_by(sample) %>%
+  summarize(min = min(RelAbun)) %>%
+  mutate(scale_param = 1/min) %>%
+  ungroup()
+  
+taxa_irae <- taxa_irae %>%
+  left_join(sample_mins) %>%
+  mutate(counts_universal = round(RelAbun*5882.353),
+         counts_scaled = round(RelAbun*scale_param)) 
+```
+
+
+```{r}
+# get list of count tables 
+irae.levs <- write_desd(taxa_irae)
+
+# make sure order of samples matches 
+irae <- irae %>% arrange(factor(sample, levels = colnames(irae.levs$phylum))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample") %>%
+  mutate(irAE = as.factor(irAE))
+
+resPlot_irae <- run_deseq(irae.levs, irae)
+```
+
+
