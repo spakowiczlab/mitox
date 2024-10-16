@@ -7,10 +7,90 @@ date: "2024-10-14"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(tidyverse)
+library(ggplot2)
+library(ggVennDiagram)
+```
 
+load deseq objects 
+```{r}
+load("../data/deseq_ra-pseudo.rds")
+load("../data/deseq_ra-poscounts.rds")
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_counts-poscounts.rds")
+counts.poscounts <- resPlot_irae
+rm(resPlot_irae)
+load("../data/deseq_ra-poscounts-universal-scalar.rds")
+load("../data/deseq_ra-pseudo-universal-scalar.rds")
+```
+
+prep for plotting
+```{r}
+counts.pseudo$method <- "pseudo counts"
+counts.poscounts$method <- "poscounts counts"
+ra.pseudo$method <- "pseudo RA - sample scale param"
+ra.poscounts$method <- "poscounts RA- sample scale param"
+ra.poscounts.uni$method <- "poscounts RA - universal scale param"
+ra.pseudo.uni$method <- "pseudo RA- universal scale param"
+
+resplot.all <- rbind(counts.pseudo, counts.poscounts, ra.poscounts, ra.pseudo, ra.pseudo.uni, ra.poscounts.uni)
+```
+
+plot
+```{r}
+resplot.all %>%
+  ggplot(aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
+  geom_point() + 
+  geom_text_repel() +
+  facet_wrap(~method) +
+  theme_minimal()
+```
+venn diagram - top 20 mics ?
+```{r}
+# Generate sets
+counts.poscounts.top <- (counts.poscounts %>% arrange(padj) %>% slice_head(n = 25))$microbe
+counts.pseudo.top <- (counts.pseudo %>% arrange(padj) %>% slice_head(n = 25))$microbe
+ra.poscounts.top <- (ra.poscounts %>% arrange(padj) %>% slice_head(n = 25))$microbe
+ra.pseudo.top <- (ra.pseudo %>% arrange(padj) %>% slice_head(n = 25))$microbe
+ra.poscounts.uni.top <- (ra.poscounts.uni %>% arrange(padj) %>% slice_head(n = 20))$microbe
+ra.pseudo.uni.top <- (ra.pseudo.uni %>% arrange(padj) %>% slice_head(n = 20))$microbe
+
+x = list(counts.poscounts.top, ra.poscounts.top, counts.pseudo.top , ra.pseudo.top)
+names(x) <- c("counts.poscounts", "ra.poscounts","counts.pseudo",  "ra.pseudo")
+
+ggVennDiagram(x, label_alpha = 0)
 ```
 
 ```{r}
+setdiff(counts.poscounts.top, counts.pseudo.top)
 
+setdiff(ra.pseudo.top, counts.pseudo.top)
+setdiff(counts.poscounts.top, ra.poscounts.top)
 ```
+
+
+Check out the lfcshrink versions
+```{r}
+load("../data/deseq_counts-ash.rds")
+load("../data/deseq_counts-ape.rds")
+load("../data/deseq_counts-norm.rds")
+```
+
+```{r}
+counts.ape$method <- "apeglm"
+counts.ash$method <- "ashr"
+counts.norm$method <- "normal"
+
+all.shrink <- rbind(counts.ape, counts.ash, counts.norm)
+```
+
+```{r}
+all.shrink %>%
+  ggplot(aes(x=stat, y=-log10(padj), label = microbe)) + 
+  geom_point() + 
+  geom_text_repel() +
+  facet_wrap(~method) +
+  theme_minimal()
+```
+
 
