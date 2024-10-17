@@ -1,0 +1,71 @@
+---
+title: "ancom vs deseq"
+output: html_document
+date: "2024-10-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(ggrepel)
+library(ggVennDiagram)
+```
+
+```{r}
+load("../data/deseq_ra-pseudo.rds")
+load("../data/deseq_ra-poscounts.rds")
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_counts-poscounts.rds")
+counts.poscounts <- resPlot_irae
+rm(resPlot_irae)
+load("../data/deseq_ra-poscounts-universal-scalar.rds")
+load("../data/deseq_ra-pseudo-universal-scalar.rds")
+
+load("../data/ancombc2_RA.rds")
+```
+
+```{r}
+colnames(res.tab)
+```
+
+Top Sets .... does not bode well, overlap of 3 with ra poscounts
+```{r}
+counts.poscounts.top <- substr((counts.poscounts %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4, nchar((counts.poscounts %>% arrange(padj) %>% slice_head(n = 50))$microbe))
+
+counts.pseudo.top <- substr((counts.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4, nchar((counts.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe))
+
+ra.poscounts.top <- substr((ra.poscounts %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4 , nchar((ra.poscounts %>% arrange(padj) %>% slice_head(n = 50))$microbe))
+
+ra.pseudo.top <- substr((ra.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4, nchar((ra.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe))
+
+ancom.top <- (res.tab %>% arrange(p_irAEYes)%>% slice_head(n = 50))$taxon
+
+x = list(ancom.top, ra.poscounts.top, counts.pseudo.top , ra.pseudo.top)
+names(x) <- c("ANCOM", "ra.poscounts","counts.pseudo",  "ra.pseudo")
+
+ggVennDiagram(x, label_alpha = 0)
+```
+lets only look at microbes present in ANCOM results, since it seems filtered more strictly
+should also check what the default filters are
+```{r}
+ancom.sig <- res.tab %>%
+  filter(p_irAEYes < 0.05)
+
+counts.pseudo$method <- "pseudo counts"
+counts.poscounts$method <- "poscounts counts"
+ra.pseudo$method <- "pseudo RA - sample scale param"
+ra.poscounts$method <- "poscounts RA- sample scale param"
+ra.poscounts.uni$method <- "poscounts RA - universal scale param"
+ra.pseudo.uni$method <- "pseudo RA- universal scale param"
+
+resplot.all <- rbind(counts.pseudo, counts.poscounts, ra.poscounts, ra.pseudo, ra.pseudo.uni, ra.poscounts.uni) %>%
+  mutate(microbe = substr(microbe, 4, nchar(microbe))) %>%
+  filter(padj < 0.05,
+         microbe %in% ancom.sig$taxon)
+
+table(resplot.all$method)
+```
+
+Looking solely at overlap in taxa identified as sig (p < 0.05), 
+RA with universal scale param and a pseudo count had the most overlap with ANCOM-BC2

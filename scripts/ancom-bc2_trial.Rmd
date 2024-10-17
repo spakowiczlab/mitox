@@ -79,7 +79,7 @@ metaphlanToPhyloseq <- function(tax, metadat, simplenames=TRUE,
     shortnames = gsub(paste0(".+\\", split), "", xnames)
     
     if(simplenames){
-        rownames(tax) = shortnames
+        rownames(tax) = substr(shortnames, 4, nchar(shortnames))
     }
     
     if(roundtointeger){
@@ -167,7 +167,8 @@ res_class <- run_ancombc2("Class")
 res_phyl <- run_ancombc2("Phylum")
 res_king <- run_ancombc2("Kingdom")
 
-res.tab <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl, res_king)
+res.tab <- rbind(res_strain, res_spec, res_gen, res_fam, res_ord, res_class, res_phyl, res_king) %>%
+  distinct()
 ```
 
 save output
