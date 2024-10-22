@@ -12,14 +12,17 @@ library(phyloseq)
 library(tidyverse)
 library(ggplot2)
 library(ggrepel)
+library(microViz)
 ```
 
 load data
 ```{r}
+# RA 
 taxa <- read.csv("../data/2024-08-30_mpa_aggregated_long.csv")
-# counts <- read.csv("../data/2024-08-30_mpa-counts_aggregated_long.csv")
+# counts 
+counts <- read.csv("../data/2024-08-30_mpa-counts_aggregated_long.csv")
 
-load("../manuscript/data/counts-long.rds")
+# irae and sample matching info
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 ```
@@ -32,12 +35,12 @@ baseline <- mic.meta %>%
   slice_head(n = 1) %>%
   ungroup()
 
-clin <- left_join(baseline, demographics, by = "Patient Id") %>%
-  dplyr::filter(sample %in% counts.l$sample)
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts$sample)
 
 irae <- clin %>% 
   dplyr::select(sample, irAE) %>%
-  dplyr::filter(sample %in% counts.l$sample) %>%
+  dplyr::filter(sample %in% counts$sample) %>%
   distinct()
 
 taxa <- taxa %>%
@@ -48,19 +51,28 @@ taxa <- taxa %>%
   pivot_wider(names_from = "sample", values_from = "RelAbun", values_fill = 0) %>%
   column_to_rownames("Taxonomy")
 
+counts <- counts %>%
+  filter(sample %in% irae$sample,
+          grepl("s__", Taxonomy),
+         !grepl("t__", Taxonomy)) %>%
+  select(-TaxNum, -RelAbun, -coverage) %>%
+  pivot_wider(names_from = "sample", values_from = "est.reads", values_fill = 0) %>%
+  column_to_rownames("Taxonomy")
+
 irae <- irae %>%
   arrange(factor(sample, levels = colnames(taxa))) %>%
   column_to_rownames("sample")
 
 #check
 all.equal(rownames(irae), colnames(taxa))
+all.equal(rownames(irae), colnames(counts))
 ```
 
 <!-- set up function run -->
 
 <!-- If a matrix or data.frame is provided, ensure that the row names of the metadata match the sample names (column names if taxa_are_rows is TRUE, and row names otherwise) in data -->
 
-<!-- ... ^ outdated documentation, must be a phyloseq or TreeSummarizedExperiment object  -->
+<!-- ... ^ outdated documentation, must be a phyloseq or TreeSummarizedExperiment object or phyloseq -->
 <!-- ```{r} -->
 <!-- # taxa_are_rows = TRUE is default  -->
 <!-- ANCOMBC::ancombc2(data = tax.levs[1]) -->
@@ -108,21 +120,30 @@ metaphlanToPhyloseq <- function(tax, metadat, simplenames=TRUE,
     return(res)
 }
 
-# RA - not converted to integer
-phylo <- metaphlanToPhyloseq(taxa, irae)
-phylo
+# RA - convert to integer
+phylo.ra <- metaphlanToPhyloseq(taxa, irae, roundtointeger = TRUE)
+phylo.ra
 
-tree_ob = mia::makeTreeSummarizedExperimentFromPhyloseq(phylo)
-tree_ob
+# counts 
+phylo.c <- metaphlanToPhyloseq(counts, irae)
+phylo.c
+
+tree_ob.ra = mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.ra)
+tree_ob.ra
+
+tree_oc.c <- mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.c)
+tree_oc.c
 ```
 
 
 # check that phyloseq object is set up properly
 ```{r}
-library(phyloseq)
-library(microViz)
+phylo.ra %>%
+  tax_agg("Phylum") %>%
+  ps_seriate(dist = "bray", method = "OLO_ward") %>% # these are the defaults
+  comp_barplot(tax_level = "Phylum", sample_order = "asis", n_taxa = 5)
 
-phylo %>%
+phylo.c %>%
   tax_agg("Phylum") %>%
   ps_seriate(dist = "bray", method = "OLO_ward") %>% # these are the defaults
   comp_barplot(tax_level = "Phylum", sample_order = "asis", n_taxa = 5)
@@ -143,16 +164,18 @@ Warning: longer object length is not a multiple of shorter object length - repea
 Tried installing package from Pbrad branch version with fix for this error, 
 still not resolved, just going to run and compare to deseq2 results 
 
-```{r, warning = FALSE}
+## Run for RA (est counts)
+```{r, warning=FALSE}
 run_ancombc2 <- function(level) {
   # try with phyloseq object
-out <- ANCOMBC::ancombc2(data = phylo, 
+out <- ANCOMBC::ancombc2(data = phylo.ra, 
                          tax_level = level, 
                          fix_formula = "irAE", 
                          group = "irAE", 
-                         struc_zero = TRUE, 
-                         s0_perc = 0.05,
-                         pseudo_sens = TRUE)
+                         struc_zero = FALSE, 
+                         s0_perc = 0,
+                         prv_cut = 0,
+                         p_adj_method = "BH")
 
 res <- out$res
 return(res)
@@ -165,27 +188,67 @@ res_fam <- run_ancombc2("Family")
 res_ord <- run_ancombc2("Order")
 res_class <- run_ancombc2("Class")
 res_phyl <- run_ancombc2("Phylum")
-res_king <- run_ancombc2("Kingdom")
 
-res.tab <- rbind(res_strain, res_spec, res_gen, res_fam, res_ord, res_class, res_phyl, res_king) %>%
+res.tab.ra <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl) %>%
   distinct()
 ```
 
 save output
 ```{r}
-save(res.tab, file = "../data/ancombc2_RA.rds")
+save(res.tab.ra, file = "../data/ancombc2_RA-estcounts.rds")
 ```
 
 plot
 ```{r}
-res.tab %>%
+res.tab.ra %>%
   ggplot(aes(x=lfc_irAEYes, y=-log10(p_irAEYes), label = taxon)) + 
   geom_point() + 
   geom_text_repel() + 
   theme_minimal()
 ```
 
+## Run with counts
+```{r, warning=FALSE}
+run_ancombc2 <- function(level) {
+  # try with phyloseq object
+out <- ANCOMBC::ancombc2(data = phylo.c, 
+                         tax_level = level, 
+                         fix_formula = "irAE", 
+                         group = "irAE", 
+                         struc_zero = FALSE, 
+                         s0_perc = 0,
+                         prv_cut = 0,
+                         p_adj_method = "BH")
 
+res <- out$res
+return(res)
+
+}
+
+res_spec <- run_ancombc2("Species")
+res_gen <- run_ancombc2("Genus")
+res_fam <- run_ancombc2("Family")
+res_ord <- run_ancombc2("Order")
+res_class <- run_ancombc2("Class")
+res_phyl <- run_ancombc2("Phylum")
+
+res.tab.c <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl) %>%
+  distinct()
+```
+
+save output
+```{r}
+save(res.tab.c, file = "../data/ancombc2_counts.rds")
+```
+
+plot
+```{r}
+res.tab.c %>%
+  ggplot(aes(x=lfc_irAEYes, y=-log10(p_irAEYes), label = taxon)) + 
+  geom_point() + 
+  geom_text_repel() + 
+  theme_minimal()
+```
 
 
 Example 
@@ -257,6 +320,79 @@ output = ancombc2(data = tse, assay_name = "counts", tax_level = "Family",
 ```
 
 
+Example 2
+```{r}
+#===========Build a TreeSummarizedExperiment Object from Scratch=============
+library(mia)
+
+# microbial count table
+otu_mat = matrix(sample(1:100, 100, replace = TRUE), nrow = 10, ncol = 10)
+rownames(otu_mat) = paste0("taxon", 1:nrow(otu_mat))
+colnames(otu_mat) = paste0("sample", 1:ncol(otu_mat))
+assays = SimpleList(counts = otu_mat)
+
+# sample metadata
+smd = data.frame(group = sample(LETTERS[1:4], size = 10, replace = TRUE),
+                 row.names = paste0("sample", 1:ncol(otu_mat)),
+                 stringsAsFactors = FALSE)
+smd = DataFrame(smd)
+
+# taxonomy table
+tax_tab = matrix(sample(letters, 70, replace = TRUE),
+                 nrow = nrow(otu_mat), ncol = 7)
+rownames(tax_tab) = rownames(otu_mat)
+colnames(tax_tab) = c("Kingdom", "Phylum", "Class", "Order",
+                      "Family", "Genus", "Species")
+# Can also contain non-taxonomic information, for instance
+# colnames(tax_tab) = c("G1", "G2", "G3", "G4", "G5", "G6", "G7")
+tax_tab = DataFrame(tax_tab)
+
+# create TSE
+tse = TreeSummarizedExperiment(assays = assays,
+                               colData = smd,
+                               rowData = tax_tab)
+
+# convert TSE to phyloseq
+pseq = makePhyloseqFromTreeSummarizedExperiment(tse)
+
+#=======================Run ANCOMBC2 Using a Real Data=======================
+library(ANCOMBC)
+data(dietswap, package = "microbiome")
+tse = mia::makeTreeSummarizedExperimentFromPhyloseq(dietswap)
+
+colData(tse)$bmi_group = factor(colData(tse)$bmi_group,
+                                levels = c("obese",
+                                           "overweight",
+                                           "lean"))
+
+set.seed(123)
+# Note that setting max_iter = 1 and B = 1 is only for the sake of speed
+# Use default or larger values for max_iter and B for better performance
+out = ancombc2(data = tse, assay_name = "counts", tax_level = "Phylum",
+               fix_formula = "nationality + timepoint + bmi_group",
+               rand_formula = NULL,
+               p_adj_method = "holm", pseudo_sens = TRUE,
+               prv_cut = 0.10, lib_cut = 1000, s0_perc = 0.05,
+               group = "bmi_group", struc_zero = TRUE, neg_lb = TRUE,
+               alpha = 0.05, n_cl = 1, verbose = TRUE,
+               global = TRUE, pairwise = TRUE, dunnet = TRUE, trend = TRUE,
+               iter_control = list(tol = 1e-2, max_iter = 1, verbose = TRUE),
+               em_control = list(tol = 1e-5, max_iter = 1),
+               lme_control = lme4::lmerControl(),
+               mdfdr_control = list(fwer_ctrl_method = "holm", B = 1),
+               trend_control = list(contrast =
+                                          list(matrix(c(1, 0, -1, 1),
+                                                      nrow = 2,
+                                                      byrow = TRUE)),
+                                      node = list(2),
+                                      solver = "ECOS",
+                                      B = 1))
+res_prim = out$res
+res_global = out$res_global
+res_pair = out$res_pair
+res_dunn = out$res_dunn
+res_trend = out$res_trend
+```
 
 
 

@@ -151,7 +151,7 @@ baseline <- mic.meta %>%
   slice_head(n = 1) %>%
   ungroup()
 
-clin <- left_join(baseline, demographics, by = "Patient Id") %>%
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
   dplyr::filter(sample %in% counts.l$sample)
 
 irae <- clin %>% 
@@ -163,7 +163,7 @@ taxa_irae <- counts.l %>%
   dplyr::filter(sample %in% irae$sample)
 ```
 
-counts - pseudo
+counts - pseudo + poscounts
 
 ```{r}
 # get list of count tables 
@@ -180,6 +180,7 @@ counts.pseudo <- run_deseq_pseudo(irae.levs, irae)
 irae.levs <- write_desd_poscounts(taxa_irae)
 counts.poscounts <- run_deseq_poscounts(irae.levs, irae)
 ```
+
 save
 ```{r}
 save(counts.pseudo, file = "../data/deseq_counts-pseudo.rds")
@@ -203,7 +204,7 @@ baseline <- mic.meta %>%
   slice_head(n = 1) %>%
   ungroup()
 
-clin <- left_join(baseline, demographics, by = "Patient Id") %>%
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
   dplyr::filter(sample %in% ra.l$sample)
 
 irae <- clin %>% 
@@ -220,29 +221,11 @@ nonzero min is 0.00017
 we could scale all together, or find a scale param for each sample ?
 ```{r}
 ggplot(taxa_irae, aes(-log10(RelAbun))) + geom_histogram(binwidth = 0.5)
-ggplot(taxa_irae, aes(-log10(RelAbun*5882.353))) + geom_histogram(binwidth = 0.5)
+ggplot(taxa_irae, aes(-log10(RelAbun*1e4))) + geom_histogram(binwidth = 0.5)
 ```
 ```{r}
-count_min <- counts.l %>%
-  filter(sample %in% taxa_irae$sample,
-         counts > 0) %>%
-  group_by(sample) %>%
-  summarize(count.min = min(counts)) %>%
-  ungroup()
-  
-sample_mins <- taxa_irae %>%
-  filter(RelAbun > 0) %>%
-  group_by(sample) %>%
-  summarize(min = min(RelAbun)) %>%
-  ungroup() %>%
-  left_join(count_min) %>%
-  mutate(scale_param = count.min/min) %>%
-  ungroup()
-  
 taxa_irae <- taxa_irae %>%
-  left_join(sample_mins) %>%
-  mutate(counts_universal = round(RelAbun*5882.353),
-         counts = round(RelAbun*scale_param)) %>%
+  mutate(counts = round(RelAbun*1e4)) %>%
   select(sample, microbe, counts)
 ```
 
@@ -269,8 +252,60 @@ save(ra.pseudo, file = "../data/deseq_ra-pseudo.rds")
 save(ra.poscounts, file = "../data/deseq_ra-poscounts.rds")
 ```
 
+sample scale param
+```{r}
+taxa_irae <- ra.l %>%
+  dplyr::filter(sample %in% irae$sample)
+  
+count_min <- counts.l %>%
+  filter(sample %in% taxa_irae$sample,
+         counts > 0) %>%
+  group_by(sample) %>%
+  summarize(count.min = min(counts)) %>%
+  ungroup()
+  
+sample_mins <- taxa_irae %>%
+  filter(RelAbun > 0) %>%
+  group_by(sample) %>%
+  summarize(min = min(RelAbun)) %>%
+  ungroup() %>%
+  dplyr::left_join(count_min) %>%
+  mutate(scale_param = count.min/min) %>%
+  ungroup()
+  
+taxa_irae <- taxa_irae %>%
+  dplyr::left_join(sample_mins) %>%
+  mutate(counts = round(RelAbun*scale_param)) %>%
+  select(sample, microbe, counts)
+```
+```{r}
+# get list of count tables 
+irae.levs <- write_desd_pseudo(taxa_irae)
 
-Try lfcshrink
+# make sure order of samples matches 
+irae <- irae %>% arrange(factor(sample, levels = colnames(irae.levs$phylum))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample") %>%
+  mutate(irAE = as.factor(irAE))
+
+ra.pseudo <- run_deseq_pseudo(irae.levs, irae)
+
+irae.levs <- write_desd_poscounts(taxa_irae)
+
+ra.poscounts <- run_deseq_poscounts(irae.levs, irae)
+```
+
+```{r}
+ra.pseudo.ss <- ra.pseudo
+ra.poscounts.ss <- ra.poscounts
+save(ra.pseudo.ss, file = "../data/deseq_ra-pseudo-sample-scale.rds")
+save(ra.poscounts.ss, file = "../data/deseq_ra-poscounts-sample-scale.rds")
+```
+
+
+
+
+## Try lfcshrink
 
 ```{r}
 run_deseq_lcfshrink <- function(desd.list, meta, design, shrink){

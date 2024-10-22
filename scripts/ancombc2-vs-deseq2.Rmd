@@ -10,23 +10,38 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(ggrepel)
 library(ggVennDiagram)
+library(VennDiagram)
 ```
 
 ```{r}
+load("../manuscript/data/counts-long.rds")
+
 load("../data/deseq_ra-pseudo.rds")
 load("../data/deseq_ra-poscounts.rds")
 load("../data/deseq_counts-pseudo.rds")
 load("../data/deseq_counts-poscounts.rds")
 counts.poscounts <- resPlot_irae
 rm(resPlot_irae)
-load("../data/deseq_ra-poscounts-universal-scalar.rds")
-load("../data/deseq_ra-pseudo-universal-scalar.rds")
+load("../data/deseq_ra-poscounts-sample-scale.rds")
+load("../data/deseq_ra-pseudo-sample-scale.rds")
 
-load("../data/ancombc2_RA.rds")
+load("../data/ancombc2_RA-estcounts.rds")
+load("../data/ancombc2_counts.rds")
+```
+
+get taxa present in >1 sample
+```{r}
+counts.l <- counts.l %>%
+  pivot_wider(names_from = "sample", values_from = "counts") %>%
+  column_to_rownames("microbe")
+
+# 890 microbes dropped when filter those only present in 1 sample
+pres <- rownames(counts.l[rowSums(counts.l == 0) <= 88,])
+drop <- rownames(counts.l[rowSums(counts.l == 0) > 88,])
 ```
 
 ```{r}
-colnames(res.tab)
+colnames(res.tab.c)
 ```
 
 Top Sets .... does not bode well, overlap of 3 with ra poscounts
@@ -35,37 +50,70 @@ counts.poscounts.top <- substr((counts.poscounts %>% arrange(padj) %>% slice_hea
 
 counts.pseudo.top <- substr((counts.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4, nchar((counts.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe))
 
+ancom.top.c <- (res.tab.c %>% arrange(p_irAEYes)%>% slice_head(n = 50))$taxon
+
+x = list(ancom.top.c, counts.pseudo.top , counts.poscounts.top)
+names(x) <- c("c.ANCOM","c.pseudo","c.poscounts")
+
+ggVennDiagram(x, label_alpha = 0) + scale_fill_gradient(low = "#F4FAFE", high = "#4981BF")
+```
+
+```{r}
 ra.poscounts.top <- substr((ra.poscounts %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4 , nchar((ra.poscounts %>% arrange(padj) %>% slice_head(n = 50))$microbe))
 
 ra.pseudo.top <- substr((ra.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe, 4, nchar((ra.pseudo %>% arrange(padj) %>% slice_head(n = 50))$microbe))
 
-ancom.top <- (res.tab %>% arrange(p_irAEYes)%>% slice_head(n = 50))$taxon
+ancom.top.ra <- (res.tab.ra %>% arrange(p_irAEYes)%>% slice_head(n = 50))$taxon
 
-x = list(ancom.top, ra.poscounts.top, counts.pseudo.top , ra.pseudo.top)
-names(x) <- c("ANCOM", "ra.poscounts","counts.pseudo",  "ra.pseudo")
+x = list(ancom.top.ra, ra.poscounts.top,  ra.pseudo.top)
+names(x) <- c("ra.ANCOM", "ra.poscounts", "ra.pseudo")
 
-ggVennDiagram(x, label_alpha = 0)
+ggVennDiagram(x, label_alpha = 0) + scale_fill_gradient(low = "#F4FAFE", high = "#4981BF")
 ```
+
 lets only look at microbes present in ANCOM results, since it seems filtered more strictly
 should also check what the default filters are
 ```{r}
-ancom.sig <- res.tab %>%
+ancom.sig.c <- res.tab.c %>%
+  filter(p_irAEYes < 0.05)
+
+ancom.sig.ra <- res.tab.ra %>%
   filter(p_irAEYes < 0.05)
 
 counts.pseudo$method <- "pseudo counts"
 counts.poscounts$method <- "poscounts counts"
-ra.pseudo$method <- "pseudo RA - sample scale param"
-ra.poscounts$method <- "poscounts RA- sample scale param"
-ra.poscounts.uni$method <- "poscounts RA - universal scale param"
-ra.pseudo.uni$method <- "pseudo RA- universal scale param"
+ra.pseudo.ss$method <- "pseudo RA - sample scale"
+ra.poscounts.ss$method <- "poscounts RA- sample scale"
+ra.poscounts$method <- "poscounts RA - universal"
+ra.pseudo$method <- "pseudo RA- universal"
 
-resplot.all <- rbind(counts.pseudo, counts.poscounts, ra.poscounts, ra.pseudo, ra.pseudo.uni, ra.poscounts.uni) %>%
+resplot.c <- rbind(counts.pseudo, counts.poscounts) %>%
   mutate(microbe = substr(microbe, 4, nchar(microbe))) %>%
   filter(padj < 0.05,
-         microbe %in% ancom.sig$taxon)
+         microbe %in% ancom.sig.c$taxon)
 
-table(resplot.all$method)
+resplot.ra <- rbind(ra.poscounts, ra.pseudo, ra.pseudo.ss, ra.poscounts.ss) %>%
+  mutate(microbe = substr(microbe, 4, nchar(microbe))) %>%
+  filter(padj < 0.05,
+         microbe %in% ancom.sig.ra$taxon)
+
+table(resplot.c$method)
+table(resplot.ra$method)
 ```
 
 Looking solely at overlap in taxa identified as sig (p < 0.05), 
-RA with universal scale param and a pseudo count had the most overlap with ANCOM-BC2
+counts + pseudo count had the most overlap with ANCOM-BC2
+
+lets look at this another way
+```{r}
+c.filt <- counts.pseudo %>%
+  mutate(microbe = substr(microbe, 4, nchar(microbe))) %>%
+  filter(padj < 0.05)
+  
+x = list(ancom.sig.c$taxon, c.filt$microbe)
+names(x) <- c("c.ANCOM","c.deseq")
+
+ggVennDiagram(x, label_alpha = 0) + scale_fill_gradient(low = "#F4FAFE", high = "#4981BF")
+```
+
+

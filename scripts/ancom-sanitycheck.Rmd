@@ -1,0 +1,153 @@
+---
+title: "sanity check"
+output: html_document
+date: "2024-10-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load data
+```{r}
+load("../manuscript/data/counts-long.rds")
+load("../manuscript/data/ra-long.rds")
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+```
+
+Some of the top microbes:
+Segatella
+Bifidobacterium dentium
+Enterobacter_hormaechei
+Anaerotignum
+```{r}
+top <- c("g__Segatella", "s__Bifidobacterium_dentium", "s__Enterobacter_hormaechei", "g__Anaerotignum")
+```
+
+
+create inputs for counts
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts.l$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% counts.l$sample) %>%
+  distinct()
+
+top_irae <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  dplyr::left_join(irae) %>%
+  filter(microbe %in% top)
+```
+
+```{r}
+top_irae %>%
+  group_by(microbe, irAE) %>%
+  summarize(total = sum(counts))
+```
+
+further check those with 0 count in either group 
+```{r}
+counts.irae <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  dplyr::left_join(irae) %>%
+  group_by(microbe, irAE) %>%
+  summarize(total = sum(counts)) %>%
+  ungroup() %>%
+  filter(total == 0) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+```
+
+
+```{r}
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_counts-poscounts.rds")
+counts.poscounts <- resPlot_irae
+rm(resPlot_irae)
+load("../data/ancombc2_counts.rds")
+```
+
+is ANCOM identifying the taxa with 0 in one group? Nope
+```{r}
+ancom.sig <- res.tab.c %>%
+  filter(p_irAEYes < 0.05)
+
+intersect(ancom.sig$taxon, counts.irae$taxon)
+```
+
+What happens when we take these mics out of deseq results?
+```{r}
+deseq.c.pos <- counts.poscounts %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe))) %>%
+  filter(!taxon %in% counts.irae$taxon,
+         padj < 0.05) 
+deseq.c.pseudo <- counts.pseudo %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe))) %>%
+  filter(!taxon %in% counts.irae$taxon,
+         padj < 0.05)
+
+x = list(ancom.sig$taxon, deseq.c.pos$taxon, deseq.c.pseudo$taxon)
+names(x) <- c("c.ANCOM","c.poscounts","c.pseudo")
+
+ggVennDiagram(x, label_alpha = 0) + scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") + ggtitle("all significant")
+
+
+c.pos.top <- (deseq.c.pos %>% arrange(padj) %>% slice_head(n = 50))$taxon
+c.pseudo.top <- (deseq.c.pseudo %>% arrange(padj) %>% slice_head(n = 50))$taxon
+ancom.top.c <- (ancom.sig %>% arrange(p_irAEYes)%>% slice_head(n = 50))$taxon
+
+x = list(ancom.top.c, c.pseudo.top , c.pos.top)
+names(x) <- c("c.ANCOM","c.pseudo","c.poscounts")
+
+ggVennDiagram(x, label_alpha = 0) + scale_fill_gradient(low = "#F4FAFE", high = "#4981BF") + ggtitle("top 50")
+```
+
+get group not sig in deseq results
+```{r}
+x <- ancom.sig %>%
+  filter(!taxon %in% deseq.c.pos$taxon & !taxon %in% deseq.c.pseudo$taxon) %>%
+  arrange(p_irAEYes)
+```
+
+Lets check - ANCOM says significant, but not deseq
+"Intestinimonas_massiliensis"
+"Lacrimispora_amygdalina"
+"Bifidobacterium_adolescentis"
+"Akkermansia_muciniphila"
+```{r}
+mics <- c("s__Intestinimonas_massiliensis",
+"s__Lacrimispora_amygdalina",
+"s__Bifidobacterium_adolescentis",
+"s__Akkermansia_muciniphila")
+
+counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  dplyr::left_join(irae) %>%
+  filter(microbe %in% mics) %>%
+  group_by(microbe, irAE) %>%
+  summarize(total = sum(counts)) %>%
+  ungroup()
+```
+
+kw test
+```{r}
+y <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  filter(microbe == "s__Akkermansia_muciniphila") %>%
+  dplyr::left_join(irae) 
+
+kruskal.test(counts ~ irAE, data = y)
+```
+loop through KW test 
+```{r}
+
+```
+
