@@ -1,0 +1,40 @@
+---
+title: "ANCOMBC2 test data"
+output: html_document
+date: "2024-10-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ANCOMBC)
+```
+
+test case, same repeated error message 
+
+```{r}
+test_ds <- read_csv("../data/test-dataset1.csv")
+# convert to matrix
+test_ds_mtx <- as.matrix(test_ds[,-1])
+rownames(test_ds_mtx) <- test_ds[[1]]
+# make metadata table
+test_smp_md <- rbind(data.frame(sample=paste0("B", 1:50),
+                                condition="g1ctrl"),
+                     data.frame(sample=paste0("R", 1:50),
+                                condition="g2case")) %>%
+  (function(x) {
+    y <- x[, -1, FALSE];
+    rownames(y) <- x[, 1];
+    y
+  })
+# convert to TSE
+test_tse <- TreeSummarizedExperiment::TreeSummarizedExperiment(
+  assays=S4Vectors::SimpleList(counts=test_ds_mtx),
+  colData=test_smp_md)
+# run ANCOMBC2
+test_results <- ancombc2(test_tse,
+                          assay_name="counts",
+                          fix_formula="condition")
+```
+

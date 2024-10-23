@@ -94,6 +94,7 @@ metaphlanToPhyloseq <- function(tax, metadat, simplenames=TRUE,
         rownames(tax) = substr(shortnames, 4, nchar(shortnames))
     }
     
+    tax <- as.matrix(tax)
     if(roundtointeger){
         tax = round(tax * 1e4)
     }
@@ -157,15 +158,25 @@ This is expected behavior.
 
 
 
-Warning: NaNs producedWarning: NaNs producedWarning: NaNs producedWarning: NaNs produced - repeatedly
+Warning: NaNs produced Warning: NaNs producedWarning: NaNs producedWarning: NaNs produced - repeatedly
 
 Warning: longer object length is not a multiple of shorter object length - repeatedly 
 
 Tried installing package from Pbrad branch version with fix for this error, 
 still not resolved, just going to run and compare to deseq2 results 
 
+The following installed 2.2.2
+remotes::install_git(
+  url = "https://github.com/pbradz/ANCOMBC.git"
+)
+
+Try 
+devtools::install_github("pbradz/ANCOMBC")
+
+pbradz:bugfix
+
 ## Run for RA (est counts)
-```{r, warning=FALSE}
+```{r}
 run_ancombc2 <- function(level) {
   # try with phyloseq object
 out <- ANCOMBC::ancombc2(data = phylo.ra, 
@@ -208,7 +219,7 @@ res.tab.ra %>%
 ```
 
 ## Run with counts
-```{r, warning=FALSE}
+```{r}
 run_ancombc2 <- function(level) {
   # try with phyloseq object
 out <- ANCOMBC::ancombc2(data = phylo.c, 
