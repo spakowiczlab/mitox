@@ -1,0 +1,136 @@
+---
+title: "deseq manual test"
+output: html_document
+date: "2024-10-24"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(DESeq2)
+library(tidyverse)
+```
+
+```{r}
+load("../manuscript/data/counts-long.rds")
+load("../manuscript/data/ra-long.rds")
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+```
+
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts.l$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% counts.l$sample) %>%
+  distinct()
+
+counts <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample)
+
+ra <- ra.l %>%
+  dplyr::filter(sample %in% irae$sample)
+```
+
+prepare df's for deseq
+```{r}
+counts.in.pos <- counts %>%
+  filter(grepl("g__", microbe)) %>% 
+  pivot_wider(names_from = sample, values_from = counts) %>%
+  column_to_rownames("microbe") %>%
+  filter_all(any_vars(. != 0))
+
+counts.in.pseudo <- counts %>%
+  filter(grepl("g__", microbe)) %>%
+  mutate(counts = counts + 1) %>%
+  pivot_wider(names_from = sample, values_from = counts) %>%
+  column_to_rownames("microbe")
+
+filt <- counts %>%
+  filter(grepl("g__", microbe)) %>%
+  mutate(counts = counts + 1) %>%
+  pivot_wider(names_from = sample, values_from = counts) %>%
+  column_to_rownames("microbe") %>%
+  filter_all(any_vars(. != 1))  
+
+allZero <- counts.in.pseudo %>%
+  rownames_to_column("microbe") %>%
+  filter(!microbe %in% rownames(filt))
+
+allZero <- allZero$microbe
+
+ra.in.pos <-ra %>%
+  filter(grepl("g__", microbe)) %>%
+  mutate(counts = round(RelAbun*1e4)) %>%
+  select(-RelAbun) %>%
+  pivot_wider(names_from = sample, values_from = counts) %>%
+  column_to_rownames("microbe") %>%
+  filter_all(any_vars(. != 0))  
+
+ra.in.pseudo <- ra %>%
+  filter(grepl("g__", microbe)) %>%
+  mutate(counts = round(RelAbun*1e4)) %>%
+  mutate(counts = counts + 1) %>%
+  select(-RelAbun) %>%
+  pivot_wider(names_from = sample, values_from = counts) %>%
+  column_to_rownames("microbe") 
+```
+
+check matching
+```{r}
+all.equal(colnames(counts.in.pos), colnames(counts.in.pseudo), colnames(ra.in.pos), colnames(ra.in.pseudo))
+
+irae <- irae %>% 
+  arrange(factor(sample, levels = colnames(counts.in.pos))) %>%
+  remove_rownames() %>%
+  column_to_rownames(var = "sample") %>%
+  mutate(irAE = as.factor(irAE))
+
+all.equal(colnames(counts.in.pos), rownames(irae))
+```
+
+run deseq2
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ra.in.pseudo,
+                              colData = irae,
+                              design = ~ irAE)
+
+dds <- DESeq(dds)
+res <- results(dds)
+
+resPlot <- data.frame(res) %>% 
+      mutate(threshold = padj < 0.05,
+             microbe = rownames(.))
+```
+
+compare to output from previous run
+```{r}
+load("../data/deseq_ra-pseudo.rds")
+
+c.psuedo.comp <- ra.pseudo %>%
+  filter(level == "genus") %>%
+  select(-level)
+
+all.equal(c.psuedo.comp, resPlot)
+```
+
+```{r}
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_ra-pseudo.rds")
+
+ra.pseudo <- ra.pseudo %>%
+  filter(level == "genus",
+         microbe %in% allZero) 
+counts.pseudo <- counts.pseudo %>%
+  filter(level == "genus",
+        microbe %in% allZero) 
+```
+

@@ -6,6 +6,10 @@ date: "2024-10-22"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
 ```
 
 load data
@@ -72,10 +76,11 @@ load("../data/deseq_counts-pseudo.rds")
 load("../data/deseq_counts-poscounts.rds")
 counts.poscounts <- resPlot_irae
 rm(resPlot_irae)
-load("../data/ancombc2_counts.rds")
+load("../data/ancombc2_counts2.rds")
 ```
 
 is ANCOM identifying the taxa with 0 in one group? Nope
+only relevant on the species level, higher taxa all have at least some presence
 ```{r}
 ancom.sig <- res.tab.c %>%
   filter(p_irAEYes < 0.05)
@@ -137,17 +142,50 @@ counts.l %>%
   ungroup()
 ```
 
-kw test
+kw test - none significant, can loop through all and store if desired 
 ```{r}
-y <- counts.l %>%
+for(mic in mics){
+  y <- counts.l %>%
   dplyr::filter(sample %in% irae$sample) %>%
-  filter(microbe == "s__Akkermansia_muciniphila") %>%
+  filter(microbe == mic) %>%
   dplyr::left_join(irae) 
-
-kruskal.test(counts ~ irAE, data = y)
+  
+  print(mic)
+  print(kruskal.test(counts ~ irAE, data = y))
+}
 ```
-loop through KW test 
+both deseq methods say are sig but not ancom (n = 27)
 ```{r}
+x <- deseq.c.pseudo %>%
+  filter(!taxon %in% ancom.sig$taxon & taxon %in% deseq.c.pos$taxon) %>%
+  arrange(padj)
 
+deseqsig.res <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(deseqsig.res) <- c("microbe", "p-val")
+
+for(mic in x$microbe){
+  y <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  filter(microbe == mic) %>%
+  dplyr::left_join(irae)
+
+  test <- kruskal.test(counts ~ irAE, data = y)
+  deseqsig.res <- rbind(deseqsig.res, c(mic, test$p.value))
+}
+```
+
+lets look visually - some boxplots
+```{r}
+mics <- c("s__Anaerotignum_faecicola", "s__Segatella_copri", "s__Intestinimonas_massiliensis", "s__Lachnospira_sp_NSJ_43")
+
+counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  filter(microbe %in% mics) %>%
+  dplyr::left_join(irae) %>%
+  ggplot(aes(y = log(counts), x = irAE)) +
+  geom_boxplot() +
+  facet_grid(~microbe) +
+  theme_bw() +
+  stat_compare_means(method = "kruskal.test")
 ```
 

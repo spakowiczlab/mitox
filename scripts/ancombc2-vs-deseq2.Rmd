@@ -11,6 +11,7 @@ library(ggplot2)
 library(ggrepel)
 library(ggVennDiagram)
 library(VennDiagram)
+library(eulerr)
 ```
 
 ```{r}
@@ -27,6 +28,11 @@ load("../data/deseq_ra-pseudo-sample-scale.rds")
 
 load("../data/ancombc2_RA-estcounts.rds")
 load("../data/ancombc2_counts.rds")
+ancom.ra.pre <- res.tab.ra
+ancom.c.pre <- res.tab.c
+
+load("../data/ancombc2_RA-estcounts2.rds")
+load("../data/ancombc2_counts2.rds")
 ```
 
 get taxa present in >1 sample
@@ -114,6 +120,113 @@ x = list(ancom.sig.c$taxon, c.filt$microbe)
 names(x) <- c("c.ANCOM","c.deseq")
 
 ggVennDiagram(x, label_alpha = 0) + scale_fill_gradient(low = "#F4FAFE", high = "#4981BF")
+```
+
+## Check Genus level only
+```{r}
+
+load("../data/deseq_ra-pseudo.rds")
+load("../data/deseq_ra-poscounts.rds")
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_counts-poscounts.rds")
+counts.poscounts <- resPlot_irae
+rm(resPlot_irae)
+load("../data/deseq_ra-poscounts-sample-scale.rds")
+load("../data/deseq_ra-pseudo-sample-scale.rds")
+
+# filter to genus 
+deseq.ra.pos <- ra.poscounts %>%
+  filter(level == "genus", 
+         padj < 0.05) %>%
+  arrange(padj) %>%
+  #slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq ra poscounts")
+deseq.ra.pseudo <- ra.pseudo %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+  arrange(padj) %>%
+  #slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq ra pseudo")
+  
+deseq.ra.ss.pos <- ra.poscounts.ss %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+  arrange(padj) %>%
+  #slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq ra ss poscounts")
+deseq.ra.ss.pseudo <- ra.pseudo.ss %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+  arrange(padj) %>%
+  #slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq ra ss pseudo")
+deseq.c.pos <- counts.poscounts %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+  arrange(padj) %>%
+  slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq counts poscounts")
+deseq.c.pseudo <- counts.pseudo %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+   arrange(padj) %>%
+  slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq counts pseudo")
+  
+load("../data/ancombc2_counts-genus.rds")
+ancom.c <- res_gen %>%
+  filter(p_irAEYes < 0.05) %>%
+  arrange(p_irAEYes) %>%
+  slice_head(n = 25) %>%
+  mutate(method = "ancom counts")
+load("../data/ancombc2_RA-genus.rds")
+ancom.ra <- res_gen %>%
+  filter(p_irAEYes < 0.05) %>%
+  arrange(p_irAEYes) %>%
+  slice_head(n = 25) %>%
+  mutate(method = "ancom ra")
+
+all <- rbind(deseq.c.pos %>% select(taxon, method), deseq.c.pseudo %>% select(taxon, method), deseq.ra.pos %>% select(taxon, method), deseq.ra.pseudo %>% select(taxon, method), deseq.ra.ss.pos %>% select(taxon, method), deseq.ra.ss.pseudo %>% select(taxon, method), ancom.c %>% select(taxon, method), ancom.ra %>% select(taxon, method))
+  
+# clean up env
+rm(ra.poscounts, ra.pseudo, ra.poscounts.ss, ra.pseudo.ss, counts.pseudo, counts.poscounts, res_gen)
+```
+
+overlap of significant taxa 
+```{r}
+ra <- list(deseq.ra.pos = deseq.ra.pos$taxon,
+           deseq.ra.pseudo = deseq.ra.pseudo$taxon,
+           ancom.ra = ancom.ra$taxon)
+
+counts <- list(deseq.c.pos = deseq.c.pos$taxon,
+               deseq.c.pseudo = deseq.c.pseudo$taxon,
+               ancom.c = ancom.c$taxon)
+
+ancom <- list(ancom.c = ancom.c$taxon,
+              ancom.ra = ancom.ra$taxon)
+
+deseq.pseudo <- list(deseq.ra.pseudo = deseq.ra.pseudo$taxon,
+           deseq.ra.ss.pseudo = deseq.ra.ss.pseudo$taxon,
+           deseq.c.pseudo = deseq.c.pseudo$taxon)
+
+deseq.pos <- list(deseq.ra.pos = deseq.ra.pos$taxon,
+           deseq.ra.ss.pos = deseq.ra.ss.pos$taxon,
+           deseq.c.pos = deseq.c.pos$taxon)
+```
+
+```{r}
+euler_plot <- euler(counts)
+
+png(filename="/Users/dravillas.6/Desktop/ra.png", height = 100, width = 200, units="mm", res = 600)
+
+plot(euler_plot, quantities = TRUE)
+dev.off()
 ```
 
 

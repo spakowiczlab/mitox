@@ -165,15 +165,7 @@ Warning: longer object length is not a multiple of shorter object length - repea
 Tried installing package from Pbrad branch version with fix for this error, 
 still not resolved, just going to run and compare to deseq2 results 
 
-The following installed 2.2.2
-remotes::install_git(
-  url = "https://github.com/pbradz/ANCOMBC.git"
-)
-
-Try 
-devtools::install_github("pbradz/ANCOMBC")
-
-pbradz:bugfix
+remotes::install_github("pbradz/ANCOMBC", ref = "bugfix")
 
 ## Run for RA (est counts)
 ```{r}
@@ -206,8 +198,14 @@ res.tab.ra <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl) %>
 
 save output
 ```{r}
-save(res.tab.ra, file = "../data/ancombc2_RA-estcounts.rds")
+save(res.tab.ra, file = "../data/ancombc2_RA-estcounts2.rds")
 ```
+
+save genus
+```{r}
+save(res_gen, file = "../data/ancombc2_RA-genus.rds")
+```
+
 
 plot
 ```{r}
@@ -249,7 +247,12 @@ res.tab.c <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl) %>%
 
 save output
 ```{r}
-save(res.tab.c, file = "../data/ancombc2_counts.rds")
+save(res.tab.c, file = "../data/ancombc2_counts2.rds")
+```
+
+save genus lev
+```{r}
+save(res_gen, file = "../data/ancombc2_counts-genus.rds")
 ```
 
 plot

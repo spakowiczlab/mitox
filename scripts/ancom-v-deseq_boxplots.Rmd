@@ -1,0 +1,124 @@
+---
+title: "ancom_v_deseq-boxplots"
+output: html_document
+date: "2024-10-25"
+---
+
+Generate boxplots to check DESeq2 vs ANCOM-BC2 results 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+b/c RA results are very similar to count results in both deseq and ancom, let's
+just use count results here to identify taxa of interest
+
+load results and og count data 
+```{r}
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_counts-poscounts.rds")
+counts.poscounts <- resPlot_irae
+rm(resPlot_irae)
+
+deseq.c.pos <- counts.poscounts %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+  arrange(padj) %>%
+  slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq counts poscounts")
+deseq.c.pseudo <- counts.pseudo %>%
+  filter(level == "genus",
+         padj < 0.05) %>%
+   arrange(padj) %>%
+  slice_head(n = 25) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq counts pseudo")
+  
+load("../data/ancombc2_counts-genus.rds")
+
+ancom.c <- res_gen %>%
+  filter(p_irAEYes < 0.05) %>%
+  arrange(p_irAEYes) %>%
+  slice_head(n = 25) %>%
+  mutate(method = "ancom counts")
+
+rm(counts.poscounts, counts.pseudo, res_gen)
+
+load("../manuscript/data/counts-long.rds")
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts.l$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% counts.l$sample) %>%
+  distinct()
+
+counts.irae <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  dplyr::left_join(irae) 
+
+rm(counts.poscounts, counts.pseudo, res_gen, mic.meta, irae, demographics, counts.l, clin, baseline)
+```
+
+Pick set of microbes to examine
+
+Let's start with genus level - top 25
+
+21 from ancom.c alone
+9 from deseq poscounts alone
+7 from deseq pseudo alone
+2 shared by ancom and pseudo
+14 shared by pos and pseudo
+2 shared by all 3
+```{r}
+ancom.alone <- (ancom.c %>%
+  filter(!taxon %in% deseq.c.pos$taxon & !taxon %in% deseq.c.pseudo$taxon))$taxon
+pos.alone <- (deseq.c.pos %>%
+  filter(!taxon %in% ancom.c$taxon & !taxon %in% deseq.c.pseudo$taxon))$taxon
+pseudo.alone <- (deseq.c.pseudo %>%
+  filter(!taxon %in% deseq.c.pos$taxon & !taxon %in% ancom.c$taxon))$taxon
+ancom.pseudo <- (ancom.c %>%
+  filter(!taxon %in% deseq.c.pos$taxon & taxon %in% deseq.c.pseudo$taxon))$taxon
+deseq <- (deseq.c.pos %>%
+  filter(!taxon %in% ancom.c$taxon & taxon %in% deseq.c.pseudo$taxon))$taxon
+all <- (ancom.c %>%
+  filter(taxon %in% deseq.c.pos$taxon & taxon %in% deseq.c.pseudo$taxon))$taxon
+
+mics <- c(ancom.alone, pos.alone, pseudo.alone, ancom.pseudo, deseq, all)
+```
+
+generate boxplots
+```{r}
+# Open pdf file 
+pdf(file= "../figures/ancom-v-deseq_boxplots.pdf" ) 
+  
+# create a 2X2 grid 
+par(mfrow= c(3,4)) 
+
+#save plots to PDF
+for (mic in mics) {   
+  counts.irae %>%
+    mutate(microbe = substr(microbe, 4, nchar(microbe))) %>%
+    filter(microbe == mic) %>%
+    ggplot(aes(y = log(counts), x = irAE)) +
+    geom_boxplot() +
+    theme_bw() +
+    stat_compare_means(method = "kruskal.test")
+}
+
+```
+
+
