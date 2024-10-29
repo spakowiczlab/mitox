@@ -1,0 +1,221 @@
+---
+title: "km venn diagrams"
+output: html_document
+date: "2024-10-28"
+---
+
+Let's see what method has the most overlap with KW
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+load results and og count data 
+```{r}
+load("../data/deseq_counts-pseudo.rds")
+load("../data/deseq_counts-poscounts.rds")
+counts.poscounts <- resPlot_irae
+
+deseq.c.pos <- counts.poscounts %>%
+  filter(padj < 0.05) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq counts poscounts")
+deseq.c.pseudo <- counts.pseudo %>%
+  filter(padj < 0.05) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq counts pseudo")
+
+load("../data/deseq_ra-pseudo.rds")
+load("../data/deseq_ra-poscounts.rds")  
+
+deseq.ra.pos <- ra.poscounts %>%
+  filter(padj < 0.05) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq RA poscounts")
+deseq.ra.pseudo <- ra.pseudo %>%
+  filter(padj < 0.05) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq RA pseudo")
+
+load("../data/deseq_ra-poscounts-sample-scale.rds")
+load("../data/deseq_ra-pseudo-sample-scale.rds")
+
+deseq.ra.ss.pos <- ra.poscounts.ss %>%
+  filter(padj < 0.05) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq RA ss poscounts")
+deseq.ra.ss.pseudo <- ra.pseudo.ss %>%
+  filter(padj < 0.05) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)),
+         method = "deseq RA ss pseudo")
+
+
+load("../data/ancombc2_RA-estcounts2.rds")
+load("../data/ancombc2_counts2.rds")
+
+ancom.c <- res.tab.c %>%
+  filter(p_irAEYes < 0.05) %>%
+  mutate(method = "ancom counts")
+
+ancom.ra <- res.tab.ra %>%
+  filter(p_irAEYes < 0.05) %>%
+  mutate(method = "ancom RA")
+
+load("../manuscript/data/counts-long.rds")
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- dplyr::left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts.l$sample)
+
+irae <- clin %>% 
+  dplyr::select(sample, irAE) %>%
+  dplyr::filter(sample %in% counts.l$sample) %>%
+  distinct()
+
+counts.irae <- counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  dplyr::left_join(irae) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+zero.mics <- (counts.l %>%
+  dplyr::filter(sample %in% irae$sample) %>%
+  dplyr::left_join(irae) %>%
+  group_by(microbe, irAE) %>%
+  summarize(total = sum(counts)) %>%
+  ungroup() %>%
+  filter(total == 0) %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe))))$taxon
+
+rm(resPlot_irae, counts.poscounts, counts.pseudo, counts.l, res.tab.c, res.tab.ra, mic.meta, irae, demographics, clin, baseline, ra.poscounts, ra.poscounts.ss, ra.pseudo, ra.pseudo.ss)
+```
+kruskal test for all mics
+```{r}
+km.res <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(km.res) <- c("microbe", "p-val")
+km.res <- rbind(km.res, c("microbe", "p.val"))
+
+mics <- (counts.irae %>% 
+  select(taxon) %>% 
+  distinct())$taxon
+
+for(mic in mics){
+  y <- counts.irae %>%
+  filter(taxon == mic) 
+
+  test <- kruskal.test(counts ~ irAE, data = y)
+  km.res <- rbind(km.res, c(mic, test$p.value))
+}
+
+km.sig <- (km.res %>% filter(X.p.val. < 0.05) %>% distinct())$X.microbe.
+km.sig.nonZero <- (km.res %>% filter(!X.microbe. %in% zero.mics,
+                                     X.p.val. < 0.05))$X.microbe.
+```
+
+method results
+```{r}
+ancom.c.sig <- (ancom.c %>% select(taxon) %>% distinct())$taxon
+ancom.ra.sig <- (ancom.ra %>% select(taxon) %>% distinct())$taxon
+deseq.c.pos.sig <- (deseq.c.pos %>% select(taxon) %>% distinct())$taxon
+deseq.ra.pos.sig <- (deseq.ra.pos %>% select(taxon) %>% distinct())$taxon
+deseq.c.pseudo.sig <- (deseq.c.pseudo %>% select(taxon) %>% distinct())$taxon
+deseq.ra.pseudo.sig <- (deseq.ra.pseudo %>% select(taxon) %>% distinct())$taxon
+deseq.ra.ss.pseudo.sig <- (deseq.ra.ss.pseudo %>% select(taxon) %>% distinct())$taxon
+deseq.ra.ss.pos.sig <- (deseq.ra.ss.pos %>% select(taxon) %>% distinct())$taxon
+```
+
+get overlaps 
+
+Note - 24/45 of the sig via KM are all 0 counts in one group
+```{r}
+pdf(file = "km-sig.pdf", onefile = TRUE)
+x <- list(km = km.sig, ancom.c = ancom.c.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, ancom.ra = ancom.ra.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.c.pos = deseq.c.pos.sig) 
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.ra.pos = deseq.ra.pos.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.c.pseudo = deseq.c.pseudo.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.ra.pseudo = deseq.ra.pseudo.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.c.ss.pseudo = deseq.ra.ss.pseudo.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.ra.ss.pseudo = deseq.ra.ss.pos.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+dev.off()
+```
+
+top 45 overlap with all KM sig
+```{r}
+pdf(file = "km-sig-top25.pdf", onefile = TRUE)
+ancom.c.sig <- (ancom.c %>% arrange(p_irAEYes) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+ancom.ra.sig <- (ancom.ra %>% arrange(p_irAEYes) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+deseq.c.pos.sig <- (deseq.c.pos %>% arrange(padj) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+deseq.ra.pos.sig <- (deseq.ra.pos %>% arrange(padj) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+deseq.c.pseudo.sig <- (deseq.c.pseudo %>% arrange(padj) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+deseq.ra.pseudo.sig <- (deseq.ra.pseudo %>% arrange(padj) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+deseq.ra.ss.pseudo.sig <- (deseq.ra.ss.pseudo %>% arrange(padj) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+deseq.ra.ss.pos.sig <- (deseq.ra.ss.pos %>% arrange(padj) %>% slice_head(n=25) %>% select(taxon) %>% distinct())$taxon
+
+x <- list(km = km.sig, ancom.c = ancom.c.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, ancom.ra = ancom.ra.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.c.pos = deseq.c.pos.sig) 
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.ra.pos = deseq.ra.pos.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.c.pseudo = deseq.c.pseudo.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.ra.pseudo = deseq.ra.pseudo.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.c.ss.pseudo = deseq.ra.ss.pseudo.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+x <- list(km = km.sig, d.ra.ss.pseudo = deseq.ra.ss.pos.sig)
+euler_plot <- euler(x)
+plot(euler_plot, quantities = TRUE)
+
+dev.off()
+```
+

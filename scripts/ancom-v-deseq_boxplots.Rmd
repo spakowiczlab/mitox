@@ -48,8 +48,6 @@ ancom.c <- res_gen %>%
   slice_head(n = 25) %>%
   mutate(method = "ancom counts")
 
-rm(counts.poscounts, counts.pseudo, res_gen)
-
 load("../manuscript/data/counts-long.rds")
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")

@@ -33,6 +33,8 @@ ancom.c.pre <- res.tab.c
 
 load("../data/ancombc2_RA-estcounts2.rds")
 load("../data/ancombc2_counts2.rds")
+
+rm(resPlot_irae, res.tab.c, res.tab.ra)
 ```
 
 get taxa present in >1 sample

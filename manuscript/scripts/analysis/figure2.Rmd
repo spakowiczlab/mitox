@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(ggrepel)
 library(tidyverse)
+library(ggfortify)
 ```
 
 # Load data 
@@ -19,7 +20,7 @@ load("../../data/deseq_recist_baseline.rds")
 load("../../data/ra-long.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
-# load("../../data/counts-long.rds")
+load("../../data/counts-wide.rds")
 taxa <- read.csv("../../../data/2024-08-30_mpa_aggregated_long.csv")
 ```
 
@@ -37,7 +38,16 @@ resp.id <- mic.meta %>%
 
 # make phylum level labels for every microbe
 phyl_labels <- taxa %>%
-  select(Taxonomy) 
+  select(Taxonomy) %>%
+  separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "t"), "\\|") %>%
+  select(-Kingdom) %>%
+  pivot_longer(cols = `Class`:`t`, 
+               names_to = "level",
+               values_to = "microbe") %>%
+  select(-level) %>%
+  mutate(Phylum = substr(Phylum, 4, nchar(Phylum))) %>%
+  distinct() 
+
 # need to string split by | character 
 
 # baseline samples 
@@ -109,9 +119,19 @@ phyl.ra %>%
 ggsave("../../figures/fig2a-stackedbar-baseline.png", height = 4, width = 6)
 ```
 
-Figure 2B - UMAP Clustering 
+Figure 2B - UMAP Clustering ... assumming this should be a respondersig figure?
 ```{r}
+# create input seperately - plot here 
+umap.dat <- counts.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "count") %>%
+  filter(sample %in% base.samps$sample,
+         grepl("g__", microbe)) %>% 
+  pivot_wider(names_from = microbe, values_from = count) %>%
+  left_join(resp.id)
 
+pca <- prcomp(umap.dat[2:933])
+
+autoplot(pca, data = umap.dat, colour = "Response")
 ```
 
 Figure 2C - Volcano Plot R vs. NR
@@ -126,6 +146,7 @@ g
 
 Figure 2D - Effect Size
 ```{r}
-
+top.mics <- resPlot_recist %>%
+  dplyr::arrange(desc(abs(log2FoldChange)))
 ```
 

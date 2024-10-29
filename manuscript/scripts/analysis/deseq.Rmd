@@ -15,6 +15,7 @@ library(tidyverse)
 load data
 ```{r}
 load("../../data/counts-long.rds")
+load("../../data/ra-long.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 ```
