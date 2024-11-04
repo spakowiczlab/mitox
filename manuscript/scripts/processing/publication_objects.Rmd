@@ -49,7 +49,8 @@ demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/
 # PFS
 # Nye maybe changed the sheet name to 12-Month PFS ?
 pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
-                               sheet = "12-month PFS")
+                               sheet = "12-month PFS") %>%
+  select(-MRN)
 
 # microbiome taxonomic data merged metaphlan output 
 # old processing 
@@ -355,8 +356,8 @@ counts.w <- counts %>%
   # filter to MET only
   select(microbe, mic.meta$sample)
 
-counts.l <- counts.w %>%
-  pivot_longer(!microbe, names_to = "sample", values_to = "counts")
+counts.l <- counts %>%
+  select(-TaxNum, -RelAbun, -coverage)
 
 save(counts.w, file = "../../data/counts-wide.rds")
 save(counts.l, file = "../../data/counts-long.rds")

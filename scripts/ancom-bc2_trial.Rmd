@@ -134,6 +134,7 @@ tree_ob.ra
 
 tree_oc.c <- mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.c)
 tree_oc.c
+
 ```
 
 
@@ -142,30 +143,28 @@ tree_oc.c
 phylo.ra %>%
   tax_agg("Phylum") %>%
   ps_seriate(dist = "bray", method = "OLO_ward") %>% # these are the defaults
-  comp_barplot(tax_level = "Phylum", sample_order = "asis", n_taxa = 5)
+  comp_barplot(tax_level = "Phylum", n_taxa = 5)
 
 phylo.c %>%
   tax_agg("Phylum") %>%
-  ps_seriate(dist = "bray", method = "OLO_ward") %>% # these are the defaults
-  comp_barplot(tax_level = "Phylum", sample_order = "asis", n_taxa = 5)
+  ps_seriate(dist = "bray", method = "OLO_ward") %>% 
+  comp_barplot(tax_level = "Phylum", n_taxa = 5)
 ```
-Try running ANCOM-BC2
+Try running ANCOM-BC2:
 
 Warning: The group variable has < 3 categories 
 The multi-group comparisons (global/pairwise/dunnet/trend) will be deactivated
 
 This is expected behavior. 
 
+Warning: NaNs produced Warning: NaNs producedWarning: NaNs producedWarning: NaNs produced 
+- repeatedly
+Warning: longer object length is not a multiple of shorter object length 
+- repeatedly 
 
-
-Warning: NaNs produced Warning: NaNs producedWarning: NaNs producedWarning: NaNs produced - repeatedly
-
-Warning: longer object length is not a multiple of shorter object length - repeatedly 
-
-Tried installing package from Pbrad branch version with fix for this error, 
-still not resolved, just going to run and compare to deseq2 results 
-
+Try installing package from Pbrad branch version with fix for this error,
 remotes::install_github("pbradz/ANCOMBC", ref = "bugfix")
+error resolved - see ancombc2-bugfix-test.Rmd for simple test case
 
 ## Run for RA (est counts)
 ```{r}
@@ -175,7 +174,7 @@ out <- ANCOMBC::ancombc2(data = phylo.ra,
                          tax_level = level, 
                          fix_formula = "irAE", 
                          group = "irAE", 
-                         struc_zero = FALSE, 
+                         struc_zero = TRUE, 
                          s0_perc = 0,
                          prv_cut = 0,
                          p_adj_method = "BH")
@@ -224,7 +223,7 @@ out <- ANCOMBC::ancombc2(data = phylo.c,
                          tax_level = level, 
                          fix_formula = "irAE", 
                          group = "irAE", 
-                         struc_zero = FALSE, 
+                         struc_zero = TRUE, 
                          s0_perc = 0,
                          prv_cut = 0,
                          p_adj_method = "BH")
@@ -263,6 +262,19 @@ res.tab.c %>%
   geom_text_repel() + 
   theme_minimal()
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 Example 

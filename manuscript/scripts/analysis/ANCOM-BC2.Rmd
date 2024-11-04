@@ -1,0 +1,124 @@
+---
+title: "ANCOM-BC2"
+output: html_document
+date: "2024-11-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ANCOMBC)
+library(phyloseq)
+library(tidyverse)
+# library(ggplot2)
+# library(ggrepel)
+# library(microViz)
+```
+
+We decided to do differential abundance analysis using ANCOM-BC2
+
+load input data
+```{r}
+# counts 
+load("../../data/counts-long.rds")
+
+# irae and sample matching info
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+```
+
+get sample groups of interest 
+```{r}
+
+```
+
+
+Metaphlan to Phyloseq to TreeSummarizeExperiment
+```{r}
+## tax is a matrix or data.frame with the table of taxonomic abundances, rows are taxa, columns are samples
+## metadat is an optional data.frame of specimen metadata, rows are samples, columns are variables
+## if simplenames=TRUE, use only the most detailed level of taxa names in the final object
+## if roundtointeger=TRUE, values will be rounded to the nearest integer
+metaphlanToPhyloseq <- function(tax, metadat, simplenames=TRUE, 
+                                roundtointeger=FALSE, split="|"){
+  
+    xnames = rownames(tax)
+    shortnames = gsub(paste0(".+\\", split), "", xnames)
+    
+    if(simplenames){
+        rownames(tax) = substr(shortnames, 4, nchar(shortnames))
+    }
+    
+    tax <- as.matrix(tax)
+    if(roundtointeger){
+        tax = round(tax * 1e4)
+    }
+    
+    x2 = strsplit(xnames, split=split, fixed=TRUE)
+    taxmat = matrix(NA, ncol=max(sapply(x2, length)), nrow=length(x2))
+    colnames(taxmat) = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Strain")[1:ncol(taxmat)]
+    rownames(taxmat) = rownames(tax)
+    
+    for (i in 1:nrow(taxmat)){
+        taxmat[i, 1:length(x2[[i]])] <- x2[[i]]
+    }
+    
+    taxmat = gsub("[a-z]__", "", taxmat)
+    taxmat = phyloseq::tax_table(taxmat)
+    otutab = phyloseq::otu_table(tax, taxa_are_rows=TRUE)
+    
+    if(is.null(metadat)){
+        res = phyloseq::phyloseq(taxmat, otutab)
+    }else{
+        res = phyloseq::phyloseq(taxmat, otutab, phyloseq::sample_data(metadat))
+    }
+    
+    return(res)
+}
+
+# RA - convert to integer
+phylo.ra <- metaphlanToPhyloseq(taxa, irae, roundtointeger = TRUE)
+phylo.ra
+
+# counts 
+phylo.c <- metaphlanToPhyloseq(counts, irae)
+phylo.c
+
+tree_ob.ra = mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.ra)
+tree_ob.ra
+
+tree_oc.c <- mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.c)
+tree_oc.c
+
+```
+
+## Run ANCOM
+
+would like to resolve instances duplicates / how we want to handle t__
+```{r}
+run_ancombc2 <- function(level) {
+  # try with phyloseq object
+out <- ANCOMBC::ancombc2(data = phylo.c, 
+                         tax_level = level, 
+                         fix_formula = "irAE", 
+                         group = "irAE", 
+                         struc_zero = TRUE, 
+                         s0_perc = 0,
+                         prv_cut = 0,
+                         p_adj_method = "BH")
+
+res <- out$res
+return(res)
+
+}
+
+res_spec <- run_ancombc2("Species")
+res_gen <- run_ancombc2("Genus")
+res_fam <- run_ancombc2("Family")
+res_ord <- run_ancombc2("Order")
+res_class <- run_ancombc2("Class")
+res_phyl <- run_ancombc2("Phylum")
+
+res.tab.c <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl) %>%
+  distinct()
+```

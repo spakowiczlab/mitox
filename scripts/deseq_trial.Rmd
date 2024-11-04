@@ -93,9 +93,6 @@ write_desd_poscounts <- function(tax){
 }
 
 # function to run deseq2 given a list of count tables
-# maybe loop by index instead ? 
-# that way you can get name
-# add ifesle to handle irae vs recist!
 
 run_deseq_poscounts <- function(desd.list, meta, design){
   
