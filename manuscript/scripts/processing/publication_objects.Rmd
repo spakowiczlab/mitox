@@ -23,11 +23,11 @@ it is in the adj cohort, so no problem here.
 Should we remove M032 since we don't have response information and no irAE?
   Will leave in at this stage. 
 
-file path 
-```{r}
-paths.tdrive <- "/Volumes/spakowicz/"
-#paths.tdrive <- "T:/Labs/Spakowicz/"
-```
+<!-- file path  -->
+<!-- ```{r} -->
+<!-- paths.tdrive <- "/Volumes/spakowicz/" -->
+<!-- #paths.tdrive <- "T:/Labs/Spakowicz/" -->
+<!-- ``` -->
 
 read in necessary data
 ```{r warning=FALSE}
@@ -36,19 +36,19 @@ irAE <- readxl::read_xlsx(file.path(paths$tdrive,"mitox/Clinical info/Mitoxstudy
   dplyr::select(-`Patient Name`, - MRN)
 
 # recist, CT scans
-recist.scan <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")) %>%
+recist.scan <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx")) %>%
   dplyr::select(-Name, -MRN)
 
 # microbiome metadata
-micSamp <- read.table(file.path(paths.tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
+micSamp <- read.table(file.path(paths$tdrive, 'mitox/data/labii/mitox-samples-export_2022-10-21.tsv'), sep = '\t', header = TRUE, fill = NA)
 
 # demographics
-demo.dat <- read_excel(file.path(paths.tdrive, "mitox/Patient Logs/Demographics/Patient_demographics.xlsx")) %>%
+demo.dat <- read_excel(file.path(paths$tdrive, "mitox/Patient Logs/Demographics/Patient_demographics.xlsx")) %>%
    select(-MRN, -Name)
 
 # PFS
 # Nye maybe changed the sheet name to 12-Month PFS ?
-pfs <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
+pfs <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/Clinical info/OSU-19125_patient_progression_RECIST_KK_v4.xlsx"),
                                sheet = "12-month PFS") %>%
   select(-MRN)
 
@@ -69,19 +69,19 @@ samps2 <- read_xlsx( file.path(paths$onedrive, "/data/onecodex/2022-07-27_mitox_
 samps <- rbind(samps, samps2) 
 
 # blood data
-blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
-blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
-blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths.tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2, cols = 3:53) 
+blood.adj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths$tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Adj Datasheet", startRow = 2)
+blood.met <- openxlsx::readWorkbook(xlsxFile =  file.path(paths$tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Met Datasheet", startRow = 2)
+blood.metj <- openxlsx::readWorkbook(xlsxFile =  file.path(paths$tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm"), sheet = "Jason Met Cohort", startRow = 2, cols = 3:53) 
 
 # Patient log
-pt_log <- readxl::read_xlsx(file.path(paths.tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
+pt_log <- readxl::read_xlsx(file.path(paths$tdrive,"mitox/Patient Logs/OSU 19125 Patient Log.xlsx"), skip = 3) %>%
   dplyr::select(-`Pt Name`, -MRN)
 
 # Nanostring summary 
-nano.adj <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 2)
-nano.metdis <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 4)
-nano.metval <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 5)
-nano.metnivo <- readxl::read_xlsx(file.path(paths.tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 6)
+nano.adj <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 2)
+nano.metdis <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 4)
+nano.metval <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 5)
+nano.metnivo <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 6)
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -100,9 +100,13 @@ recist.mic <- recist.scan %>%
   filter(!is.na(`Patient Id`))
 
 pfs <- pfs %>%
-  select(`Patient Id`, `12-month PFS`) %>%
-  filter(!is.na(`12-month PFS`))
-
+  select(-Notes, -Cohort) %>%
+  mutate(days = `Date of progression/death/toxicity` - `C1D1 Date`,
+         `6-month PFS` = ifelse(!is.na(`6-month PFS`), `6-month PFS`,
+                                ifelse(days < 183, "No", "Yes"))) %>%
+  select(`Patient Id`, `6-month PFS`, `12-month PFS`)
+  
+  
 irae <- irAE %>%
   dplyr::select(`Patient Id`, `Attribution (Final)`) %>%
   rename(irAE = `Attribution (Final)`) %>%
@@ -115,9 +119,17 @@ demographics <- merge(demographics, pfs, all=T)
 demographics <- merge(demographics, irae, all=T)
 
 # slight mutation to irae and MDSC
+# create response value 
 demographics <- demographics %>%
   mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE),
-         `MDSC #` = case_when(`MDSC #` == "N/A"~NA, .default = `MDSC #`))
+         `MDSC #` = case_when(`MDSC #` == "N/A"~NA, .default = `MDSC #`),
+          Response = case_when(
+            Category == "PD" ~ "Non-Responder",
+            Category %in% c("PR", "CR") ~ "Responder",
+            Category == "SD" & `6-month PFS`== "Yes" ~ "Responder",  # Logical column `6-month PFS`
+            Category == "SD" & `6-month PFS`== "No" ~ "Non-Responder",
+            TRUE ~ NA # Default case
+    ))
 
 # filter to MET only
 # has microbiome sample
@@ -131,6 +143,7 @@ demographics <- demographics %>%
 
 save(demographics, file = "../../data/clinical.rds")
 ```
+
 
 Blood data
 Rows are blood samples
