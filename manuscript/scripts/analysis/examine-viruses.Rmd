@@ -1,0 +1,20 @@
+---
+title: "examine virus output"
+output: html_document
+date: "2024-12-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+load("../../data/vsc.rds")
+
+# virus databases
+vir.sgb <- read.csv("../../data/CRISPR_VSG-to-SGBs.csv", sep = "  ")
+vir.spec <- read.csv("../../data/CRISPR_VSG-to-SGBs.csv", sep = "  ")
+```
+
