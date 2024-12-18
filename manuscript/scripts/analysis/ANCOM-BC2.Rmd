@@ -10,30 +10,78 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ANCOMBC)
 library(phyloseq)
 library(tidyverse)
-# library(ggplot2)
-# library(ggrepel)
-# library(microViz)
 ```
 
 We decided to do differential abundance analysis using ANCOM-BC2
+use to install: 
+remotes::install_github("pbradz/ANCOMBC", ref = "bugfix", force = TRUE, quiet = FALSE)
 
 load input data
 ```{r}
-# counts 
 load("../../data/counts-long.rds")
-
-# irae and sample matching info
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 ```
 
-get sample groups of interest 
-```{r}
+## Decided to remove strain information 
+<!-- examine s__ vs t__  -->
+<!-- important if we want to include strain level -->
+<!-- trying to resolve if every taxa includes strain level info,  -->
+<!-- don't want to exclude taxa if that's not the case  -->
+<!-- ```{r} -->
+<!-- test_t <- counts.l %>% -->
+<!--   dplyr::filter(sample %in% met$sample, -->
+<!--           grepl("t__", Taxonomy)) %>% -->
+<!--   separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Strain"), "\\|") %>%  -->
+<!--   select(Species, sample, est.reads) %>% -->
+<!--   group_by(sample, Species) %>% -->
+<!--   summarize(t.reads = sum(est.reads)) -->
 
+
+<!-- test_s <- counts.l %>% -->
+<!--   dplyr::filter(sample %in% met$sample, -->
+<!--                 grepl("s__", Taxonomy), -->
+<!--                 !grepl("t__", Taxonomy)) %>% -->
+<!--    separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Strain"), "\\|") %>% -->
+<!--   select(sample, Species, est.reads)  -->
+
+<!-- x <- merge(test_s, test_t) %>% -->
+<!--   mutate(check = est.reads == t.reads) -->
+<!-- ``` -->
+
+## Prepare data
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+clin <- left_join(baseline, demographics, by = "Patient Id") %>%
+  dplyr::filter(sample %in% counts.l$sample)
+
+met <- clin %>%
+    dplyr::select(sample, irAE, Response) %>%
+    dplyr::filter(sample %in% counts.l$sample)
+
+# filter to species level, removing strain level 
+counts <- counts.l %>%
+  dplyr::filter(sample %in% met$sample,
+          grepl("s__", Taxonomy),
+          !grepl("t__", Taxonomy)) %>%
+  pivot_wider(names_from = "sample", values_from = "est.reads", values_fill = 0) %>%
+  column_to_rownames("Taxonomy")
+
+met <- met %>%
+  arrange(factor(sample, levels = colnames(counts))) %>%
+  column_to_rownames("sample")
+
+#check
+all.equal(rownames(met), colnames(counts))
+all.equal(rownames(met), colnames(counts))
 ```
 
-
-Metaphlan to Phyloseq to TreeSummarizeExperiment
+## Metaphlan to Phyloseq to TreeSummarizeExperiment
 ```{r}
 ## tax is a matrix or data.frame with the table of taxonomic abundances, rows are taxa, columns are samples
 ## metadat is an optional data.frame of specimen metadata, rows are samples, columns are variables
@@ -76,49 +124,54 @@ metaphlanToPhyloseq <- function(tax, metadat, simplenames=TRUE,
     return(res)
 }
 
-# RA - convert to integer
-phylo.ra <- metaphlanToPhyloseq(taxa, irae, roundtointeger = TRUE)
-phylo.ra
+phylo <- metaphlanToPhyloseq(counts, met)
+phylo
 
-# counts 
-phylo.c <- metaphlanToPhyloseq(counts, irae)
-phylo.c
-
-tree_ob.ra = mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.ra)
-tree_ob.ra
-
-tree_oc.c <- mia::makeTreeSummarizedExperimentFromPhyloseq(phylo.c)
-tree_oc.c
-
+# not using this, prefer phyloseq object 
+tree_ob = mia::makeTreeSummarizedExperimentFromPhyloseq(phylo)
+tree_ob
 ```
 
 ## Run ANCOM
-
-would like to resolve instances duplicates / how we want to handle t__
 ```{r}
-run_ancombc2 <- function(level) {
+run_ancombc2 <- function(level, grp) {
   # try with phyloseq object
-out <- ANCOMBC::ancombc2(data = phylo.c, 
+  out <- ANCOMBC::ancombc2(data = phylo, 
                          tax_level = level, 
-                         fix_formula = "irAE", 
-                         group = "irAE", 
+                         fix_formula = grp, 
+                         group = grp, 
                          struc_zero = TRUE, 
                          s0_perc = 0,
                          prv_cut = 0,
                          p_adj_method = "BH")
 
-res <- out$res
-return(res)
-
+  res <- out$res
+  struct0 <- out$ss_tab
+  
+  return(list(res = res, struct0 = struct0))
 }
 
-res_spec <- run_ancombc2("Species")
-res_gen <- run_ancombc2("Genus")
-res_fam <- run_ancombc2("Family")
-res_ord <- run_ancombc2("Order")
-res_class <- run_ancombc2("Class")
-res_phyl <- run_ancombc2("Phylum")
+# R vs. NR
+tax_levels <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom")
+res_list <- lapply(tax_levels, function(level) run_ancombc2(level, "Response"))
+res.recist <- do.call(rbind, lapply(res_list, function(x) x$res))
+struct0.recist <- do.call(rbind, lapply(res_list, function(x) x[[2]]))
 
-res.tab.c <- rbind(res_spec, res_gen, res_fam, res_ord, res_class, res_phyl) %>%
-  distinct()
+
+# irAE vs. no irAE
+irae_list <- lapply(tax_levels, function(level) run_ancombc2(level, "irAE"))
+res.irae <- do.call(rbind, lapply(irae_list, function(x) x$res))
+struct0.irae <- do.call(rbind, lapply(irae_list, function(x) x[[2]]))
 ```
+## Save ancom output
+```{r}
+save(res.recist, struct0.recist, file = "../../data/ANCOM-BC2_response_baseline.RData")
+save(res.irae, struct0.irae, file = "../../data/ANCOM-BC2_irae_baseline.RData")
+```
+
+## Check on duplicates - duplicates are all 'unclassified' taxa 
+```{r}
+duplicates <- duplicated(res.recist$taxon)
+res.recist[duplicates | duplicated(res.recist$taxon, fromLast = TRUE), ]
+```
+
