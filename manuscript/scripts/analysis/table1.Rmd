@@ -2,7 +2,9 @@
 title: "table 1"
 author: "Caroline Wheeler"
 date: "2023-10-20"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -10,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(table1)
-library(papaja)
+library(tableone)
 ```
 
 ```{r}
@@ -18,12 +20,12 @@ load("../../data/clinical.rds")
 load("../../data/irae.rds")
 ```
 
-create response var
+Make Stage categorical
 ```{r}
-dem.met <- demographics %>%
-  mutate(Response = ifelse(Category %in% c("PR", "CR", "SD"), "Responder", 
-                           ifelse(Category %in% c("PD"), "Non-Responder", "No Response Info"))) 
+dem.dat <- demographics %>%
+  mutate(Stage = ifelse(Stage == 3, "Stage III", "Stage IV"))
 ```
+
 function to get p-value 
 ```{r}
 pvalue <- function(x, ...) {
@@ -48,20 +50,13 @@ pvalue <- function(x, ...) {
 
 Table 1
 ```{r}
-tab1 <- table1(~ Age + Sex + Race + Treatment + irAE | Response,
-       data=dem.met, overall="Total", extra.col=list(`P-value`=pvalue), 
+tab1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
+       data=dem.dat, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
 tab1
 ```
-Try something 
-```{r}
-x <- attr(tab1, "obj")
-names(x) <- lapply(x, function(x){rownames(x)[[1L]]})
-x <- lapply(x, function(x){x[-1L, ]})
 
-# Use apa_table()
-apa_table(x)
-```
+
 
 
