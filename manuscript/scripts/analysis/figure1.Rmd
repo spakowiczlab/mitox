@@ -38,11 +38,8 @@ events.filt <- events %>%
   # filter to at least one microbiome sample
         Mic.Samp == "Yes",
         !is.na(Category)) %>%
-  # create response groups
-  mutate(Response = ifelse(Category %in% c("CR", "PR"), "Responder", 
-                         ifelse(Category %in% c("PD", "SD"), "Non-Responder", "Unknown/Unmeasured")),
   # save irAE binary in new column
-         irAE.bin = irAE,
+  mutate(irAE.bin = ifelse(irAE == "Yes", "Yes irAE", "No irAE"),
   # create column for each time point type
          irAE = ifelse(Event == "irAE", Days, NA),
          Microbiome = ifelse(Event == "Microbiome", Days, NA),
@@ -54,8 +51,8 @@ events.filt <- events %>%
 
 plot
 ```{r}
-cols <- c("Yes" = "cadetblue3",
-          "No" = "azure2",
+cols <- c("Yes irAE" = "cadetblue3",
+          "No irAE" = "azure2",
           "irAE" = "black",
           "CT Scan" = "orange",
           "Blood" = "red3",
@@ -67,8 +64,6 @@ stroke_override <- c(1 ,1 , 1 , 1 , 1, 1)
 size_override <- c(1, 1, 1, 1.8, 1.8, 1)
 
 events.filt %>%
-  # filter(Days > -21,
-  #        Days <= 113) %>%
   ggplot() + 
   geom_line(aes(x = Endpoints, y =`Patient Id`, col=irAE.bin, group = `Patient Id`), size=1.8) +
   #scale_color_manual(values = c("cadetblue3", "azure2")) +
@@ -79,22 +74,23 @@ events.filt %>%
   theme_bw() +
   facet_grid(rows = vars(Response), scales = "free_y", space = "free_y") +
   scale_color_manual(values = cols, name="Timepoint") +
-    guides(color = guide_legend(
-                        override.aes = list(
-                                stroke = stroke_override,
-                                shape = shape_override,
-                                linetype = line_override,
-                                size = size_override)
-                                )
-  ) +
+  guides(color = guide_legend(
+    override.aes = list(
+      stroke = stroke_override,
+      shape = shape_override,
+      linetype = line_override,
+      size = size_override)
+  )) +
+  theme(legend.position = "top") +
   xlab("Days") +
-  ylab("Patient ID")
+  ylab("Patient ID") 
 
 # version with no limits
 # ggsave("../../figures/timeline-MET.png", width = 7, height = 9)
 
 # version with limits 
 ggsave("../../figures/timeline-MET-restricted-dates.png", width = 5, height = 9)
+ggsave("../../figures/timeline-MET-restricted-dates.svg", width = 5, height = 9)
 ```
 
 
