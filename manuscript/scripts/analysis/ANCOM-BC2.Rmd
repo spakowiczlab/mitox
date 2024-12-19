@@ -146,9 +146,10 @@ run_ancombc2 <- function(level, grp) {
                          p_adj_method = "BH")
 
   res <- out$res
-  struct0 <- out$ss_tab
+  struct0 <- out$zero_ind
+  feature_tab <- out$feature_table
   
-  return(list(res = res, struct0 = struct0))
+  return(list(res = res, struct0 = struct0, feature_tab = feature_tab))
 }
 
 # R vs. NR
@@ -156,17 +157,18 @@ tax_levels <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingd
 res_list <- lapply(tax_levels, function(level) run_ancombc2(level, "Response"))
 res.recist <- do.call(rbind, lapply(res_list, function(x) x$res))
 struct0.recist <- do.call(rbind, lapply(res_list, function(x) x[[2]]))
-
+feature.recist <- do.call(rbind, lapply(res_list, function(x) x[[3]]))
 
 # irAE vs. no irAE
 irae_list <- lapply(tax_levels, function(level) run_ancombc2(level, "irAE"))
 res.irae <- do.call(rbind, lapply(irae_list, function(x) x$res))
 struct0.irae <- do.call(rbind, lapply(irae_list, function(x) x[[2]]))
+feature.irae <- do.call(rbind, lapply(irae_list, function(x) x[[3]]))
 ```
 ## Save ancom output
 ```{r}
-save(res.recist, struct0.recist, file = "../../data/ANCOM-BC2_response_baseline.RData")
-save(res.irae, struct0.irae, file = "../../data/ANCOM-BC2_irae_baseline.RData")
+save(res.recist, struct0.recist, feature.recist, file = "../../data/ANCOM-BC2_response_baseline.RData")
+save(res.irae, struct0.irae, feature.irae, file = "../../data/ANCOM-BC2_irae_baseline.RData")
 ```
 
 ## Check on duplicates - duplicates are all 'unclassified' taxa 
