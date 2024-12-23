@@ -16,24 +16,21 @@ library(ggfortify)
 
 # Load data 
 ```{r}
-load("../../data/deseq_recist_baseline.rds")
 load("../../data/ra-long.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/counts-wide.rds")
+load("../../data/ANCOM-BC2_response_baseline.RData")
 taxa <- read.csv("../../../data/2024-08-30_mpa_aggregated_long.csv")
 ```
 
 # Figure Features 
 ```{r}
-colors <- c("#CC6677","#999933","#6699CC","#DDCC77","#44AA99", "#882255")
+colors <- c("#CC6677","#999933","#6699CC","#DDCC77","#44AA99", "#882255", "orange3")
 
 # Response ID's
 resp.id <- mic.meta %>%
   left_join(demographics) %>%
-   mutate(Response = ifelse(Category %in% c("PR", "CR", "SD"), "Responder", 
-                           ifelse(Category %in% c("PD"), "Non-Responder", 
-                                  "No Response Info"))) %>%
   select(sample, Days, Response)
 
 # make phylum level labels for every microbe
@@ -136,12 +133,29 @@ autoplot(pca, data = umap.dat, colour = "Response")
 
 Figure 2C - Volcano Plot R vs. NR
 ```{r}
-g <- ggplot(resPlot_recist, aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
-  geom_point() + 
+phyl_labels <- phyl_labels %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+res.recist <- res.recist %>%
+  left_join(phyl_labels) %>%
+  mutate(Phylum = ifelse(p_ResponseResponder < 0.05 & abs(lfc_ResponseResponder) > 2, Phylum, NA))
+```
+
+
+```{r}
+g <- res.recist %>%
+  filter(p_ResponseResponder < 1) %>%
+  ggplot(aes(x=lfc_ResponseResponder, y=-log10(p_ResponseResponder), label = taxon)) + 
+  geom_point(aes(x=lfc_ResponseResponder, y=-log10(p_ResponseResponder), color = Phylum)) + 
   geom_text_repel() +
-  theme_minimal()
+  scale_color_manual(values = colors) +
+  theme_minimal() +
+  xlab("log2foldchange") +
+  ylab("log10(p-value)")
 
 g
+
+ggsave("../../figures/fig2a-volcano-res-baseline.png", height = 6, width = 10)
 ```
 
 Figure 2D - Effect Size

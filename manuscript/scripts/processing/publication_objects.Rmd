@@ -88,9 +88,12 @@ Demographics (Input to Tables 1, S1)
 Rows are pts
 ```{r}
 # clean up demographic data
+# MDSC-152 should be MDSC-152B
+# manually change
 demographics <- demo.dat %>% 
   filter(!is.na(`Patient Id`)) %>%
-  select(-c(No., Notes))
+  select(-c(No., Notes)) %>%
+  mutate(`MDSC #` = ifelse(`MDSC #` == "MDSC-152", "MDSC-152B", `MDSC #`))
 
 # get irAE, symptoms, response, pfs, microbiome sample presence
 recist.mic <- recist.scan %>%
@@ -99,7 +102,7 @@ recist.mic <- recist.scan %>%
          "Mic.Samp" = Samples) %>%
   filter(!is.na(`Patient Id`))
 
-pfs <- pfs %>%
+pfs.filt <- pfs %>%
   select(-Notes, -Cohort) %>%
   mutate(days = `Date of progression/death/toxicity` - `C1D1 Date`,
          `6-month PFS` = ifelse(!is.na(`6-month PFS`), `6-month PFS`,
@@ -108,42 +111,54 @@ pfs <- pfs %>%
   
   
 irae <- irAE %>%
-  dplyr::select(`Patient Id`, `Attribution (Final)`) %>%
-  rename(irAE = `Attribution (Final)`) %>%
-  filter(irAE == "Yes") %>%
+  dplyr::select(`Patient Id`, `Attribution (Final)`, Onset) %>%
+  left_join(pt_log %>% select(`Patient Id`, `C1D1 date`)) %>%
+  filter(`Attribution (Final)` == "Yes") %>%
+  mutate(days = as.Date(Onset) - as.Date(`C1D1 date`),
+         irAE = `Attribution (Final)`) %>%
+  filter(0 <= days,
+        days < 113) %>%
+  select(`Patient Id`, irAE) %>%
   distinct()
 
 # join 
 demographics <- merge(demographics, recist.mic, all=T)
-demographics <- merge(demographics, pfs, all=T)
+demographics <- merge(demographics, pfs.filt, all=T)
 demographics <- merge(demographics, irae, all=T)
 
 # slight mutation to irae and MDSC
 # create response value 
 demographics <- demographics %>%
-  mutate(irAE = case_when(is.na(irAE)~ "No", .default = irAE),
+  mutate(irAE = case_when(is.na(irAE) ~ "No", .default = irAE),
          `MDSC #` = case_when(`MDSC #` == "N/A"~NA, .default = `MDSC #`),
           Response = case_when(
             Category == "PD" ~ "Non-Responder",
             Category %in% c("PR", "CR") ~ "Responder",
             Category == "SD" & `6-month PFS`== "Yes" ~ "Responder",  # Logical column `6-month PFS`
             Category == "SD" & `6-month PFS`== "No" ~ "Non-Responder",
-            TRUE ~ NA # Default case
-    ))
+            TRUE ~ NA ),
+         # MET patients are only stage 3 and 4
+          Stage = case_when(
+            Stage == 2 ~ "Stage II",
+            Stage == 3 ~ "Stage III", 
+            Stage == 4 ~ "Stage IV",
+            TRUE ~ NA)
+         )
 
 # filter to MET only
 # has microbiome sample
 # has response info
+# remove M005
 demographics <- demographics %>%
   filter(Cohort == "Met",
          Mic.Samp == "Yes",
-         !is.na(Category)) %>%
+         !is.na(Category),
+         `Patient Id` != "M005") %>%
   # remove duplicate entry?
   distinct()
 
 save(demographics, file = "../../data/clinical.rds")
 ```
-
 
 Blood data
 Rows are blood samples
@@ -158,26 +173,28 @@ nano.metnivo <- nano.metnivo %>%
 nano.metval <- nano.metval %>%
   select(Sample, ADORA2A:POS_F)
 
-mdsc.key <- demographics %>%
+key <- demographics %>%
   select(`Patient Id`, `MDSC #`)
 
 blood <- rbind(nano.adj, nano.metdis, nano.metnivo, nano.metval) %>%
   filter(!is.na(Sample)) %>%
   mutate(`MDSC #` = gsub(" ", "-", Sample)) %>%
-  left_join(mdsc.key) %>%
+  # manually remove 203 due to early timepoint
+  # pt was adj -> met
+  filter(`MDSC #` != "MDSC-203") %>%
+  left_join(key) %>%
   filter(!is.na(`Patient Id`)) %>%
-  select(`Patient Id`, 2:94)
+  select(`Patient Id`, 2:94) %>%
+  filter(!is.na(ADORA2A))
 
 save(blood, file = "../../data/blood.rds")
 ```
+
 
 Start Events object (input to Figure 1C (timeline figure))
 Rows are events
 ptID, event, time from C1D1 
 ```{r}
-key <- demographics %>%
-  select(`Patient Id`, `MDSC #`)
-
 ## clean up start and end dates
 eos.d <-  pt_log %>% 
   select(`Patient Id`, `C1D1 date`, `EOS Date`) %>%

@@ -14,7 +14,7 @@ library(tidyverse)
 load("../../data/vsc.rds")
 
 # virus databases
-vir.sgb <- read.csv("../../data/CRISPR_VSG-to-SGBs.csv", sep = "  ")
-vir.spec <- read.csv("../../data/CRISPR_VSG-to-SGBs.csv", sep = "  ")
+vir.sgb <- read.csv("../../data/CRISPR_VSG-to-SGBs.csv", sep = " ")
+vir.spec <- read.csv("../../data/CRISPR_VSG-to-SGBs.csv", sep = " ")
 ```
 

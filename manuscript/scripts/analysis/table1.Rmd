@@ -13,17 +13,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(table1)
 library(tableone)
+library(gridExtra)
 ```
 
 ```{r}
 load("../../data/clinical.rds")
 load("../../data/irae.rds")
-```
-
-Make Stage categorical
-```{r}
-dem.dat <- demographics %>%
-  mutate(Stage = ifelse(Stage == 3, "Stage III", "Stage IV"))
 ```
 
 function to get p-value 
@@ -45,18 +40,28 @@ pvalue <- function(x, ...) {
   #label.
   c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
 }
-
 ```
 
 Table 1
 ```{r}
 tab1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
-       data=dem.dat, overall="Total", extra.col=list(`P-value`=pvalue), 
+       data=demographics, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
 tab1
 ```
 
+If we decide to make our own version 
+```{r}
+tab1 <- CreateTableOne(
+  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "irAE"),  # Variables
+  strata = "Response",  # Stratification variable
+  data = demographics,
+  test = TRUE,  # Enables default p-value calculation
+  addOverall = TRUE  # Add an "Overall" column
+)
 
+print(tab1)
+```
 
 
