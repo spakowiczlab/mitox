@@ -42,7 +42,7 @@ pvalue <- function(x, ...) {
 }
 ```
 
-Table 1
+Table 1 - strat by Response
 ```{r}
 tab1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
        data=demographics, overall="Total", extra.col=list(`P-value`=pvalue), 
@@ -50,6 +50,18 @@ tab1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
 
 tab1
 ```
+
+Table 2 - strat by irAE
+```{r}
+tab2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
+       data=demographics, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
+
+tab2
+```
+
+
+
 
 If we decide to make our own version 
 ```{r}
