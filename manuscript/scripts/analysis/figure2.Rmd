@@ -21,31 +21,17 @@ load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/counts-wide.rds")
 load("../../data/ANCOM-BC2_response_baseline.RData")
-taxa <- read.csv("../../../data/2024-08-30_mpa_aggregated_long.csv")
+load("../../data/phylum-labels.rds")
 ```
 
 # Figure Features 
 ```{r}
-colors <- c("#CC6677","#999933","#6699CC","#DDCC77","#44AA99", "#882255", "orange3")
+colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#DDCC77","#882255", "orange3")
 
 # Response ID's
 resp.id <- mic.meta %>%
   left_join(demographics) %>%
   select(sample, Days, Response)
-
-# make phylum level labels for every microbe
-phyl_labels <- taxa %>%
-  select(Taxonomy) %>%
-  separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "t"), "\\|") %>%
-  select(-Kingdom) %>%
-  pivot_longer(cols = `Class`:`t`, 
-               names_to = "level",
-               values_to = "microbe") %>%
-  select(-level) %>%
-  mutate(Phylum = substr(Phylum, 4, nchar(Phylum))) %>%
-  distinct() 
-
-# need to string split by | character 
 
 # baseline samples 
 base.samps <- mic.meta %>% 
@@ -71,11 +57,25 @@ phyl.ra <- phyl.ra %>%
                          "Other")) %>%
   left_join(resp.id)
 
-phyl.ra %>%
-  filter(RelAbun > 0) %>%
-  ggplot(aes(x = RelAbun)) +
-  facet_wrap(vars(microbe)) +
-  geom_histogram() 
+# phyl.ra %>%
+#   filter(RelAbun > 0) %>%
+#   ggplot(aes(x = RelAbun)) +
+#   facet_wrap(vars(microbe)) +
+#   geom_histogram() 
+
+# reorder samples by the total relative abundance of Firmicutes
+phyl.ra <- phyl.ra %>%
+  group_by(sample) %>%
+  mutate(Firmicutes_Abundance = sum(RelAbun[Phylum == "Firmicutes"], na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(sample = fct_reorder(sample, Firmicutes_Abundance))
+
+# order of microbes with 'other' last
+phyl.ra <- phyl.ra %>%
+  mutate(Phylum = factor(Phylum, levels = c(
+    "Firmicutes", 
+    setdiff(unique(Phylum), c("Firmicutes", "Other")), 
+    "Other")))
 
 # all samples 
 phyl.ra %>%
@@ -113,10 +113,52 @@ phyl.ra %>%
         legend.title = element_blank()) +
   facet_grid(~Response, scales = "free_x", space = "free") +
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
+
 ggsave("../../figures/fig2a-stackedbar-baseline.png", height = 4, width = 6)
 ```
 
-Figure 2B - UMAP Clustering ... assumming this should be a respondersig figure?
+Figure 2B - Volcano Plot R vs. NR
+```{r}
+phyl_labels <- phyl_labels %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+res.recist <- res.recist %>%
+  left_join(phyl_labels) %>%
+  mutate(Phylum = ifelse(q_ResponseResponder < 0.05 & abs(lfc_ResponseResponder) > 2, 
+                         ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"), NA),
+         taxon = gsub("_", " ", taxon),
+        Phylum = factor(Phylum, levels = c(
+    "Firmicutes", 
+    setdiff(unique(Phylum), c("Firmicutes", "Other")), 
+    "Other")))
+```
+
+```{r}
+g <- res.recist %>%
+  filter(q_ResponseResponder < 1) %>%
+  ggplot(aes(x=lfc_ResponseResponder, y=-log10(q_ResponseResponder), label = taxon)) + 
+  geom_point(aes(x=lfc_ResponseResponder, y=-log10(q_ResponseResponder), color = Phylum)) + 
+  geom_text_repel() +
+  scale_color_manual(values = colors, na.value = "honeydew3") +
+  theme_minimal() +
+  xlab("log2foldchange") +
+  ylab("log10(p-value)") +
+  theme(legend.position =  "none") +
+  guides(color = guide_legend(na.translate = FALSE))
+
+g
+
+ggsave("../../figures/fig2a-volcano-res-baseline.png", height = 6, width = 10)
+```
+
+Figure 2D - Effect Size
+```{r}
+top.mics <- resPlot_recist %>%
+  dplyr::arrange(desc(abs(log2FoldChange)))
+```
+
+
+BONUS will be own figure? - UMAP Clustering ... assumming this should be a respondersig figure?
 ```{r}
 # create input seperately - plot here 
 umap.dat <- counts.w %>%
@@ -129,38 +171,5 @@ umap.dat <- counts.w %>%
 pca <- prcomp(umap.dat[2:933])
 
 autoplot(pca, data = umap.dat, colour = "Response")
-```
-
-Figure 2C - Volcano Plot R vs. NR
-```{r}
-phyl_labels <- phyl_labels %>%
-  mutate(taxon = substr(microbe, 4, nchar(microbe)))
-
-res.recist <- res.recist %>%
-  left_join(phyl_labels) %>%
-  mutate(Phylum = ifelse(p_ResponseResponder < 0.05 & abs(lfc_ResponseResponder) > 2, Phylum, NA))
-```
-
-
-```{r}
-g <- res.recist %>%
-  filter(p_ResponseResponder < 1) %>%
-  ggplot(aes(x=lfc_ResponseResponder, y=-log10(p_ResponseResponder), label = taxon)) + 
-  geom_point(aes(x=lfc_ResponseResponder, y=-log10(p_ResponseResponder), color = Phylum)) + 
-  geom_text_repel() +
-  scale_color_manual(values = colors) +
-  theme_minimal() +
-  xlab("log2foldchange") +
-  ylab("log10(p-value)")
-
-g
-
-ggsave("../../figures/fig2a-volcano-res-baseline.png", height = 6, width = 10)
-```
-
-Figure 2D - Effect Size
-```{r}
-top.mics <- resPlot_recist %>%
-  dplyr::arrange(desc(abs(log2FoldChange)))
 ```
 
