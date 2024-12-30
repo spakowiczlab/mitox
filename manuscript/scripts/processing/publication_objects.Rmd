@@ -424,3 +424,22 @@ irae <- irAE %>%
 
 save(irae, file = "../../data/irae.rds")
 ```
+
+make phylum labels
+```{r}
+phyl_labels <- taxa %>%
+  select(Taxonomy) %>%
+  separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "t"), "\\|") %>%
+  select(-Kingdom) %>%
+  pivot_longer(cols = `Class`:`t`, 
+               names_to = "level",
+               values_to = "microbe") %>%
+  select(-level) %>%
+  mutate(Phylum = substr(Phylum, 4, nchar(Phylum))) %>%
+  distinct() %>%
+  filter(!is.na(Phylum)) %>%
+  mutate(microbe = ifelse(is.na(microbe), paste0("p__", Phylum), microbe))
+
+save(phyl_labels, file = "../../data/phylum-labels.rds")
+```
+
