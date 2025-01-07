@@ -1,0 +1,71 @@
+---
+title: "select RESIST taxa labels"
+author: "Dan Spakowicz"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+# Summary
+
+The goal of this script is to select which taxa significantly associated with treatment response should be labeled in the volcano plot.
+
+```{r}
+load("../../data/ANCOM-BC2_response_baseline.RData")
+tax <- read_csv("../../../data/2024-08-30_mpa_aggregated_long.csv")
+```
+
+```{r}
+sig <- 
+  res.recist |> 
+  filter(q_ResponseResponder < 0.05) |> 
+  arrange(q_ResponseResponder)
+
+nrow(sig)
+
+head(sig)
+```
+
+So many!
+
+And the top orgs often lack taxonomy information. I'll append a column that contains the additional information.
+
+```{r}
+tax %>%
+  select(Taxonomy) |> 
+  separate(Taxonomy, remove = FALSE, into = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"), sep = "\\|")
+```
+
+```{r}
+new.tax <- 
+  tax |> 
+  select(Taxonomy) |> 
+  mutate(taxon = gsub(".*__(\\w+)$","\\1", Taxonomy))
+
+head(new.tax)
+```
+
+```{r}
+resist.out <- 
+  new.tax |> 
+  right_join(sig) |> 
+  separate(Taxonomy, 
+           remove = FALSE, 
+           into = c("Kingdom", 
+                    "Phylum", 
+                    "Class", 
+                    "Order", 
+                    "Family", 
+                    "Genus", 
+                    "Species"),
+           sep = "\\|")
+```
+
+```{r}
+saveRDS(resist.out, "../../data/ancom-resist-sigq_taxonomy.RDS")
+```
