@@ -1,0 +1,51 @@
+---
+title: "examine sample timing"
+output: html_document
+date: "2025-01-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Define sample type
+
+```{r}
+load("../../data/microbiome_metadata.rds")
+load("../../data/clinical.rds")
+load("../../data/events.rds")
+```
+
+```{r}
+irAE.time <- events %>%
+  filter(Event == "irAE") %>%
+  mutate(irAE.day = Days) %>%
+  select(`Patient Id`, irAE.day)
+
+mic.time <- mic.meta %>%
+  left_join(irAE.time)
+```
+
+define sample types
+```{r}
+mic.time <- mic.time %>%
+  # For baseline def need to resolve only 1 per individual
+  mutate(Baseline = ifelse(Days <= 10 & Days >= -10, 1, 0),
+         # same deal, M020 has two irAE samples, 9 days +- from irAE
+         irAE = ifelse(is.na(irAE.day), 0,
+                       ifelse(abs(Days - irAE.day) <= 10, 1, 0)),
+         wk12 = ifelse(Days <= 94 & Days >= 74, 1, 0),
+         # Control = not any other category??
+         Control = ifelse(Baseline == 0 & irAE == 0 & wk12 == 0, 1, 0)
+         )
+```
+
+```{r}
+table(mic.time$Baseline)
+table(mic.time$irAE)
+table(mic.time$wk12)
+table(mic.time$Control)
+```
+
+
+

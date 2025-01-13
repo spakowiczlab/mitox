@@ -1,0 +1,15 @@
+---
+title: "virus exploratory"
+output: html_document
+date: "2025-01-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load("../manuscript/data/vsc.rds")
+vir.key <- read.csv("../manuscript/data/CRISPR_VSG-to-species.csv")
+```
+
