@@ -443,3 +443,22 @@ phyl_labels <- taxa %>%
 save(phyl_labels, file = "../../data/phylum-labels.rds")
 ```
 
+make taxonomy ID table
+```{r}
+tax.key <- taxa %>%
+  select(Taxonomy) %>%
+  separate(Taxonomy, c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "t"), "\\|") %>%
+  select(-t) %>%
+  mutate(microbe = ifelse(!is.na(Species), Species,
+                          ifelse(!is.na(Genus), Genus,
+                                 ifelse(!is.na(Family), Family,
+                                        ifelse(!is.na(Order), Order,
+                                               ifelse(!is.na(Class), Class,
+                                                      ifelse(!is.na(Phylum), Phylum,
+                                                             Kingdom)))))),
+         taxon = substr(microbe, 4, nchar(microbe))) 
+
+save(tax.key, file = "../../data/taxonomy-key.rds")
+```
+
+
