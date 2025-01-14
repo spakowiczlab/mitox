@@ -1,0 +1,156 @@
+---
+title: "compare irAE and Response results"
+output: html_document
+date: "2025-01-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+load("../../data/counts-wide.rds")
+load("../../data/ANCOM-BC2_response_baseline.RData")
+load("../../data/ANCOM-BC2_irae_baseline.RData")
+load("../../data/taxonomy-key.rds")
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+```
+
+
+Compare irAE and response results 
+Interested in
+- R and No irAE  
+- NR and irAE
+```{r}
+recist.sig <- res.recist %>%
+  filter(res.recist$q_ResponseResponder < 0.05) %>%
+  select(taxon, lfc_ResponseResponder, q_ResponseResponder)
+
+# filter to significant in both groups AND in the right direction! 
+sig.R.NoirAE <- res.irae %>%
+  filter(res.irae$q_irAEYes < 0.05,
+         taxon %in% recist.sig$taxon) %>%
+  left_join(recist.sig) %>%
+  filter((lfc_ResponseResponder > 0 & lfc_irAEYes < 0)) %>% # R + No irAE
+  mutate(taxon = gsub("_", " ", taxon)) %>%
+  left_join(tax.key) %>%
+  select(taxon, lfc_ResponseResponder, q_ResponseResponder, lfc_irAEYes, q_irAEYes, Kingdom, Phylum, Class, Order, Family, Genus, Species)
+
+sig.NR.irAE <- res.irae %>%
+  filter(res.irae$q_irAEYes < 0.05,
+         taxon %in% recist.sig$taxon) %>%
+  left_join(recist.sig) %>%
+  filter((lfc_ResponseResponder < 0 & lfc_irAEYes > 0)) %>% # NR + irAE
+  mutate(taxon = gsub("_", " ", taxon)) %>%
+  left_join(tax.key) %>%
+  select(taxon, lfc_ResponseResponder, q_ResponseResponder, lfc_irAEYes, q_irAEYes, Kingdom, Phylum, Class, Order, Family, Genus, Species)
+```
+
+structural zero overlap
+```{r}
+# baseline samples 
+base.samps <- mic.meta %>% 
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+# prepare count data
+counts <- counts.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "est.reads") %>%
+  filter(grepl("s__", microbe)) %>%
+  mutate(microbe = str_remove(microbe, "^[a-z]__"))
+  
+# find top 10 based on mean counts 
+r <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)` &
+                                                 !`structural_zero (Response = Responder)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+r.top <- r %>%
+  group_by(microbe) %>%
+  summarize(r.total.nonzero = sum(est.reads > 0),
+            r.percent.nonzero = r.total.nonzero/n_distinct(sample),
+            r.mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(responseGroup = "Responder")
+
+nr <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Non-Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)` &
+                                                 !`structural_zero (Response = Non-Responder)`))$taxon) %>%
+  select(sample, microbe, est.reads) 
+
+nr.top <- nr %>%
+  group_by(microbe) %>%
+    summarize(r.total.nonzero = sum(est.reads > 0),
+            r.percent.nonzero = r.total.nonzero/n_distinct(sample),
+            r.mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(responseGroup = "Non-Responder")
+
+irae <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(irAE == "Yes",
+         microbe %in% (struct0.irae %>% filter(`structural_zero (irAE = No)` &
+                                                 !`structural_zero (irAE = Yes)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+irae.top <- irae %>%
+  group_by(microbe) %>%
+    summarize(i.total.nonzero = sum(est.reads > 0),
+            i.percent.nonzero = i.total.nonzero/n_distinct(sample),
+            i.mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(iraeGroup = "irAE")
+
+no_irae <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(irAE == "No",
+         microbe %in% (struct0.irae %>% filter(`structural_zero (irAE = Yes)` & 
+                                                 !`structural_zero (irAE = No)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+no_irae.top <- no_irae %>%
+  group_by(microbe) %>%
+    summarize(i.total.nonzero = sum(est.reads > 0),
+            i.percent.nonzero = i.total.nonzero/n_distinct(sample),
+            i.mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(iraeGroup = "No irAE")
+```
+
+
+check overlap
+R and No irAE
+NR and irAE
+```{r}
+s0.r.no_irae <- r.top %>%
+  inner_join(no_irae.top)
+
+s0.nr.irae <- nr.top %>%
+  inner_join(irae.top)
+
+s0.irae <- irae.top %>%
+  rbind(no_irae.top)
+
+s0.response <- r.top %>%
+  rbind(nr.top)
+```
+
+lets save both of these tables for perusal
+```{r}
+save(sig.R.NoirAE, s0.r.no_irae, file = "../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
+save(sig.NR.irAE, s0.nr.irae, file = "../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
+```
+
+
+
+

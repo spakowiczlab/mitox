@@ -456,7 +456,8 @@ tax.key <- taxa %>%
                                                ifelse(!is.na(Class), Class,
                                                       ifelse(!is.na(Phylum), Phylum,
                                                              Kingdom)))))),
-         taxon = substr(microbe, 4, nchar(microbe))) 
+         taxon = gsub("_", " ", substr(microbe, 4, nchar(microbe)))) %>%
+  distinct()
 
 save(tax.key, file = "../../data/taxonomy-key.rds")
 ```

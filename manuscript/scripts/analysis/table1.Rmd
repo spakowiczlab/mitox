@@ -19,7 +19,22 @@ library(gridExtra)
 ```{r}
 load("../../data/clinical.rds")
 load("../../data/irae.rds")
+load("../../data/microbiome_metadata.rds")
 ```
+
+Remove participant without baseline sample 
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+demo.filt <- demographics %>%
+  filter(`Patient Id` %in% baseline$`Patient Id`)
+```
+
 
 function to get p-value 
 ```{r}
@@ -44,20 +59,26 @@ pvalue <- function(x, ...) {
 
 Table 1 - strat by Response
 ```{r}
-tab1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
-       data=demographics, overall="Total", extra.col=list(`P-value`=pvalue), 
+table1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
+       data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
-tab1
+print(table1, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
+
+# table1_ft <- flextable(as.data.frame(tab1)) %>%
+#   set_table_properties(width = 0.8, layout =  "autofit") %>%
+#   theme_booktabs()
+# 
+# table1_ft
 ```
 
 Table 2 - strat by irAE
 ```{r}
-tab2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
-       data=demographics, overall="Total", extra.col=list(`P-value`=pvalue), 
+table2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
+       data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
-tab2
+table2
 ```
 
 
@@ -68,12 +89,24 @@ If we decide to make our own version
 tab1 <- CreateTableOne(
   vars = c("Age", "Sex", "Race", "Treatment", "Stage", "irAE"),  # Variables
   strata = "Response",  # Stratification variable
-  data = demographics,
+  data = demo.filt,
   test = TRUE,  # Enables default p-value calculation
   addOverall = TRUE  # Add an "Overall" column
 )
 
 print(tab1)
+```
+
+```{r}
+tab2 <- CreateTableOne(
+  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "Response"),  # Variables
+  strata = "irAE",  # Stratification variable
+  data = demo.filt,
+  test = TRUE,  # Enables default p-value calculation
+  addOverall = TRUE  # Add an "Overall" column
+)
+
+print(tab2)
 ```
 
 

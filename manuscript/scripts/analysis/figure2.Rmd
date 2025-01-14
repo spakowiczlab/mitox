@@ -17,13 +17,18 @@ library(ggfortify)
 # Load data 
 ```{r}
 load("../../data/ra-long.rds")
-load("../../data/ra-wide.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/counts-wide.rds")
-load("../../data/counts-long.rds")
 load("../../data/ANCOM-BC2_response_baseline.RData")
 load("../../data/phylum-labels.rds")
+load("../../data/taxonomy-key.rds")
+load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
+load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
+load("../../data/struct0_response.rds")
+load("../../data/struct0_irae.rds")
+# load("../../data/vsc.rds")
+# vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
 
 # Figure Features 
@@ -40,7 +45,8 @@ base.samps <- mic.meta %>%
   group_by(`Patient Id`) %>%
   arrange(Days) %>%
   slice_head(n = 1) %>%
-  ungroup()
+  ungroup() %>%
+  filter(abs(Days) <= 10)
 ```
 
 Figure 2A - Stacked Bar (RA)
@@ -80,43 +86,48 @@ phyl.ra <- phyl.ra %>%
     "Other")))
 
 # all samples 
-phyl.ra %>%
-  ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
-  geom_bar(position="fill", stat = "identity") +
-  scale_fill_manual(values = colors) + 
-  labs(x = "", y = "") +
-  theme_minimal(base_size = 7) +
-  theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        legend.position = "bottom",
-        legend.box = "horizontal",
-        legend.title = element_blank()) +
-  facet_grid(~Response, scales = "free_x", space = "free") +
-  guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
+# phyl.ra %>%
+#   ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
+#   geom_bar(position="fill", stat = "identity") +
+#   scale_fill_manual(values = colors) + 
+#   labs(x = "", y = "") +
+#   theme_minimal(base_size = 7) +
+#   theme(axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank(),
+#         axis.text.y = element_blank(),
+#         panel.grid.major = element_blank(),
+#         legend.position = "bottom",
+#         legend.box = "horizontal",
+#         legend.title = element_blank()) +
+#   facet_grid(~Response, scales = "free_x", space = "free") +
+#   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
-ggsave("../../figures/fig2a-stackedbar.png", height = 4, width = 6)
+# ggsave("../../figures/fig2a-stackedbar.png", height = 4, width = 6)
 
 #baseline samples only
 phyl.ra %>%
   filter(sample %in% base.samps$sample) %>%
   ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
-  geom_bar(position="fill", stat = "identity") +
+  geom_bar(position = "fill", stat = "identity") +
   scale_fill_manual(values = colors) + 
   labs(x = "", y = "") +
-  theme_minimal(base_size = 7) +
-  theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.text.y = element_blank(),
-        panel.grid.major = element_blank(),
-        legend.position = "bottom",
-        legend.box = "horizontal",
-        legend.title = element_blank()) +
-  facet_grid(~Response, scales = "free_x", space = "free") +
+  theme_minimal(base_size = 9) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major = element_blank(),
+    legend.position = "top",
+    legend.box = "horizontal",
+    legend.title = element_blank(),
+    strip.placement = "outside", # Moves facet labels outside
+    strip.background = element_blank(), # Optional: Removes the background of facet labels
+    strip.text.x = element_text(size = 9) # Adjusts facet label text size
+  ) +
+  facet_grid(~Response, scales = "free_x", space = "free", switch = "x") +
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
-ggsave("../../figures/fig2a-stackedbar-baseline.png", height = 4, width = 6)
+ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3, width = 7)
 ```
 
 Figure 2B - Volcano Plot R vs. NR
@@ -126,11 +137,12 @@ phyl_labels <- phyl_labels %>%
 
 res.recist <- res.recist %>%
   left_join(phyl_labels) %>%
-  mutate(Phylum = ifelse(q_ResponseResponder < 0.05 & abs(lfc_ResponseResponder) > 2, 
+  mutate(Phylum = ifelse(q_ResponseResponder < 0.05 & abs(lfc_ResponseResponder) > 1, 
                          ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"), NA),
          taxon = gsub("_", " ", taxon),
         Phylum = factor(Phylum, levels = c(
-    "Firmicutes", "Bacteroidota", "Actinobacteria", "Proteobacteria", "Other")))
+    "Firmicutes", "Bacteroidota", "Actinobacteria", "Proteobacteria", "Other")),
+    label = ifelse(taxon %in% sig.NR.irAE$taxon | taxon %in% sig.R.NoirAE$taxon, taxon, NA))
 
 colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#882255")
 ```
@@ -138,11 +150,11 @@ colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#882255")
 ```{r}
 g <- res.recist %>%
   filter(q_ResponseResponder < 1) %>%
-  ggplot(aes(x=lfc_ResponseResponder, y=-log10(q_ResponseResponder), label = taxon)) + 
+  ggplot(aes(x=lfc_ResponseResponder, y=-log10(q_ResponseResponder), label = label)) + 
   geom_point(aes(x=lfc_ResponseResponder, y=-log10(q_ResponseResponder), color = Phylum)) + 
-  geom_text_repel() +
+  geom_text_repel(size = 2) +
   scale_color_manual(values = colors, na.value = "honeydew3") +
-  theme_minimal() +
+  theme_bw(base_size = 9) +
   xlab("log2foldchange") +
   ylab("log10(p-value)") +
   theme(legend.position =  "none") + # legend matches stacked bar 
@@ -150,138 +162,23 @@ g <- res.recist %>%
 
 g
 
-ggsave("../../figures/fig2a-volcano-res-baseline.png", height = 6, width = 10)
+ggsave("../../figures/Fig2B-response-baseline-volcano.png", height = 4, width = 7)
 ```
-Figure 2C - Structural Zeroes
 
-c) structural zeroes
-Top 10 as a boxplot arranged by abs(mean counts)
-Boxplot by log counts, colored by phylum again, with labels for response vs non-response 
-There are lots – how to refine
-Check abundances of a few, particularly those with decimal values
-Enrichment of structural zeroes in responders
-Mosaic plot fisher exact assoc presence with response 
-consider — DON’T DO THIS YET
-Bar of length nrow structural zeroes
-Fill = response category
-P-value by permutation test
-sample (response cat) * 1000 ???? 
 
-Get top 10 arranged by abs(mean counts)
+Figure 2C - Structural Zero Box plots
 
-Enrichment is in Responders
-R: n = 789
-NR: n = 479
 ```{r}
-# prepare count data
 counts <- counts.w %>%
   pivot_longer(!microbe, names_to = "sample", values_to = "est.reads") %>%
   filter(grepl("s__", microbe)) %>%
   mutate(microbe = str_remove(microbe, "^[a-z]__"))
-  
-# find top 10 based on mean counts 
+
 r <- counts %>%
   right_join(base.samps) %>%
   left_join(demographics) %>%
   filter(Response == "Responder",
-         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)`,
-                                                 !`structural_zero (Response = Responder)`))$taxon) %>%
-  select(sample, microbe, est.reads)
-
-r.top <- r %>%
-  group_by(microbe) %>%
-  summarize(mean.counts = mean(est.reads)) %>%
-  ungroup() %>%
-  mutate(Group = "Responder")
-
-nr <- counts %>%
-  right_join(base.samps) %>%
-  left_join(demographics) %>%
-  filter(Response == "Non-Responder",
-         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)`,
-                                                 !`structural_zero (Response = Non-Responder)`))$taxon) %>%
-  select(sample, microbe, est.reads) 
-
-nr.top <- nr %>%
-  group_by(microbe) %>%
-  summarize(mean.counts = mean(est.reads)) %>%
-  ungroup() %>%
-  mutate(Group = "Non-Responder")
-
-top10.counts <- rbind(r.top, nr.top) %>%
-  arrange(desc(mean.counts)) %>%
-  slice_head(n =10)
-
-top10.counts
-```
-
-check top10 using RA - all the same except megamonas and dif order
-```{r}
-# prepare count data
-ra <- ra.w %>%
-  pivot_longer(!microbe, names_to = "sample", values_to = "rel.abun") %>%
-  filter(grepl("s__", microbe)) %>%
-  mutate(microbe = str_remove(microbe, "^[a-z]__"))
-  
-# find top 10 based on mean counts 
-r.c <- ra %>%
-  right_join(base.samps) %>%
-  left_join(demographics) %>%
-  filter(Response == "Responder",
-         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)`,
-                                                 !`structural_zero (Response = Responder)`))$taxon) %>%
-  select(sample, microbe, rel.abun)
-
-r.top <- r.c %>%
-  group_by(microbe) %>%
-  summarize(mean.ra = mean(rel.abun),
-            total.nonzero = sum(rel.abun > 0)) %>%
-  ungroup() %>%
-  mutate(Group = "Responder")
-
-nr.c <- ra %>%
-  right_join(base.samps) %>%
-  left_join(demographics) %>%
-  filter(Response == "Non-Responder",
-         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)`,
-                                                 !`structural_zero (Response = Non-Responder)`))$taxon) %>%
-  select(sample, microbe, rel.abun) 
-
-nr.top <- nr.c %>%
-  group_by(microbe) %>%
-  summarize(mean.ra = mean(rel.abun),
-            total.nonzero = sum(rel.abun > 0)) %>%
-  ungroup() %>%
-  mutate(Group = "Non-Responder")
-
-top10.ra <- rbind(r.top, nr.top) %>%
-  arrange(desc(mean.ra)) %>%
-  slice_head(n =10)
-
-top10.ra.presence <- rbind(r.top, nr.top) %>%
-  arrange(desc(total.nonzero), desc(mean.ra)) %>%
-  slice_head(n =10)
-
-top10.ra
-top10.ra.presence
-```
-could instead look at present in most samples, and then mean counts?
-seems like there are just a lot of counts in a few samples
-nr range 1-4 species level
-r range 1-8 species level
-```{r}
-# prepare count data
-counts <- counts.w %>%
-  pivot_longer(!microbe, names_to = "sample", values_to = "est.reads") %>%
-  filter(grepl("s__", microbe)) %>%
-  mutate(microbe = str_remove(microbe, "^[a-z]__"))
-  
-# find top 10 based on mean counts 
-r <- counts %>%
-  right_join(base.samps) %>%
-  left_join(demographics) %>%
-  filter(Response == "Responder",
-         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)`,
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)` &
                                                  !`structural_zero (Response = Responder)`))$taxon) %>%
   select(sample, microbe, est.reads)
 
@@ -290,67 +187,45 @@ r.top <- r %>%
   summarize(total.nonzero = sum(est.reads > 0),
             percent.nonzero = total.nonzero/n_distinct(sample),
             mean.counts = mean(est.reads)) %>%
-  ungroup() %>%
-  mutate(Group = "Responder")
+  ungroup() 
 
 nr <- counts %>%
   right_join(base.samps) %>%
   left_join(demographics) %>%
   filter(Response == "Non-Responder",
-         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)`,
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)` &
                                                  !`structural_zero (Response = Non-Responder)`))$taxon) %>%
   select(sample, microbe, est.reads) 
 
 nr.top <- nr %>%
   group_by(microbe) %>%
-  summarize(total.nonzero = sum(est.reads > 0),
+    summarize(total.nonzero = sum(est.reads > 0),
             percent.nonzero = total.nonzero/n_distinct(sample),
             mean.counts = mean(est.reads)) %>%
-  ungroup() %>%
-  mutate(Group = "Non-Responder")
-
-top10.c.mean <- rbind(r.top, nr.top) %>%
-  arrange(desc(mean.counts)) %>%
-  slice_head(n =10)
-
-top10.c.presence <- rbind(r.top, nr.top) %>%
-  arrange(desc(total.nonzero), desc(mean.counts)) %>%
-  slice_head(n =10)
-
-top10.percent <- rbind(r.top, nr.top) %>%
-  arrange(desc(percent.nonzero), desc(mean.counts)) %>%
-  slice_head(n =10)
-
-top10.c.mean
-top10.c.presence 
-top10.percent
+  ungroup()
 ```
 
-prep input 
+
 ```{r}
+top10 <- rbind(r.top, nr.top) %>%
+  filter(percent.nonzero > 0.15) %>%
+  arrange(desc(mean.counts)) %>%
+  slice_head(n=10)
+
 box.in <- rbind(r, nr) %>%
-  filter(microbe %in% top10.percent$microbe) %>%
+  filter(microbe %in% top10$microbe) %>%
   left_join(mic.meta) %>%
   left_join(demographics) %>%
   dplyr::rename(taxon = microbe) %>%
   left_join(phyl_labels) %>%
-  # unnecessary line given no 'Other' Phylums present
   mutate(Phylum = ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"),
-         taxon = gsub("_", " ", taxon))
+         taxon = gsub("_", " ", taxon),
+         irAE = ifelse(irAE == "Yes", "irAE", "No irAE")) 
 
 
 colors <- c("#999933","#6699CC","#44AA99")
 ```
 
-plot
-
-top mean counts look like crap...
-maybe need to try top abundance?
-maybe need to try different visualization 
-top mean counts, but still very few with counts, but be just a few samples with 
-VERY high abundance of certain microbes
-
-lets try lets look at top 10 percent present -> mean counts
 ```{r}
 box.in %>%
   ggplot(aes(x = taxon, y=log(est.reads), fill = Phylum)) +
@@ -358,40 +233,16 @@ box.in %>%
   geom_jitter() + 
   scale_fill_manual(values = colors) +
   facet_grid(~ Response, scales = "free", space = "free") +
-  theme_bw() +
+  theme_bw(base_size = 9) +
   theme(
     panel.spacing = unit(1, "lines"), 
     axis.text.x = element_text(angle = 45, hjust = 1),  
-    strip.text = element_text(size = 10),
+    strip.text = element_text(size = 9),
     legend.position = "none"
   ) +
   xlab("")
 
-ggsave("../../figures/fig2c-struct0-baseline.png", height = 6, width = 8)
+ggsave("../../figures/Fig2C-response-s0-baseline-boxplots.png", height = 3, width = 7)
 ```
 
-Figure 2D - Virus Output
-```{r}
-
-```
-
-
-
-
-
-
-BONUS will be own figure? - UMAP Clustering ... assuming this should be a respondersig figure?
-```{r}
-# create input seperately - plot here 
-umap.dat <- counts.w %>%
-  pivot_longer(!microbe, names_to = "sample", values_to = "count") %>%
-  filter(sample %in% base.samps$sample,
-         grepl("g__", microbe)) %>% 
-  pivot_wider(names_from = microbe, values_from = count) %>%
-  left_join(resp.id)
-
-pca <- prcomp(umap.dat[2:933])
-
-autoplot(pca, data = umap.dat, colour = "Response")
-```
 

@@ -55,7 +55,8 @@ baseline <- mic.meta %>%
   group_by(`Patient Id`) %>%
   arrange(Days) %>%
   slice_head(n = 1) %>%
-  ungroup()
+  ungroup() %>%
+  filter(abs(Days) <= 10)
 
 clin <- left_join(baseline, demographics, by = "Patient Id") %>%
   dplyr::filter(sample %in% counts.l$sample)

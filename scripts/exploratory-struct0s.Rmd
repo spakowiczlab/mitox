@@ -1,0 +1,249 @@
+---
+title: "exploratory-structural zeroes"
+output: html_document
+date: "2025-01-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load data 
+```{r}
+load("../../data/ra-long.rds")
+load("../../data/ra-wide.rds")
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/counts-wide.rds")
+load("../../data/counts-long.rds")
+load("../../data/ANCOM-BC2_response_baseline.RData")
+load("../../data/phylum-labels.rds")
+load("../../data/taxonomy-key.rds")
+load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
+load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
+# load("../../data/vsc.rds")
+# vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
+```
+
+c) structural zeroes
+Top 10 as a boxplot arranged by abs(mean counts)
+Boxplot by log counts, colored by phylum again, with labels for response vs non-response 
+There are lots – how to refine
+Check abundances of a few, particularly those with decimal values
+Enrichment of structural zeroes in responders
+Mosaic plot fisher exact assoc presence with response 
+consider — DON’T DO THIS YET
+Bar of length nrow structural zeroes
+Fill = response category
+P-value by permutation test
+sample (response cat) * 1000 ???? 
+
+Get top 10 arranged by abs(mean counts)
+
+Enrichment is in Responders
+R: n = 789
+NR: n = 479
+```{r}
+# prepare count data
+counts <- counts.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "est.reads") %>%
+  filter(grepl("s__", microbe)) %>%
+  mutate(microbe = str_remove(microbe, "^[a-z]__"))
+  
+# find top 10 based on mean counts 
+r <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)`,
+                                                 !`structural_zero (Response = Responder)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+r.top <- r %>%
+  group_by(microbe) %>%
+  summarize(mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(Group = "Responder")
+
+nr <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Non-Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)`,
+                                                 !`structural_zero (Response = Non-Responder)`))$taxon) %>%
+  select(sample, microbe, est.reads) 
+
+nr.top <- nr %>%
+  group_by(microbe) %>%
+  summarize(mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(Group = "Non-Responder")
+
+```
+
+check top10 using RA - all the same except megamonas and dif order
+```{r}
+# prepare count data
+ra <- ra.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "rel.abun") %>%
+  filter(grepl("s__", microbe)) %>%
+  mutate(microbe = str_remove(microbe, "^[a-z]__"))
+  
+# find top 10 based on mean counts 
+r.c <- ra %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)`,
+                                                 !`structural_zero (Response = Responder)`))$taxon) %>%
+  select(sample, microbe, rel.abun)
+
+r.top <- r.c %>%
+  group_by(microbe) %>%
+  summarize(mean.ra = mean(rel.abun),
+            total.nonzero = sum(rel.abun > 0)) %>%
+  ungroup() %>%
+  mutate(Group = "Responder")
+
+nr.c <- ra %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Non-Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)`,
+                                                 !`structural_zero (Response = Non-Responder)`))$taxon) %>%
+  select(sample, microbe, rel.abun) 
+
+nr.top <- nr.c %>%
+  group_by(microbe) %>%
+  summarize(mean.ra = mean(rel.abun),
+            total.nonzero = sum(rel.abun > 0)) %>%
+  ungroup() %>%
+  mutate(Group = "Non-Responder")
+
+top10.ra <- rbind(r.top, nr.top) %>%
+  arrange(desc(mean.ra)) %>%
+  slice_head(n =10)
+
+top10.ra.presence <- rbind(r.top, nr.top) %>%
+  arrange(desc(total.nonzero), desc(mean.ra)) %>%
+  slice_head(n =10)
+
+top10.ra
+top10.ra.presence
+```
+could instead look at present in most samples, and then mean counts?
+seems like there are just a lot of counts in a few samples
+nr range 1-4 species level
+r range 1-8 species level
+```{r}
+# prepare count data
+counts <- counts.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "est.reads") %>%
+  filter(grepl("s__", microbe)) %>%
+  mutate(microbe = str_remove(microbe, "^[a-z]__"))
+  
+# find top 10 based on mean counts 
+r <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Non-Responder)`,
+                                                 !`structural_zero (Response = Responder)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+r.top <- r %>%
+  group_by(microbe) %>%
+  summarize(total.nonzero = sum(est.reads > 0),
+            percent.nonzero = total.nonzero/n_distinct(sample),
+            mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(Group = "Responder")
+
+nr <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(Response == "Non-Responder",
+         microbe %in% (struct0.recist %>% filter(`structural_zero (Response = Responder)`,
+                                                 !`structural_zero (Response = Non-Responder)`))$taxon) %>%
+  select(sample, microbe, est.reads) 
+
+nr.top <- nr %>%
+  group_by(microbe) %>%
+  summarize(total.nonzero = sum(est.reads > 0),
+            percent.nonzero = total.nonzero/n_distinct(sample),
+            mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(Group = "Non-Responder")
+
+top10.c.mean <- rbind(r.top, nr.top) %>%
+  arrange(desc(mean.counts)) %>%
+  slice_head(n =10)
+
+top10.c.presence <- rbind(r.top, nr.top) %>%
+  arrange(desc(total.nonzero), desc(mean.counts)) %>%
+  slice_head(n =10)
+
+top10.percent <- rbind(r.top, nr.top) %>%
+  arrange(desc(percent.nonzero), desc(mean.counts)) %>%
+  slice_head(n =10)
+
+top10.cutoff <- rbind(r.top, nr.top) %>%
+  filter(percent.nonzero > 0.15) %>%
+  arrange(desc(mean.counts)) %>%
+  slice_head(n=10)
+
+top10.c.mean
+top10.c.presence 
+top10.percent
+```
+
+prep input 
+```{r}
+box.in <- rbind(r, nr) %>%
+  filter(microbe %in% top10.cutoff$microbe) %>%
+  left_join(mic.meta) %>%
+  left_join(demographics) %>%
+  dplyr::rename(taxon = microbe) %>%
+  left_join(phyl_labels) %>%
+  # unnecessary line given no 'Other' Phylums present
+  mutate(Phylum = ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"),
+         taxon = gsub("_", " ", taxon))
+
+
+colors <- c("#999933","#6699CC","#44AA99")
+```
+
+plot
+
+top mean counts look like crap...
+maybe need to try top abundance?
+maybe need to try different visualization 
+top mean counts, but still very few with counts, but be just a few samples with 
+VERY high abundance of certain microbes
+
+lets try lets look at top 10 percent present -> mean counts
+```{r}
+box.in %>%
+  ggplot(aes(x = taxon, y=log(est.reads), fill = Phylum)) +
+  geom_boxplot(width = 0.5) +
+  geom_jitter() + 
+  scale_fill_manual(values = colors) +
+  facet_grid(~ Response, scales = "free", space = "free") +
+  theme_bw() +
+  theme(
+    panel.spacing = unit(1, "lines"), 
+    axis.text.x = element_text(angle = 45, hjust = 1),  
+    strip.text = element_text(size = 10),
+    legend.position = "none"
+  ) +
+  xlab("")
+
+ggsave("../../figures/fig2c-struct0-baseline.png", height = 6, width = 8)
+```
+
+OR should we look at overlap between irAE and response groups??
+```{r}
+
+```
+
+

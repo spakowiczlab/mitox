@@ -14,31 +14,232 @@ library(ggrepel)
 
 # Load data
 ```{r}
-load("../../data/deseq_irae_baseline.rds")
-load("../../data/deseq_subset_baseline.rds")
+load("../../data/ra-long.rds")
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/counts-wide.rds")
+load("../../data/ANCOM-BC2_irae_baseline.RData")
+load("../../data/phylum-labels.rds")
+load("../../data/taxonomy-key.rds")
+load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
+load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
+# load("../../data/vsc.rds")
+# vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
 
-
-Figure 3
-
-Figure 3 - Volcano Plot - irAE yes vs. irAE no
+# Figure Features 
 ```{r}
-g <- ggplot(resPlot_irae, aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
-  geom_point() + 
-  geom_text_repel() +
-  theme_minimal()
+colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#DDCC77","#882255")
+
+# Response ID's
+irae.id <- mic.meta %>%
+  left_join(demographics) %>%
+  mutate(irAE = ifelse(irAE == "Yes", "irAE", "No irAE")) %>%
+  select(sample, Days, irAE)
+
+# baseline samples 
+base.samps <- mic.meta %>% 
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+```
+
+Figure 3A - Stacked Bar
+```{r}
+phyl.ra <- ra.l %>%
+  filter(grepl("p__", microbe))
+
+top.phyl <- phyl.ra %>%
+  group_by(microbe) %>%
+  summarise(med.abun = median(RelAbun)) %>%
+  arrange(desc(med.abun)) %>%
+  filter(med.abun > 0)
+
+phyl.ra <- phyl.ra %>%
+  mutate(Phylum = ifelse(microbe %in% top.phyl$microbe, gsub("p__", "", microbe), 
+                         "Other")) %>%
+  left_join(irae.id)
+
+# reorder samples by the total relative abundance of Firmicutes
+phyl.ra <- phyl.ra %>%
+  group_by(sample) %>%
+  mutate(Firmicutes_Abundance = sum(RelAbun[Phylum == "Firmicutes"], na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(sample = fct_reorder(sample, Firmicutes_Abundance))
+
+# order of microbes with 'other' last
+phyl.ra <- phyl.ra %>%
+  mutate(Phylum = factor(Phylum, levels = c(
+    "Firmicutes", 
+    setdiff(unique(Phylum), c("Firmicutes", "Other")), 
+    "Other")))
+
+# all samples 
+# phyl.ra %>%
+#   ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
+#   geom_bar(position="fill", stat = "identity") +
+#   scale_fill_manual(values = colors) + 
+#   labs(x = "", y = "") +
+#   theme_minimal(base_size = 7) +
+#   theme(axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank(),
+#         axis.text.y = element_blank(),
+#         panel.grid.major = element_blank(),
+#         legend.position = "bottom",
+#         legend.box = "horizontal",
+#         legend.title = element_blank()) +
+#   facet_grid(~irAE, scales = "free_x", space = "free") +
+#   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
+
+
+#baseline samples only
+phyl.ra %>%
+  filter(sample %in% base.samps$sample) %>%
+  ggplot(aes(x = sample, y = RelAbun, fill = Phylum)) +
+  geom_bar(position = "fill", stat = "identity") +
+  scale_fill_manual(values = colors) + 
+  labs(x = "", y = "") +
+  theme_minimal(base_size = 9) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid.major = element_blank(),
+    legend.position = "top",
+    legend.box = "horizontal",
+    legend.title = element_blank(),
+    strip.placement = "outside", # Moves facet labels outside
+    strip.background = element_blank(), # Optional: Removes the background of facet labels
+    strip.text.x = element_text(size = 9) # Adjusts facet label text size
+  ) +
+  facet_grid(~irAE, scales = "free_x", space = "free", switch = "x") +
+  guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
+
+
+ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3, width = 7)
+```
+
+Figure 3B - Volcano Plot irAE vs. No irAE
+initially irAE yes will be on the right, but want to swap so that R and No irAE
+are on the same side
+```{r}
+phyl_labels <- phyl_labels %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+res.irae <- res.irae%>%
+  left_join(phyl_labels) %>%
+  mutate(Phylum = ifelse(q_irAEYes < 0.05 & abs(lfc_irAEYes) > 1, 
+                         ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"), NA),
+         taxon = gsub("_", " ", taxon),
+        Phylum = factor(Phylum, levels = c(
+    "Firmicutes", "Bacteroidota", "Actinobacteria", "Proteobacteria", "Other")),
+    label = ifelse(taxon %in% sig.NR.irAE$taxon | taxon %in% sig.R.NoirAE$taxon, taxon, NA),
+    lfc_irAEYes = -lfc_irAEYes)
+
+colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#882255")
+```
+
+```{r}
+g <- res.irae %>%
+  filter(q_irAEYes < 1) %>%
+  ggplot(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), label = label)) + 
+  geom_point(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), color = Phylum)) + 
+  geom_text_repel(size = 2) +
+  scale_color_manual(values = colors, na.value = "honeydew3") +
+  theme_bw(base_size = 9) +
+  xlab("log2foldchange") +
+  ylab("log10(p-value)") +
+  theme(legend.position =  "none") + # legend matches stacked bar 
+  guides(color = guide_legend(na.translate = FALSE)) 
 
 g
+
+ggsave("../../figures/Fig3B-response-baseline-volcano.png", height = 4, width = 7)
 ```
 
 
-Figure 3 - Volcano Plot - Within subset of non-PD irAE yes vs. irAE no
+Figure 3C - Structural Zero Box plots
+
 ```{r}
-g <- ggplot(resPlot_sub, aes(x=log2FoldChange, y=-log10(padj), label = microbe)) + 
-  geom_point() + 
-  geom_text_repel() +
-  theme_minimal()
+counts <- counts.w %>%
+  pivot_longer(!microbe, names_to = "sample", values_to = "est.reads") %>%
+  filter(grepl("s__", microbe)) %>%
+  mutate(microbe = str_remove(microbe, "^[a-z]__"))
 
-g
+irae <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(irAE == "Yes",
+         microbe %in% (struct0.irae %>% filter(`structural_zero (irAE = No)` &
+                                                 !`structural_zero (irAE = Yes)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+irae.top <- irae %>%
+  group_by(microbe) %>%
+    summarize(total.nonzero = sum(est.reads > 0),
+            percent.nonzero = total.nonzero/n_distinct(sample),
+            mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(iraeGroup = "irAE")
+
+no_irae <- counts %>%
+  right_join(base.samps) %>%
+  left_join(demographics) %>%
+  filter(irAE == "No",
+         microbe %in% (struct0.irae %>% filter(`structural_zero (irAE = Yes)` & 
+                                                 !`structural_zero (irAE = No)`))$taxon) %>%
+  select(sample, microbe, est.reads)
+
+no_irae.top <- no_irae %>%
+  group_by(microbe) %>%
+    summarize(total.nonzero = sum(est.reads > 0),
+            percent.nonzero = total.nonzero/n_distinct(sample),
+            mean.counts = mean(est.reads)) %>%
+  ungroup() %>%
+  mutate(iraeGroup = "No irAE")
 ```
+
+
+```{r}
+top10 <- rbind(irae.top, no_irae.top) %>%
+  filter(percent.nonzero > 0.15) %>%
+  arrange(desc(mean.counts)) %>%
+  slice_head(n=10)
+
+box.in <- rbind(irae, no_irae) %>%
+  filter(microbe %in% top10$microbe) %>%
+  left_join(mic.meta) %>%
+  left_join(demographics) %>%
+  dplyr::rename(taxon = microbe) %>%
+  left_join(phyl_labels) %>%
+  mutate(Phylum = ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"),
+         taxon = gsub("_", " ", taxon),
+         irAE = ifelse(irAE == "Yes", "irAE", "No irAE")) 
+
+
+colors <- c("#CC6677","#6699CC","#44AA99")
+```
+
+```{r}
+box.in %>%
+  ggplot(aes(x = taxon, y=log(est.reads), fill = Phylum)) +
+  geom_boxplot(width = 0.5) +
+  geom_jitter() + 
+  scale_fill_manual(values = colors) +
+  facet_grid(~ irAE, scales = "free", space = "free") +
+  theme_bw(base_size = 9) +
+  theme(
+    panel.spacing = unit(1, "lines"), 
+    axis.text.x = element_text(angle = 45, hjust = 1),  
+    strip.text = element_text(size = 9),
+    legend.position = "none"
+  ) +
+  xlab("")
+
+ggsave("../../figures/Fig3C-irAE-s0-baseline-boxplots.png", height = 3, width = 7)
+```
+
+
 

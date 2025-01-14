@@ -40,6 +40,9 @@ mic.time <- mic.time %>%
          )
 ```
 
+Baseline - 2 for dups
+irAE - 1 for dup
+Control + 3
 ```{r}
 table(mic.time$Baseline)
 table(mic.time$irAE)
