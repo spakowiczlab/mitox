@@ -64,25 +64,7 @@ table1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
 print(table1, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
-
-# table1_ft <- flextable(as.data.frame(tab1)) %>%
-#   set_table_properties(width = 0.8, layout =  "autofit") %>%
-#   theme_booktabs()
-# 
-# table1_ft
 ```
-
-Table 2 - strat by irAE
-```{r}
-table2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
-       data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
-       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
-
-table2
-```
-
-
-
 
 If we decide to make our own version 
 ```{r}
@@ -96,6 +78,19 @@ tab1 <- CreateTableOne(
 
 print(tab1)
 ```
+
+Table 2 - strat by irAE
+```{r}
+demo.filt <- demo.filt %>%
+    mutate(irAE = ifelse(irAE == "Yes", "irAE", "No irAE"))
+
+table2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
+       data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
+
+table2
+```
+
 
 ```{r}
 tab2 <- CreateTableOne(
