@@ -52,6 +52,10 @@ pfs <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/Clinical info/OSU-19125_
                                sheet = "12-month PFS") %>%
   select(-MRN)
 
+# meds 
+meds <- readxl::read_xlsx(file.path(paths$tdrive,"mitox/Clinical info/patientmeds.xlsb.xlsx"), skip = 1) %>%
+  select(-`Patient name`, -MRN)
+
 # microbiome taxonomic data merged metaphlan output 
 # old processing 
 # taxa.o <- read.csv("../../../data/mpa_aggregated_long_2023-10-26.csv")
@@ -121,10 +125,21 @@ irae <- irAE %>%
   select(`Patient Id`, irAE) %>%
   distinct()
 
+# Medications
+meds.clean <- meds %>%
+  select(-`Date of Consent`, -Physcian) %>%
+  mutate(PPI = ifelse(is.na(PPI), "No", "Yes"),
+         Corticosteroids = ifelse(is.na(Corticosteriods), "No", "Yes"),
+         Antibiotics = ifelse(is.na(Antibiotics), "No", "Yes"),
+         Probiotics = ifelse(is.na(Probiotics), "No", "Yes")) %>%
+  # drop mispelled cortico
+  select(-Corticosteriods)
+
 # join 
 demographics <- merge(demographics, recist.mic, all=T)
 demographics <- merge(demographics, pfs.filt, all=T)
 demographics <- merge(demographics, irae, all=T)
+demographics <- merge(demographics, meds.clean, all=T)
 
 # slight mutation to irae and MDSC
 # create response value 
