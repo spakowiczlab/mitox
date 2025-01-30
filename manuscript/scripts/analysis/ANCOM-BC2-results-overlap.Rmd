@@ -19,7 +19,7 @@ load("../../data/microbiome_metadata.rds")
 Compare irAE and response results 
 Interested in
 - R and No irAE  
-- NR and irAE
+- R and irAE
 ```{r}
 recist.sig <- res.recist %>%
   filter(res.recist$q_ResponseResponder < 0.05) %>%
@@ -35,11 +35,11 @@ sig.R.NoirAE <- res.irae %>%
   left_join(tax.key) %>%
   select(taxon, lfc_ResponseResponder, q_ResponseResponder, lfc_irAEYes, q_irAEYes, Kingdom, Phylum, Class, Order, Family, Genus, Species)
 
-sig.NR.irAE <- res.irae %>%
+sig.R.irAE <- res.irae %>%
   filter(res.irae$q_irAEYes < 0.05,
          taxon %in% recist.sig$taxon) %>%
   left_join(recist.sig) %>%
-  filter((lfc_ResponseResponder < 0 & lfc_irAEYes > 0)) %>% # NR + irAE
+  filter((lfc_ResponseResponder > 0 & lfc_irAEYes > 0)) %>% # NR + irAE
   mutate(taxon = gsub("_", " ", taxon)) %>%
   left_join(tax.key) %>%
   select(taxon, lfc_ResponseResponder, q_ResponseResponder, lfc_irAEYes, q_irAEYes, Kingdom, Phylum, Class, Order, Family, Genus, Species)
@@ -153,4 +153,23 @@ save(sig.NR.irAE, s0.nr.irae, file = "../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.
 
 
 
+```{r}
+sig.irAE <- res.irae %>%
+  filter(res.irae$q_irAEYes < 0.05) %>%
+  mutate(taxon = gsub("_", " ", taxon)) %>%
+  left_join(tax.key) %>%
+  select(taxon, lfc_irAEYes, q_irAEYes, Kingdom, Phylum, Class, Order, Family, Genus, Species)
+
+yes <- sig.irAE %>%
+  filter(lfc_irAEYes > 0) %>%
+  filter(!is.na(Species)) %>%
+  filter(Family == "f__Lachnospiraceae")
+
+no <- sig.irAE %>%
+  filter(lfc_irAEYes < 0) %>%
+  filter(!is.na(Species)) %>%
+  filter(Family == "f__Lachnospiraceae")
+
+setdiff(yes$Family, no$Family)
+```
 

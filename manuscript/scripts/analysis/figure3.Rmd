@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(ggplot2)
 library(ggrepel)
+library(tidyverse)
 ```
 
 # Load data
@@ -118,7 +119,7 @@ phyl.ra %>%
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
 
-ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3, width = 7)
+ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3, width = 7, dpi = 300)
 ```
 
 Figure 3B - Volcano Plot irAE vs. No irAE
@@ -156,7 +157,7 @@ g <- res.irae %>%
 
 g
 
-ggsave("../../figures/Fig3B-response-baseline-volcano.png", height = 4, width = 7)
+ggsave("../../figures/Fig3B-irae-baseline-volcano.png", height = 4, width = 7)
 ```
 
 
@@ -242,4 +243,38 @@ ggsave("../../figures/Fig3C-irAE-s0-baseline-boxplots.png", height = 3, width = 
 ```
 
 
+Try Volcano colored by association with R and NR
+```{r}
+load("../../data/ANCOM-BC2_response_baseline.RData")
 
+r.sig <- res.recist %>%
+  mutate(taxon = gsub("_", " ", taxon)) %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder > 0)
+
+nr.sig <- res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder < 0)
+
+res.irae.recist <- res.irae %>%
+  mutate(res.assoc = ifelse(taxon %in% r.sig$taxon, "Associated with R",
+                            ifelse(taxon %in% nr.sig$taxon, "Associated with NR", NA)),
+         label = ifelse((taxon %in% r.sig$taxon | taxon %in% r.sig$taxon) & q_irAEYes < 0.05, taxon, NA),
+         irAE = ifelse(lfc_irAEYes > 0, "irAE", "No-irAE"))
+
+res.irae.recist %>%
+  filter(q_irAEYes < 1) %>%
+  ggplot(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), label = label)) + 
+  geom_point(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), color = res.assoc)) + 
+  geom_text_repel(size = 2) +
+  scale_color_manual(values = c("orange", "green4"), na.value = "honeydew3") +
+  theme_bw(base_size = 9) +
+  xlab("log2foldchange") +
+  ylab("log10(p-value)") +
+  theme(legend.position =  "bottom") + # legend matches stacked bar 
+  guides(color = guide_legend(na.translate = FALSE)) 
+
+ggsave("../../figures/Fig3B-irae-baseline-volcano-experimental.png", height = 4, width = 7)
+
+table(res.irae.recist$res.assoc, res.irae.recist$irAE)
+```

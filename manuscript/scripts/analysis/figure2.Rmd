@@ -127,7 +127,7 @@ phyl.ra %>%
   facet_grid(~Response, scales = "free_x", space = "free", switch = "x") +
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
-ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3, width = 7)
+ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3, width = 7, dpi = 300)
 ```
 
 Figure 2B - Volcano Plot R vs. NR
@@ -162,7 +162,7 @@ g <- res.recist %>%
 
 g
 
-ggsave("../../figures/Fig2B-response-baseline-volcano.png", height = 4, width = 7)
+ggsave("../../figures/Fig2B-response-baseline-volcano.png", height = 4, width = 7, dpi = 300)
 ```
 
 
@@ -242,7 +242,7 @@ box.in %>%
   ) +
   xlab("")
 
-ggsave("../../figures/Fig2C-response-s0-baseline-boxplots.png", height = 3, width = 7)
+ggsave("../../figures/Fig2C-response-s0-baseline-boxplots.png", height = 3, width = 7, dpi = 300)
 ```
 
 
