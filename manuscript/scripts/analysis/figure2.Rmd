@@ -12,6 +12,11 @@ library(ggplot2)
 library(ggrepel)
 library(tidyverse)
 library(ggfortify)
+library(randomForest)
+library(ROCR)
+library(gdata)
+library(vegan)
+library(ggpubr)
 ```
 
 # Load data 
@@ -34,6 +39,7 @@ load("../../data/struct0_irae.rds")
 # Figure Features 
 ```{r}
 colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#DDCC77","#882255")
+colors <- c("cyan4", "darkgoldenrod2", "darkgreen", "salmon2", "cornflowerblue", "deeppink4") 
 
 # Response ID's
 resp.id <- mic.meta %>%
@@ -145,6 +151,7 @@ res.recist <- res.recist %>%
     label = ifelse(taxon %in% sig.NR.irAE$taxon | taxon %in% sig.R.NoirAE$taxon, taxon, NA))
 
 colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#882255")
+colors <- c("cyan4", "darkgoldenrod2", "darkgreen", "salmon2", "deeppink4") 
 ```
 
 ```{r}
@@ -224,6 +231,7 @@ box.in <- rbind(r, nr) %>%
 
 
 colors <- c("#999933","#6699CC","#44AA99")
+colors <- c("darkgoldenrod2", "cyan4", "salmon2")
 ```
 
 ```{r}
@@ -244,5 +252,64 @@ box.in %>%
 
 ggsave("../../figures/Fig2C-response-s0-baseline-boxplots.png", height = 3, width = 7, dpi = 300)
 ```
+
+## Diversity Boxplots
+
+# Calculate diversity measures using counts
+
+getting NaN for ACE...
+```{r}
+counts.wide <- counts %>%
+  pivot_wider(names_from = "microbe", values_from = "est.reads") %>%
+  column_to_rownames("sample") 
+
+div <- counts %>% 
+  group_by(sample) %>%
+  summarize(sobs = specnumber(est.reads),
+            shannon = diversity(est.reads, index = "shannon"),
+            simpson = diversity(est.reads, index = "simpson"),
+            invsimpson = 1/simpson) %>%
+    mutate(chao = as.data.frame(t(estimateR(as.integer(counts.wide)))$S.chao1,
+         ACE = as.data.frame(t(estimateR(counts.wide)))$S.ACE))
+```
+
+Can't figure out how to calc ACE this way...
+```{r}
+count_table <- counts %>%
+  pivot_wider(names_from = "microbe", values_from = "est.reads") %>%
+  column_to_rownames("sample") 
+
+# this works but can't get ACE...
+diversity <- count_table %>%
+  as.matrix() %>%
+  as.data.frame() %>%
+  rowwise() %>%
+  mutate(
+    Richness = sum(c_across(everything()) > 0),
+    Shannon = diversity(c_across(everything()), index = "shannon"),
+    Simpson = diversity(c_across(everything()), index = "simpson"),
+    InvSimpson = diversity(c_across(everything()), index = "invsimpson"),
+    Pielou = Shannon / log(Richness),
+    Chao1 = estimateR(as.integer(c_across(everything())))[2]
+    
+  ) %>%
+  ungroup() %>%
+  rownames_to_column(var = "sample")  
+  
+```
+
+No luck with ACE...
+```{r}
+# Apply specpool to estimate ACE
+specpool_results <- specpool(counts.wide)
+
+# Extract ACE value
+ace_value <- specpool_results$ACE
+
+# Print ACE
+print(ace_value)
+```
+
+
 
 
