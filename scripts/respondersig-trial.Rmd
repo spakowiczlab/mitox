@@ -1,0 +1,37 @@
+---
+title: "respondersig-exploratory"
+author: "C. Dravillas"
+date: "2025-02-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(respondersig)
+```
+
+# Read in data
+```{r}
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+
+taxa <- read.csv("../data/2024-08-30_mpa_aggregated_long.csv")
+```
+
+# Format
+```{r}
+samp.info <- mic.meta %>%
+  left_join(demographics) %>%
+  select(sample, Response) %>%
+  rename("response" = "Response") %>%
+  filter(sample %in% taxa$sample)
+```
+
+# Try respondersig function 
+```{r}
+rsig <- respondersig::prepInput(tax = taxa, meta = samp.info, tax.level = "All")
+```
+
+
