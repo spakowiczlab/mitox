@@ -249,6 +249,7 @@ for (i in 1:length(metrics)) {
 aucs <- bind_rows(auc_results, .id = "metric")
 ```
 
+
 ## Plotting
 
 # Boxplots
@@ -261,7 +262,8 @@ ggplot(data=aucs, mapping=aes(x=reorder(signature, AUC), y=AUC, col=signature)) 
   scale_color_manual(values=c("red3", "cyan4", "darkgoldenrod2", "salmon2", "cornflowerblue", "deeppink4", "darkslateblue", "darkgreen")) +
   theme(legend.position = "none") +
   facet_grid(~data_type)
-  
+
+ggsave("../../figures/boxplots_diversity-AUC.png", height = 5, width = 8)
 ```
 
 # AUC curves
@@ -295,7 +297,8 @@ div  %>%
   theme_bw(base_size = 7) +
   scale_fill_manual(values=c("cornflowerblue", "deeppink4")) +
   theme(legend.position = "none") 
-# stat_compare_means(method = "t.test")
-# not significant
+  stat_compare_means(method = "t.test")
+
+ggsave("../../figures/boxplots_diversity.png", height = 5, width = 8)
 ```
 
