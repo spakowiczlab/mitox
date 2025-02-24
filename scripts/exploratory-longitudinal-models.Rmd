@@ -1,0 +1,91 @@
+---
+title: "longitudinal models"
+author: "C. Dravillas"
+date: "2025-02-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lme4)
+```
+
+# Load data
+```{r}
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+load("../manuscript/data/ra-long.rds")
+```
+
+# Combine variables
+```{r}
+model.in <- ra.l %>%
+  left_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0))
+```
+
+## Modeling
+
+Response ~ microbe*days.since.C1D1 + (1|ptID) 
+Response as 0 or 1, generalized logistic regression
+```{r}
+capture.models <- function(outcome, lfun, modin.dat){
+  mods.list <- lapply(microbes, function(x)
+    try({glmer(as.formula(paste0(outcome, " ~ `", x, "` + Days + (1|`Patient Id`)")), 
+             family = lfun,
+             data = modin.dat) %>%
+        tidy()})
+  )
+  
+  mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
+  mods.df <- bind_rows(mods.list.clean)
+  return(mods.df)
+}
+```
+
+Terms:
+Days
+Microbe
+Microbe:days === interpret this one
+```{r, warning=FALSE}
+g.res <- capture.models("response.bin", "family = binomial(link = \"logit\")", modin.clin)
+
+# g.res <- g.res %>%
+#   filter(!str_detect(term, "(Intercept)|Days")) %>%
+#   mutate(padj = p.adjust(p.value, method = "bonferroni"))
+```
+
+
+Response ~ microbe*days.since.C1D1^2 + days.since.C1D1 + (1|ptID)
+Response as 0 or 1, generalized logistic regression
+```{r}
+capture.models.sq <- function(outcome, lfun, modin.dat){
+  mods.list <- lapply(microbes, function(x)
+    try({glmer(as.formula(paste0(outcome, " ~ `", x, "` + Days^2 + Days + (1|`Patient Id`)")), 
+             family = lfun,
+             data = modin.dat) %>%
+        tidy()})
+  )
+  
+  mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
+  mods.df <- bind_rows(mods.list.clean)
+  return(mods.df)
+}
+```
+
+Terms:
+Days
+Microbe
+Microbe:days^2 === interpret this one
+```{r, warning=FALSE}
+g.res <- capture.models("response.bin", "family = binomial(link = \"logit\")", modin.clin)
+
+# g.res <- g.res %>%
+#   filter(!str_detect(term, "(Intercept)|Days")) %>%
+#   mutate(padj = p.adjust(p.value, method = "bonferroni"))
+```
+
