@@ -107,6 +107,57 @@ div.counts <- div.counts %>%
     mutate(Chao = c.ace["S.chao1", ])
 ```
 
+```{r}
+div.ra.resp <- div.ra %>%
+  left_join(resp.id) %>%
+  select(-sobs, -sample) %>% 
+  pivot_longer(!Response,
+    names_to = "Signature",
+               values_to = "Score") %>%
+  mutate(data.type = "RA")
+  
+div.c.resp <- div.counts %>%
+  left_join(resp.id) %>%
+  select(-sobs, -sample) %>% 
+  pivot_longer(!Response,
+               names_to = "Signature",
+               values_to = "Score") %>%
+  mutate(data.type = "Counts")
+
+div <- rbind(div.c.resp, div.ra.resp)
+```
+
+## Diversity Visualization 
+
+# boxplots - look terrible 
+```{r}
+div  %>%
+  ggplot(aes(x=Response, y=log(Score))) +
+  geom_boxplot(aes(fill = Response)) + 
+  facet_grid(data.type~Signature, scales = "free") + 
+  theme_bw(base_size = 7) +
+  scale_fill_manual(values=c("cornflowerblue", "deeppink4")) +
+  theme(legend.position = "none") +
+  stat_compare_means(method = "t.test")
+
+ggsave("../../figures/boxplots_diversity.png", height = 5, width = 8)
+```
+## Density curves
+```{r}
+div %>%
+  ggplot(aes(x = log(Score), fill = Response)) +
+  geom_density(alpha = 0.4) +  # Density plot with transparency
+  facet_grid(data.type ~ Signature, scales = "free") +
+  theme_bw(base_size = 7) +
+  scale_fill_manual(values = c("cornflowerblue", "deeppink4")) +
+  theme(legend.position = "top") +  # Move legend for clarity
+  labs(x = "Log(Score)", y = "Density") 
+
+ggsave("../../figures/densityplots_diversity.png", height = 5, width = 8)
+```
+
+
+
 # Machine Learning 
 
 Function for shuffling and creating training / testing groups for getROC 
@@ -264,41 +315,5 @@ ggplot(data=aucs, mapping=aes(x=reorder(signature, AUC), y=AUC, col=signature)) 
   facet_grid(~data_type)
 
 ggsave("../../figures/boxplots_diversity-AUC.png", height = 5, width = 8)
-```
-
-# AUC curves
-
-```{r}
-div.ra.resp <- div.ra %>%
-  left_join(resp.id) %>%
-  select(-sobs, -sample) %>% 
-  pivot_longer(!Response,
-    names_to = "Signature",
-               values_to = "Score") %>%
-  mutate(data.type = "RA")
-  
-div.c.resp <- div.counts %>%
-  left_join(resp.id) %>%
-  select(-sobs, -sample) %>% 
-  pivot_longer(!Response,
-               names_to = "Signature",
-               values_to = "Score") %>%
-  mutate(data.type = "Counts")
-
-div <- rbind(div.c.resp, div.ra.resp)
-```
-
-
-```{r}
-div  %>%
-  ggplot(aes(x=Response, y=log(Score))) +
-  geom_boxplot(aes(fill = Response)) + 
-  facet_grid(data.type~Signature, scales = "free") + 
-  theme_bw(base_size = 7) +
-  scale_fill_manual(values=c("cornflowerblue", "deeppink4")) +
-  theme(legend.position = "none") 
-  stat_compare_means(method = "t.test")
-
-ggsave("../../figures/boxplots_diversity.png", height = 5, width = 8)
 ```
 
