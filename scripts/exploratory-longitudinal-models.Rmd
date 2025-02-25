@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(lme4)
+library(broom.mixed)
+library(rlist)
 ```
 
 # Load data
@@ -25,39 +27,105 @@ model.in <- ra.l %>%
   left_join(mic.meta) %>%
   left_join(demographics) %>%
   # create binary outcome var
-  mutate(response.bin = ifelse(Response == "Responder", 1, 0))
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0)) %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun)
+
+microbes <- unique(ra.l$microbe)
+#microbes <- c("s__Blautia_luti", "g__Solobacterium")
+microbes <- microbes[!grepl("t__", microbes)]
 ```
 
 ## Modeling
 
 Response ~ microbe*days.since.C1D1 + (1|ptID) 
 Response as 0 or 1, generalized logistic regression
+
+We should use mixed effects to evaluate longitudinal data and account for within
+subject correlation
+
+Should we be using (Days | patient)? No, outcome doesn't change
+could consider (microbe | patient)?
+
+# ```{r}
+# capture.models <- function(outcome, lfun, modin.dat){
+#   mods.list <- lapply(microbes, function(x) 
+#   try({
+#     glmer(as.formula(paste0(outcome, " ~ `", x, "`* Days + (1 | `Patient Id`)")), 
+#           family = lfun, 
+#           data = modin.dat) %>%
+#       broom.mixed::tidy()  
+#     })
+#   )
+#   mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
+#   mods.df <- bind_rows(mods.list.clean)
+#   return(mods.df)
+# }
+# ```
+
+a variety of errors ...
+Error : pwrssUpdate did not converge in (maxit) iterations
+fixed-effect model matrix is rank deficient so dropping 1 column / coefficient
+Error : (maxstephalfit) PIRLS step-halvings failed to reduce deviance in pwrssUpdate
+Error in pwrssUpdate(pp, resp, tol = tolPwrss, GQmat = GQmat, compDev = compDev,  : 
+  Downdated VtV is not positive definite
+
+can't bind rows due to NULL output 
+
+New version of function that removes NULL values and reports taxa
 ```{r}
-capture.models <- function(outcome, lfun, modin.dat){
-  mods.list <- lapply(microbes, function(x)
-    try({glmer(as.formula(paste0(outcome, " ~ `", x, "` + Days + (1|`Patient Id`)")), 
-             family = lfun,
-             data = modin.dat) %>%
-        tidy()})
-  )
+capture.models <- function(outcome, lfun, modin.dat, microbes) {
+  mods.list <- list()
+  for (x in microbes) {
+    tryCatch({
+      model_formula <- as.formula(paste0(outcome, " ~ ", x, "* Days + (1 | `Patient Id`)"))
+      
+      model <- glmer(model_formula, 
+                     family = lfun, 
+                     data = modin.dat)
+      
+      mods.list[[x]] <- broom.mixed::tidy(model)
+      
+    }, error = function(e) {
+      message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL  # Assign NULL to failed models
+    })
+  }
   
-  mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
-  mods.df <- bind_rows(mods.list.clean)
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame() 
+  }
+  
   return(mods.df)
 }
 ```
 
-Terms:
-Days
-Microbe
+
 Microbe:days === interpret this one
 ```{r, warning=FALSE}
-g.res <- capture.models("response.bin", "family = binomial(link = \"logit\")", modin.clin)
+g.res <- capture.models("response.bin", "binomial", model.in, microbes)
 
-# g.res <- g.res %>%
-#   filter(!str_detect(term, "(Intercept)|Days")) %>%
-#   mutate(padj = p.adjust(p.value, method = "bonferroni"))
+g.res <- g.res %>%
+  # filter to just microbe and the interaction term 
+  filter(grepl("__", term),
+         is.na(group)) %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
+
+
+test <- g.res %>%
+  filter(grepl(":", term))
+# 1622/3228 made it through the modelling
+# need to further investigate the model errors 
+
 ```
+
+```{r}
+write.csv(g.res, "../data/exploratory-longitudinal-model_output.csv")
+```
+
 
 
 Response ~ microbe*days.since.C1D1^2 + days.since.C1D1 + (1|ptID)
