@@ -27,10 +27,16 @@ model.in <- ra.l %>%
   left_join(mic.meta) %>%
   left_join(demographics) %>%
   # create binary outcome var
-  mutate(response.bin = ifelse(Response == "Responder", 1, 0)) %>%
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days),
+  # create quadratic days 
+         Days2 = Days^2) %>%
+  rename(Patient_Id = `Patient Id`) %>%
   pivot_wider(names_from = microbe, values_from = RelAbun)
 
 microbes <- unique(ra.l$microbe)
+# used for testing models 
 #microbes <- c("s__Blautia_luti", "g__Solobacterium")
 microbes <- microbes[!grepl("t__", microbes)]
 ```
@@ -41,43 +47,19 @@ Response ~ microbe*days.since.C1D1 + (1|ptID)
 Response as 0 or 1, generalized logistic regression
 
 We should use mixed effects to evaluate longitudinal data and account for within
-subject correlation
+subject correlation. 
 
-Should we be using (Days | patient)? No, outcome doesn't change
-could consider (microbe | patient)?
+Should we be using (Days | patient)? No, outcome doesn't change.
+Could consider (microbe | patient)
 
-# ```{r}
-# capture.models <- function(outcome, lfun, modin.dat){
-#   mods.list <- lapply(microbes, function(x) 
-#   try({
-#     glmer(as.formula(paste0(outcome, " ~ `", x, "`* Days + (1 | `Patient Id`)")), 
-#           family = lfun, 
-#           data = modin.dat) %>%
-#       broom.mixed::tidy()  
-#     })
-#   )
-#   mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
-#   mods.df <- bind_rows(mods.list.clean)
-#   return(mods.df)
-# }
-# ```
-
-a variety of errors ...
-Error : pwrssUpdate did not converge in (maxit) iterations
-fixed-effect model matrix is rank deficient so dropping 1 column / coefficient
-Error : (maxstephalfit) PIRLS step-halvings failed to reduce deviance in pwrssUpdate
-Error in pwrssUpdate(pp, resp, tol = tolPwrss, GQmat = GQmat, compDev = compDev,  : 
-  Downdated VtV is not positive definite
-
-can't bind rows due to NULL output 
-
+Previous version of function couldn't bind rows due to NULL output 
 New version of function that removes NULL values and reports taxa
 ```{r}
 capture.models <- function(outcome, lfun, modin.dat, microbes) {
   mods.list <- list()
   for (x in microbes) {
     tryCatch({
-      model_formula <- as.formula(paste0(outcome, " ~ ", x, "* Days + (1 | `Patient Id`)"))
+      model_formula <- as.formula(paste0(outcome, " ~ ", x, "* Days + (1 | Patient_Id)"))
       
       model <- glmer(model_formula, 
                      family = lfun, 
@@ -103,7 +85,6 @@ capture.models <- function(outcome, lfun, modin.dat, microbes) {
 }
 ```
 
-
 Microbe:days === interpret this one
 ```{r, warning=FALSE}
 g.res <- capture.models("response.bin", "binomial", model.in, microbes)
@@ -119,30 +100,141 @@ test <- g.res %>%
   filter(grepl(":", term))
 # 1622/3228 made it through the modelling
 # need to further investigate the model errors 
-
 ```
 
+Save and read in model output 
 ```{r}
-write.csv(g.res, "../data/exploratory-longitudinal-model_output.csv")
+# write.csv(g.res, "../data/modeling_long_random_response.csv", row.names = F)
+model.out <- read.csv("../data/modeling_long_random_response.csv")
 ```
 
+A variety of errors:
+Error : pwrssUpdate did not converge in (maxit) iterations 
+Error : (maxstephalfit) PIRLS step-halvings failed to reduce deviance in pwrssUpdate
+Error in pwrssUpdate(pp, resp, tol = tolPwrss, GQmat = GQmat, compDev = compDev,  : 
+  Downdated VtV is not positive definite
+Model failed for s__Allisonella_histaminiformans: Downdated VtV is not positive definite
 
+Also note:  
+fixed-effect model matrix is rank deficient so dropping 1 column / coefficient
+fixed-effect model matrix is rank deficient so dropping 2 columns / coefficient
 
-Response ~ microbe*days.since.C1D1^2 + days.since.C1D1 + (1|ptID)
-Response as 0 or 1, generalized logistic regression
+Things to consider:
+- sparsity
+- abundance being constant across timepoints
+- collinearity between abundance and days
+- complete separation (i.e. response is always the same for abundance level or timepoint)
+
+Could try:
+- centering and scaling 
+- check for sparsity and drop interaction for sparse data or use presence/absence
+- check for complete separation
+- log transform abundance 
+
+Conclusion: Due to inconsistent timepoints and abundance sparsity I think we can
+expect to see rank deficiency. 
+
+Sparse microbe?    ---> Skip or fit simpler model
+Complete separation? ---> Skip
+Severe collinearity? ---> Center/scale predictors
+Extreme outliers?  ---> Log-transform abundance
+Complex random effect with sparse data? ---> Simplify model
+
+BUT because the response is always the same for every patient I think the random 
+effect may be redundant. There are between patient differences but not within. 
+I think our model might be trying to anticipate within subject variation. Should
+we instead use response as a predictor of microbial abundance? 
+
+Let's try microbe ~ response*Days w/ random effect
 ```{r}
-capture.models.sq <- function(outcome, lfun, modin.dat){
-  mods.list <- lapply(microbes, function(x)
-    try({glmer(as.formula(paste0(outcome, " ~ `", x, "` + Days^2 + Days + (1|`Patient Id`)")), 
-             family = lfun,
-             data = modin.dat) %>%
-        tidy()})
-  )
+capture.models.mic <- function(modin.dat, microbes) {
+  mods.list <- list()
   
-  mods.list.clean <- list.clean(mods.list, function(x) is.null(x))
-  mods.df <- bind_rows(mods.list.clean)
+  for (x in microbes) {
+    tryCatch({
+      model_formula <- as.formula(paste0(x, " ~ Response * Days + (1 | Patient_Id)"))
+      model <- lmer(model_formula, data = modin.dat)
+      model_summary <- broom.mixed::tidy(model, conf.int = TRUE, p.value = TRUE)
+      model_summary$microbe <- x
+      mods.list[[x]] <- model_summary
+    }, error = function(e) {
+      #message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL
+    })
+  }
+  
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame()
+  }
+  
   return(mods.df)
 }
+
+```
+
+several errors 
+Warning: Computed variance-covariance matrix problem: not a positive definite matrix (and positive semidefiniteness is not checked);
+returning NA matrixModel failed for s__GGB3817_SGB5182: not a positive definite matrix (and positive semidefiniteness is not checked)
+- Rescale variables?Warning: Model may not have converged with 1 eigenvalue close to zero: 2.0e-10Warning: Model failed to converge with max|grad| = 0.133644 (tol = 0.002, component 1)Warning: Model is nearly unidentifiable: very large eigenvalue
+Model failed for s__Lactobacillus_delbrueckii: Downdated VtV is not positive definite
+Warning: convergence code -4 from nloptwrap: NLOPT_ROUNDOFF_LIMITED: Roundoff errors led to a breakdown of the optimization algorithm. In this case, the returned minimum may still be useful. (e.g. this error occurs in NEWUOA if one tries to achieve a tolerance too close to machine precision.)Warning: unable to evaluate scaled gradientWarning
+boundary (singular) fit: see help('isSingular')
+
+```{r}
+res.mic <- capture.models.mic(model.in, microbes)
+
+res.mic <- res.mic %>%
+  filter(term == "ResponseResponder:Days")
+
+# 2577/3228 made it through
+```
+
+```{r}
+#write.csv(res.mic, "../data/modeling_long_random_microbe.csv", row.names = F)
+model.out.mic <- read.csv("../data/modeling_long_random_microbe.csv")
+```
+
+## Check quadratic term
+
+First with response as outcome 
+
+Response ~ microbe*(days.since.C1D1^2 + days.since.C1D1) + (1|ptID)
+```{r}
+capture.models.sq <- function(outcome, lfun, modin.dat, microbes) {
+  
+  mods.list <- list()
+  
+  for (x in microbes) {
+    tryCatch({
+      model_formula <- as.formula(paste0(outcome, " ~ `", x, "`* (Days + Days2) + (1 | Patient_Id)"))
+      
+      model <- glmer(model_formula, 
+                     family = lfun, 
+                     data = modin.dat)
+      
+      mods.list[[x]] <- broom.mixed::tidy(model)
+      
+    }, error = function(e) {
+      message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL
+    })
+  }
+  
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame() 
+  }
+  
+  return(mods.df)
+}
+
 ```
 
 Terms:
@@ -150,10 +242,68 @@ Days
 Microbe
 Microbe:days^2 === interpret this one
 ```{r, warning=FALSE}
-g.res <- capture.models("response.bin", "family = binomial(link = \"logit\")", modin.clin)
+res.sq <- capture.models.sq("response.bin", "binomial", model.in, microbes)
+```
 
-# g.res <- g.res %>%
-#   filter(!str_detect(term, "(Intercept)|Days")) %>%
-#   mutate(padj = p.adjust(p.value, method = "bonferroni"))
+```{r}
+res.sq <- res.sq %>%
+  # filter to just microbe and the interaction term 
+  filter(grepl(":Days2",term)) %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
+
+# 807/3228 made it through the quadratric modelling 
+# need to further investigate the model errors 
+```
+
+```{r}
+# write.csv(res.sq, "../data/modeling_long_quad_response.csv", row.names = F)
+res.sq <- read.csv("../data/modeling_long_quad_response.csv")
+```
+
+
+
+Now with microbial abundance as the outcome variable 
+```{r}
+capture.models.mic.sq <- function(modin.dat, microbes) {
+  mods.list <- list()
+  
+  for (x in microbes) {
+    tryCatch({
+      model_formula <- as.formula(paste0(x, " ~ Response * (Days + Days2) + (1 | Patient_Id)"))
+      model <- lmer(model_formula, data = modin.dat)
+      model_summary <- broom.mixed::tidy(model, conf.int = TRUE, p.value = TRUE)
+      model_summary$microbe <- x
+      mods.list[[x]] <- model_summary
+    }, error = function(e) {
+      #message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL
+    })
+  }
+  
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame()
+  }
+  
+  return(mods.df)
+}
+
+```
+
+```{r}
+res.mic.sq <- capture.models.mic.sq(model.in, microbes)
+
+test <- res.mic.sq %>%
+  filter(term == "ResponseResponder:Days2")
+
+# 2573/3228 made it through
+```
+
+```{r}
+# write.csv(res.mic.sq, "../data/modeling_long_quad_microbe.csv", row.names = F)
+res.mic.sq <- read.csv("../data/modeling_long_quad_microbe.csv")
 ```
 
