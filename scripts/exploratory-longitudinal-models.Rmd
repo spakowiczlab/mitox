@@ -87,25 +87,23 @@ capture.models <- function(outcome, lfun, modin.dat, microbes) {
 
 Microbe:days === interpret this one
 ```{r, warning=FALSE}
-g.res <- capture.models("response.bin", "binomial", model.in, microbes)
+res <- capture.models("response.bin", "binomial", model.in, microbes)
 
-g.res <- g.res %>%
+res <- res %>%
   # filter to just microbe and the interaction term 
   filter(grepl("__", term),
-         is.na(group)) %>%
+         is.na(group),
+         grepl(":", term)) %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni"))
 
-
-test <- g.res %>%
-  filter(grepl(":", term))
 # 1622/3228 made it through the modelling
 # need to further investigate the model errors 
 ```
 
 Save and read in model output 
 ```{r}
-# write.csv(g.res, "../data/modeling_long_random_response.csv", row.names = F)
-model.out <- read.csv("../data/modeling_long_random_response.csv")
+# write.csv(res, "../data/modeling_long_random_response.csv", row.names = F)
+res <- read.csv("../data/modeling_long_random_response.csv")
 ```
 
 A variety of errors:
@@ -195,7 +193,7 @@ res.mic <- res.mic %>%
 
 ```{r}
 #write.csv(res.mic, "../data/modeling_long_random_microbe.csv", row.names = F)
-model.out.mic <- read.csv("../data/modeling_long_random_microbe.csv")
+res.mic <- read.csv("../data/modeling_long_random_microbe.csv")
 ```
 
 ## Check quadratic term
@@ -296,7 +294,7 @@ capture.models.mic.sq <- function(modin.dat, microbes) {
 ```{r}
 res.mic.sq <- capture.models.mic.sq(model.in, microbes)
 
-test <- res.mic.sq %>%
+res.mic.sq <- res.mic.sq %>%
   filter(term == "ResponseResponder:Days2")
 
 # 2573/3228 made it through
