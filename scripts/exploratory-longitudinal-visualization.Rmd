@@ -1,0 +1,52 @@
+---
+title: "longitudinal vis"
+author: "C. Dravillas"
+date: "2025-03-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+# Load data
+```{r}
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+load("../manuscript/data/ra-long.rds")
+```
+
+```{r}
+vis.in <- ra.l %>%
+  left_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days),
+  # create quadratic days 
+         Days2 = Days^2) %>%
+  rename(Patient_Id = `Patient Id`) 
+```
+
+Let's look at some taxa of note from the model output:
+response ~ microbe*Days + (1 | Patient_Id)
+s__Sellimonas_intestinalis - pval 0.000000e+00
+s__Bacteroides_ovatus - pval 1.316880e-188
+
+response ~ microbe*(Days + Days2) + (1 | Patient_Id)
+s__Bifidobacterium_dentium - pval 0.000000e+00
+s__Blautia_glucerasea - pval 7.128973e-94
+
+microbe ~ response*Days + (1 | Patient_Id)
+s__Sutterella
+s__Lachnospira_sp_NSJ_43 - pval 0.03
+g__Roseburia - pval 0.0453133
+
+microbe ~ response*(Days+Days2) + (1 | Patient_Id)
+g__Fusobacterium - pval 1.007218e-10
+s__Clostridium_perfringens - pval 0.018
+
