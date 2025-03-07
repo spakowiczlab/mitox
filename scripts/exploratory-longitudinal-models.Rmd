@@ -19,12 +19,13 @@ library(rlist)
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 load("../manuscript/data/ra-long.rds")
+load("../manuscript/data/counts-long.rds")
 ```
 
-# Combine variables
+# Combine variables 
 ```{r}
 model.in <- ra.l %>%
-  left_join(mic.meta) %>%
+  right_join(mic.meta) %>%
   left_join(demographics) %>%
   # create binary outcome var
   mutate(response.bin = ifelse(Response == "Responder", 1, 0),
@@ -33,13 +34,33 @@ model.in <- ra.l %>%
   # create quadratic days 
          Days2 = Days^2) %>%
   rename(Patient_Id = `Patient Id`) %>%
-  pivot_wider(names_from = microbe, values_from = RelAbun)
+  pivot_wider(names_from = microbe, values_from = RelAbun) %>%
+  select(where(~ !all(. == 0)))
 
-microbes <- unique(ra.l$microbe)
+model.in.c <- counts.l %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  select(-Taxonomy) %>%
+  right_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days),
+  # create quadratic days 
+         Days2 = Days^2) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
+
+microbes <- colnames(model.in)
+microbes <- microbes[grepl("__", microbes)]
 # used for testing models 
 #microbes <- c("s__Blautia_luti", "g__Solobacterium")
 microbes <- microbes[!grepl("t__", microbes)]
+# microbes.c <-  unique(counts.l$Taxonomy)
+# microbes.c <- microbes.c[!grepl("t__", microbes.c)]
 ```
+
 
 ## Modeling
 
@@ -88,22 +109,33 @@ capture.models <- function(outcome, lfun, modin.dat, microbes) {
 Microbe:days === interpret this one
 ```{r, warning=FALSE}
 res <- capture.models("response.bin", "binomial", model.in, microbes)
+res.c <- capture.models("response.bin", "binomial", model.in.c, microbes)
 
 res <- res %>%
   # filter to just microbe and the interaction term 
   filter(grepl("__", term),
-         is.na(group),
-         grepl(":", term)) %>%
+         is.na(group)) %>%
+         #grepl(":", term)) %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni"))
 
-# 1622/3228 made it through the modelling
+res.c <- res.c %>%
+  # filter to just microbe and the interaction term 
+  filter(grepl("__", term),
+         is.na(group)) %>%
+         #grepl(":", term)) %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
+
+# 1622/2644 made it through the modelling
+# 556/2644 interaction terms made it through for counts
 # need to further investigate the model errors 
 ```
 
 Save and read in model output 
 ```{r}
-# write.csv(res, "../data/modeling_long_random_response.csv", row.names = F)
+# write.csv(res, "../data/modeling_RA_random_response.csv", row.names = F)
+# write.csv(res.c, "../data/modeling_counts_random_response.csv", row.names = F)
 res <- read.csv("../data/modeling_long_random_response.csv")
+res.c <- read.csv("../data/modeling_counts_random_response.csv")
 ```
 
 A variety of errors:
@@ -127,51 +159,56 @@ Could try:
 - centering and scaling 
 - check for sparsity and drop interaction for sparse data or use presence/absence
 - check for complete separation
-- log transform abundance 
+- log transform abundance - couldn't handle 0 values 
 
 Conclusion: Due to inconsistent timepoints and abundance sparsity I think we can
 expect to see rank deficiency. 
 
-Sparse microbe?    ---> Skip or fit simpler model
-Complete separation? ---> Skip
-Severe collinearity? ---> Center/scale predictors
-Extreme outliers?  ---> Log-transform abundance
+Sparse microbe?    ---> Skip or fit simpler model?
+Complete separation? ---> Skip?
+Severe collinearity? ---> Center/scale predictors?
+Extreme outliers?  ---> Log-transform abundance...issues
 Complex random effect with sparse data? ---> Simplify model
 
 BUT because the response is always the same for every patient I think the random 
 effect may be redundant. There are between patient differences but not within. 
 I think our model might be trying to anticipate within subject variation. Should
-we instead use response as a predictor of microbial abundance? 
+we instead use response as a predictor of microbial abundance?
 
-Let's try microbe ~ response*Days w/ random effect
+Let's try microbe ~ response*Days w/ random effect, don't think this makes sense 
 ```{r}
 capture.models.mic <- function(modin.dat, microbes) {
   mods.list <- list()
-  
+
   for (x in microbes) {
     tryCatch({
       model_formula <- as.formula(paste0(x, " ~ Response * Days + (1 | Patient_Id)"))
-      model <- lmer(model_formula, data = modin.dat)
-      model_summary <- broom.mixed::tidy(model, conf.int = TRUE, p.value = TRUE)
+      model <- lmerTest::lmer(model_formula, data = modin.dat)
+      
+      model_summary <- broom.mixed::tidy(model, effects = "fixed", conf.int = TRUE)
+
       model_summary$microbe <- x
+
       mods.list[[x]] <- model_summary
     }, error = function(e) {
-      #message("Model failed for ", x, ": ", e$message)
       mods.list[[x]] <- NULL
     })
   }
-  
+
   mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
-  
+
   if (length(mods.list.clean) > 0) {
     mods.df <- bind_rows(mods.list.clean)
+
+    mods.df <- mods.df %>%
+      mutate(padj = p.adjust(p.value, method = "BH"))
+
   } else {
     mods.df <- data.frame()
   }
-  
+
   return(mods.df)
 }
-
 ```
 
 several errors 
@@ -184,16 +221,21 @@ boundary (singular) fit: see help('isSingular')
 
 ```{r}
 res.mic <- capture.models.mic(model.in, microbes)
+res.mic.c <- capture.models.mic(model.in.c, microbes)
 
 res.mic <- res.mic %>%
+  filter(term == "ResponseResponder:Days")
+res.mic.c <- res.mic.c %>%
   filter(term == "ResponseResponder:Days")
 
 # 2577/3228 made it through
 ```
 
 ```{r}
-#write.csv(res.mic, "../data/modeling_long_random_microbe.csv", row.names = F)
-res.mic <- read.csv("../data/modeling_long_random_microbe.csv")
+# write.csv(res.mic, "../data/modeling_RA_random_microbe.csv", row.names = F)
+# write.csv(res.mic.c, "../data/modeling_counts_random_microbe.csv", row.names = F)
+res.mic <- read.csv("../data/modeling_RA_random_microbe.csv")
+res.mic.c <- read.csv("../data/modeling_counts_random_microbe.csv")
 ```
 
 ## Check quadratic term
@@ -241,6 +283,7 @@ Microbe
 Microbe:days^2 === interpret this one
 ```{r, warning=FALSE}
 res.sq <- capture.models.sq("response.bin", "binomial", model.in, microbes)
+res.sq.c <- capture.models.sq("response.bin", "binomial", model.in.c, microbes)
 ```
 
 ```{r}
@@ -248,6 +291,8 @@ res.sq <- res.sq %>%
   # filter to just microbe and the interaction term 
   filter(grepl(":Days2",term)) %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni"))
+
+ <- res.sq.c
 
 # 807/3228 made it through the quadratric modelling 
 # need to further investigate the model errors 
