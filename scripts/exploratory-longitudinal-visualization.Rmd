@@ -17,10 +17,26 @@ library(ggplot2)
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 load("../manuscript/data/ra-long.rds")
+load("../manuscript/data/counts-long.rds")
 ```
 
 ```{r}
 vis.in <- ra.l %>%
+  left_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days),
+  # create quadratic days 
+         Days2 = Days^2) %>%
+  rename(Patient_Id = `Patient Id`) 
+
+vis.in.c <- counts.l %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  select(-Taxonomy) %>%
+  pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
+  pivot_longer(!sample, names_to = "microbe", values_to = "est.reads") %>%
   left_join(mic.meta) %>%
   left_join(demographics) %>%
   # create binary outcome var
@@ -42,6 +58,10 @@ s__Bifidobacterium_dentium - pval 0.000000e+00
 s__Blautia_glucerasea - pval 7.128973e-94
 
 microbe ~ response*Days + (1 | Patient_Id)
+s__Sutterella_SGB9281
+s__Clostridium_perfringens
+
+w/o padj
 s__Sutterella
 s__Lachnospira_sp_NSJ_43 - pval 0.03
 g__Roseburia - pval 0.0453133
@@ -49,4 +69,46 @@ g__Roseburia - pval 0.0453133
 microbe ~ response*(Days+Days2) + (1 | Patient_Id)
 g__Fusobacterium - pval 1.007218e-10
 s__Clostridium_perfringens - pval 0.018
+
+```{r}
+mics <- c("s__Sellimonas_intestinalis",
+"s__Bacteroides_ovatus",
+"s__Bifidobacterium_dentium",
+"s__Blautia_glucerasea",
+"s__Sutterella_SGB9281",
+"s__Lachnospira_sp_NSJ_43" ,
+"g__Roseburia",
+"g__Fusobacterium",
+"s__Clostridium_perfringens",
+"g__Dialister") 
+```
+
+```{r}
+vis.in %>% 
+  filter(microbe %in% mics) %>%
+  ggplot(aes(x=Days, y=RelAbun, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+```
+
+```{r}
+vis.in.c %>% 
+  filter(microbe %in% mics) %>%
+  ggplot(aes(x=Days, y=est.reads, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+```
+
+
+```{r}
+vis.in %>%
+  filter(grepl("Blautia", microbe)) %>%
+  ggplot(aes(x=Days, y=RelAbun, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+```
+
 
