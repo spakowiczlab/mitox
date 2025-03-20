@@ -14,7 +14,7 @@ library(broom.mixed)
 library(rlist)
 ```
 
-# Load data
+# Load data, use counts
 ```{r}
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
@@ -112,17 +112,11 @@ res <- capture.models("response.bin", "binomial", model.in, microbes)
 res.c <- capture.models("response.bin", "binomial", model.in.c, microbes)
 
 res <- res %>%
-  # filter to just microbe and the interaction term 
-  filter(grepl("__", term),
-         is.na(group)) %>%
-         #grepl(":", term)) %>%
+  filter(grepl(":Days", term)) %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni"))
 
 res.c <- res.c %>%
-  # filter to just microbe and the interaction term 
-  filter(grepl("__", term),
-         is.na(group)) %>%
-         #grepl(":", term)) %>%
+  filter(grepl(":Days", term)) %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni"))
 
 # 1622/2644 made it through the modelling
@@ -132,9 +126,9 @@ res.c <- res.c %>%
 
 Save and read in model output 
 ```{r}
-# write.csv(res, "../data/modeling_RA_random_response.csv", row.names = F)
-# write.csv(res.c, "../data/modeling_counts_random_response.csv", row.names = F)
-res <- read.csv("../data/modeling_long_random_response.csv")
+#write.csv(res, "../data/modeling_RA_random_response.csv", row.names = F)
+#write.csv(res.c, "../data/modeling_counts_random_response.csv", row.names = F)
+res <- read.csv("../data/modeling_RA_random_response.csv")
 res.c <- read.csv("../data/modeling_counts_random_response.csv")
 ```
 
@@ -175,7 +169,87 @@ effect may be redundant. There are between patient differences but not within.
 I think our model might be trying to anticipate within subject variation. Should
 we instead use response as a predictor of microbial abundance?
 
-Let's try microbe ~ response*Days w/ random effect, don't think this makes sense 
+
+## Let's try tertiles 
+high - counts < 0.33
+med - 0.33 < counts < 0.66
+low - counts > 0.66
+```{r}
+capture.tert <- function(outcome, lfun, modin.dat, microbes) {
+  mods.list <- list()
+  for (x in microbes) {
+    tryCatch({
+      tertiles <- quantile(modin.dat[[x]], probs = c(1/3, 2/3), na.rm = TRUE)
+      
+      # Ensure unique breakpoints to account for 'breaks' are not unique
+      if (length(unique(tertiles)) < 2) {
+        message("Non-unique tertile cutoffs for ", x, ". Using median split instead.")
+        
+        # Use median-based binary split as a fallback
+        modin.dat[[paste0(x, "_tert")]] <- ifelse(modin.dat[[x]] <= median(modin.dat[[x]], na.rm = TRUE), "low", "high")
+      } else {
+        # Categorize microbe counts into tertiles
+        modin.dat[[paste0(x, "_tert")]] <- cut(
+          modin.dat[[x]], 
+          breaks = c(-Inf, unique(tertiles), Inf), 
+          labels = c("low", "med", "high"),
+          include.lowest = TRUE
+        )
+      }
+      model_formula <- as.formula(paste0(outcome, " ~ ", paste0(x, "_tert"), "* Days + (1 | Patient_Id)"))
+      
+      model <- glmer(model_formula, 
+                     family = lfun, 
+                     data = modin.dat)
+      
+      mods.list[[x]] <- broom.mixed::tidy(model)
+      
+    }, error = function(e) {
+      message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL  # Assign NULL to failed models
+    })
+  }
+  
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame() 
+  }
+  
+  return(mods.df)
+}
+```
+
+Errors include:
+Rescale variables?Warning: Model is nearly unidentifiable: large eigenvalue ratio
+
+```{r}
+res.tert <- capture.tert("response.bin", "binomial", model.in, microbes)
+res.tert.c <- capture.tert("response.bin", "binomial", model.in.c, microbes)
+
+res.tert <- res.tert %>%
+  filter(grepl(":Days", term)) %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
+
+res.tert.c <- res.tert.c %>%
+  filter(grepl(":Days", term)) %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
+```
+
+save and read in
+```{r}
+#write.csv(res.tert, "../data/modeling_RA_tert_response.csv", row.names = F)
+#write.csv(res.tert.c, "../data/modeling_counts_tert_response.csv", row.names = F)
+res.tert <- read.csv("../data/modeling_RA_tert_response.csv")
+res.tert.c <- read.csv("../data/modeling_counts_tert_response.csv")
+```
+
+
+
+## Let's try microbe ~ response*Days w/ random effect
+
 ```{r}
 capture.models.mic <- function(modin.dat, microbes) {
   mods.list <- list()
@@ -237,6 +311,8 @@ res.mic.c <- res.mic.c %>%
 res.mic <- read.csv("../data/modeling_RA_random_microbe.csv")
 res.mic.c <- read.csv("../data/modeling_counts_random_microbe.csv")
 ```
+
+
 
 ## Check quadratic term
 
@@ -303,8 +379,6 @@ res.sq <- res.sq %>%
 res.sq <- read.csv("../data/modeling_long_quad_response.csv")
 ```
 
-
-
 Now with microbial abundance as the outcome variable 
 ```{r}
 capture.models.mic.sq <- function(modin.dat, microbes) {
@@ -333,7 +407,6 @@ capture.models.mic.sq <- function(modin.dat, microbes) {
   
   return(mods.df)
 }
-
 ```
 
 ```{r}
