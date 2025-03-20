@@ -226,12 +226,7 @@ Errors include:
 Rescale variables?Warning: Model is nearly unidentifiable: large eigenvalue ratio
 
 ```{r}
-res.tert <- capture.tert("response.bin", "binomial", model.in, microbes)
 res.tert.c <- capture.tert("response.bin", "binomial", model.in.c, microbes)
-
-res.tert <- res.tert %>%
-  filter(grepl(":Days", term)) %>%
-  mutate(padj = p.adjust(p.value, method = "bonferroni"))
 
 res.tert.c <- res.tert.c %>%
   filter(grepl(":Days", term)) %>%
@@ -240,9 +235,7 @@ res.tert.c <- res.tert.c %>%
 
 save and read in
 ```{r}
-#write.csv(res.tert, "../data/modeling_RA_tert_response.csv", row.names = F)
 #write.csv(res.tert.c, "../data/modeling_counts_tert_response.csv", row.names = F)
-res.tert <- read.csv("../data/modeling_RA_tert_response.csv")
 res.tert.c <- read.csv("../data/modeling_counts_tert_response.csv")
 ```
 
