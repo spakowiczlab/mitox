@@ -1,0 +1,169 @@
+---
+title: "Frequentist vs. Bayesian"
+author: "C. Dravillas"
+date: "2025-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lme4)
+library(broom.mixed)
+library(rlist)
+library(NBZIMM)
+library(nlme)
+library(BhGLM)
+```
+
+
+# Load data, lets use counts
+```{r}
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+load("../manuscript/data/counts-long.rds")
+```
+
+# Prepare data
+
+```{r}
+model.in <- counts.l %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  select(-Taxonomy) %>%
+  right_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days),
+  # create quadratic days 
+         Days2 = Days^2) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  filter(grepl("g__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
+
+microbes <- colnames(model.in)
+microbes <- microbes[grepl("__", microbes)]
+```
+
+Zero-inflated Negative Binomial mixed models (ZINBMMs)
+```{r}
+########### otu data #################
+dim(otu)
+colnames(otu)
+
+############### clinical data ############################
+clinical = data.frame(clinical)
+dim(clinical)
+colnames(clinical)
+
+group = ifelse(clinical$Pregnancy.outcome == "TERM", 1, 0)
+
+# Library size as offset
+N = clinical[, "Total.Read.Countsb"]  # total reads
+
+# Variables for fitting the models
+subject = clinical[, "subject.ID"]
+clinical$group = group
+## pregnant women vs non-pregnant women measurement time in weeks
+days = clinical[, "calculated.GA..weeks."]
+
+# Remove taxa with proportions of zeros between 0.2-0.8.
+pheno = round(otu[, -c(1,2)]/100*N)
+yy = as.matrix(pheno)  
+yy = ifelse(is.na(yy), 0, yy)
+zero.p = apply(yy, 2, function(x) {length(x[x != 0])/length(x)} )
+zero.p = sort(zero.p, decreasing = T)
+zero.p = data.frame(zero.p)
+zero.p$id = rownames(zero.p)
+zero.p = data.frame(zero.p[zero.p$zero.p>0.2 & zero.p$zero.p<0.8, ])
+yy = yy[, rownames(zero.p)]
+
+##########################
+## To fit a ZINBMM model, we need to use glmm.zinb funtion to analyze the taxa count data.
+### In the following code, we compared five different models using the function glmm.zinb to separately analyze each taxon for all taxa in the real data.
+
+# choose the first taxon to demonstrate the examples:
+y = as.numeric(yy[, 1])
+
+data = cbind.data.frame(y, subject, group, N)
+
+# The first model compared each taxon between two groups and an offset term for library size is needed in fixed effects. The random effect includes a random intercept. No fixed or random effects is considered for zero part. 
+f1 = glmm.zinb(y ~ group + offset(log(N)), data = data, 
+               random = ~ 1|subject, zi_fixed = ~1, zi_random =NULL)
+summary(f1)
+
+# The second model compared each taxon between two groups, while controlling days, and group by days interaction. And an offset term for library size is needed in fixed effects. The random effect includes a random intercept and a random slope of days. No fixed or random effects is considered for zero part. 
+f2 = glmm.zinb(y ~ group*days + offset(log(N)), data = data, 
+               random = list(subject = pdDiag(~days)), zi_fixed = ~1, zi_random =NULL)
+summary(f2)
+
+# The third model compared each taxon between two groups, while controlling days, and group by days interaction. And an offset term for library size is needed in fixed effects. The random effect includes a random intercept. No fixed or random effects is considered for zero part.
+f3 =  glmm.zinb(y ~ group*days + offset(log(N)), data = data, 
+                random = ~ 1|subject, zi_fixed = ~1, zi_random =NULL)
+summary(f3)
+
+# The fourth model compared each taxon between two groups, while controlling days, and group by days interaction. And an offset term for library size is needed in fixed effects. The random effect includes a random intercept. A correlation structure of AR1 is considered in this model. No fixed or random effects is considered for zero part.
+f4 = glmm.zinb(y ~ group*days  + offset(log(N)), data = data, 
+               random = ~ 1|subject, zi_fixed = ~1, zi_random =NULL, correlation = corAR1()) 
+summary(f4)
+
+# The fifth model compared each taxon between two groups and an offset term for library size is needed in fixed effects. The random effect includes a random intercept. Group is considered for fixed effects in zero part. 
+f5 = glmm.zinb(y ~ group + offset(log(N)), zi_fixed = ~group, zi_random =NULL, data=data, random = ~ 1|subject)
+summary(f5)
+
+For all taxa, we can analyze them using the fuction mms for all the above models. For demonstration, we use mms for the first model:
+  # The first model:
+  
+  
+  f = mms(y = yy, fixed = ~group + offset(log(N)), 
+          random = ~ 1 | subject, data = data, zi_fixed = ~1, zi_random =NULL,
+          min.p = 0.2, method = "zinb")
+```
+
+
+Zero-inflated Gaussian mixed models (ZIGMMs)
+```{r}
+rm(list = ls())
+
+data(Romero)
+names(Romero)
+
+otu = Romero$OTU; dim(otu)
+sam = Romero$SampleData; dim(sam)
+colnames(sam)
+
+N = sam[, "Total.Read.Counts"]  # total reads
+preg = sam$pregnant; table(preg)
+subject = sam[, "Subect_ID"]; table(subject)
+
+non = nonzero(y = otu, total = N, plot = F)
+nonzero.p = non[[1]]
+
+N = sam[, "Total.Read.Counts"]        
+Days = sam$GA_Days; Days = scale(Days)
+Age = sam$Age; Age = scale(Age)
+Race = sam$Race
+preg = sam$pregnant; table(preg)
+subject = sam[, "Subect_ID"]; table(subject)
+
+y = otu[, 1]
+
+y0 = log(y+1)
+data = data.frame(y0=y0, Days=Days, Age=Age, Race=Race, preg=preg, N=N, subject=subject)
+f1 = lme.zig(fixed = y0 ~ Days + Age + Race + preg + offset(log(N)), 
+            random = ~ 1 | subject, data = data) 
+summary(f1)
+fixed(f1)
+summary(f1$fit.zero)
+
+
+f2 = mms(y = log(Romero$OTU+1), fixed = ~ GA_Days + Age + Race + pregnant + 
+           offset(log(Total.Read.Counts)), data = Romero$SampleData,
+         random = ~ 1 | subject, min.p = 0.2, method = "zig", 
+         zi_fixed = ~1, zi_random = NULL)
+```
+
+
