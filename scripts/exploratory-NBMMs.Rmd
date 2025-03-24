@@ -17,8 +17,7 @@ library(nlme)
 library(BhGLM)
 ```
 
-
-# Load data, lets use counts
+# Load data
 ```{r}
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
@@ -36,20 +35,33 @@ model.in <- counts.l %>%
   # create binary outcome var
   mutate(response.bin = ifelse(Response == "Responder", 1, 0),
   # make days numeric
-         Days = as.integer(Days),
-  # create quadratic days 
-         Days2 = Days^2) %>%
+         Days = as.integer(Days)) %>%
   rename(Patient_Id = `Patient Id`) %>%
-  filter(grepl("g__", microbe)) %>%
+  filter(!grepl("t__", microbe)) %>%
   pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
   filter(sample %in% mic.meta$sample)
+
+lib.size <- counts.l %>%
+  filter(Taxonomy %in% c("k__Bacteria","k__Archaea")) %>%
+  group_by(sample) %>%
+  summarize(library.size = sum(est.reads))
+
+model.in <- model.in %>% left_join(lib.size)
 
 microbes <- colnames(model.in)
 microbes <- microbes[grepl("__", microbes)]
 ```
 
-Zero-inflated Negative Binomial mixed models (ZINBMMs)
+Zero-inflated Negative Binomial mixed models (ZINBMMs) use counts
 ```{r}
+# test with one taxa
+mod = glmm.zinb(`s__Blautia_wexlerae` ~ Response*Days + offset(log(library.size)), data = model.in, 
+                random = ~ 1|Patient_Id, zi_fixed = ~1, zi_random =NULL)
+
+mod
+```
+
+```{r} 
 ########### otu data #################
 dim(otu)
 colnames(otu)
@@ -114,7 +126,7 @@ summary(f4)
 f5 = glmm.zinb(y ~ group + offset(log(N)), zi_fixed = ~group, zi_random =NULL, data=data, random = ~ 1|subject)
 summary(f5)
 
-For all taxa, we can analyze them using the fuction mms for all the above models. For demonstration, we use mms for the first model:
+# For all taxa, we can analyze them using the fuction mms for all the above models. For demonstration, we use mms for the first model:
   # The first model:
   
   
@@ -124,7 +136,7 @@ For all taxa, we can analyze them using the fuction mms for all the above models
 ```
 
 
-Zero-inflated Gaussian mixed models (ZIGMMs)
+Zero-inflated Gaussian mixed models (ZIGMMs) use RA
 ```{r}
 rm(list = ls())
 
