@@ -34,7 +34,7 @@ vis.in <- ra.l %>%
 
 vis.in.c <- counts.l %>%
   mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
-  select(-Taxonomy) %>%
+  dplyr::select(-Taxonomy) %>%
   pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
   pivot_longer(!sample, names_to = "microbe", values_to = "est.reads") %>%
   left_join(mic.meta) %>%
@@ -74,6 +74,7 @@ s__Clostridium_perfringens - pval 0.018
 mics <- c("s__Sellimonas_intestinalis",
 "s__Bacteroides_ovatus",
 "s__Bifidobacterium_dentium",
+"s__Bifidobacterium_pseudolongum",
 "s__Blautia_glucerasea",
 "s__Sutterella_SGB9281",
 "s__Lachnospira_sp_NSJ_43" ,
@@ -81,6 +82,13 @@ mics <- c("s__Sellimonas_intestinalis",
 "g__Fusobacterium",
 "s__Clostridium_perfringens",
 "g__Dialister") 
+
+mics <- c("s__Klebsiella_pneumoniae",
+          "f__FGB1380",
+          "s__Veillonella_atypica",
+          "s__Mediterraneibacter_butyricigenes",
+          "s__Blautia_stercoris",
+          "s__Bifidobacterium_dentium")
 ```
 
 ```{r}
@@ -100,6 +108,25 @@ vis.in.c %>%
   facet_wrap(~microbe, scales = "free") +
   theme_minimal() 
 ```
+
+```{r}
+mics <- c(
+  "s__Oscillospiraceae_unclassified_SGB15256",
+  "s__Segatella_copri",
+  "s__Blautia_producta",
+  "s__Clostridium_perfringens",
+  "s__Ruminococcus_gnavus",
+  "s__Blautia_luti"
+)
+
+vis.in.c %>% 
+  filter(microbe %in% mics) %>%
+  ggplot(aes(x=Days, y=est.reads, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+```
+
 
 
 ```{r}

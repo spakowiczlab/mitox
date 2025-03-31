@@ -15,6 +15,8 @@ library(rlist)
 library(NBZIMM)
 library(nlme)
 library(BhGLM)
+library(Metrics)
+library(glmmTMB)
 ```
 
 # Load data
@@ -27,9 +29,17 @@ load("../manuscript/data/counts-long.rds")
 # Prepare data
 
 ```{r}
+# Let's create a pre-filter for microbes present in less than 4 samples 
+pres <- counts.l %>%
+  filter(sample %in% mic.meta$sample) %>%
+  group_by(Taxonomy) %>%
+  summarize(pres = sum(est.reads > 0)) %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  dplyr::select(-Taxonomy) 
+
 model.in <- counts.l %>%
   mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
-  select(-Taxonomy) %>%
+  dplyr::select(-Taxonomy) %>%
   right_join(mic.meta) %>%
   left_join(demographics) %>%
   # create binary outcome var
@@ -46,95 +56,204 @@ lib.size <- counts.l %>%
   group_by(sample) %>%
   summarize(library.size = sum(est.reads))
 
-model.in <- model.in %>% left_join(lib.size)
+model.in <- model.in %>% 
+  left_join(lib.size) 
 
 microbes <- colnames(model.in)
 microbes <- microbes[grepl("__", microbes)]
 ```
 
-Zero-inflated Negative Binomial mixed models (ZINBMMs) use counts
+Zero-inflated Negative Binomial mixed models (ZINBMMs) annd NBMMs
+using counts
+
+Using ZINBMM for taxa with >= 10% zeroes 
+Using NBMM for taxa with <10% zeroes 
 ```{r}
-# test with one taxa
-mod = glmm.zinb(`s__Blautia_wexlerae` ~ Response*Days + offset(log(library.size)), data = model.in, 
-                random = ~ 1|Patient_Id, zi_fixed = ~1, zi_random =NULL)
+capture.ZINBMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
+  mods.list <- list()
+  zero_prop <- sapply(microbes, function(x) mean(modin.dat[[x]] == 0, na.rm = TRUE))
+  
+  for (x in microbes) {
+    tryCatch({
+      model_formula <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
+      
+        if (zero_prop[x] >= zero_threshold) {
+        # Use Zero-Inflated Negative Binomial Model (ZINBMM)
+        model <- glmm.zinb(model_formula, 
+                           data = modin.dat, 
+                           random = ~ 1|Patient_Id, 
+                           zi_fixed = ~1, 
+                           zi_random = NULL,
+                           correlation = corAR1()
+                           )
+        model_type <- "ZINBMM"
+      } else {
+        # Use Negative Binomial Model (NBMM)
+        model <- glmm.nb(model_formula, 
+                         data = modin.dat, 
+                         random = ~ 1|Patient_Id,
+                         correlation = corAR1()
+                         )
+        model_type <- "NBMM"
+      }
+      
+      model_results <- broom.mixed::tidy(model)
+      model_results <- model_results %>% mutate(microbe = x, model_type = model_type)
+      
+      mods.list[[x]] <- model_results
+      
+      
+    }, error = function(e) {
+      message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL  # Assign NULL to failed models
+    })
+  }
+  
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame() 
+  }
+  
+  return(mods.df)
+}
 
-mod
+nbmm.out <- capture.ZINBMM(model.in, microbes)
+nbmm.out <- nbmm.out %>%
+  filter(term == "ResponseResponder:Days") %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
+  left_join(pres)
+
+nbmm.ar1.out <- capture.ZINBMM(model.in, microbes)
+nbmm.ar1.out <- nbmm.ar1.out %>%
+  filter(term == "ResponseResponder:Days") %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
+  left_join(pres)
+
+# # test with one taxa
+# mod = glmm.zinb(`s__Blautia_wexlerae` ~ Response + Days + offset(log(library.size)), data = model.in, 
+#                 random = ~ 1|Patient_Id, zi_fixed = ~1, zi_random =NULL)
+# 
+# mod.out <- broom.mixed::tidy(mod)
 ```
 
-```{r} 
-########### otu data #################
-dim(otu)
-colnames(otu)
 
-############### clinical data ############################
-clinical = data.frame(clinical)
-dim(clinical)
-colnames(clinical)
+Examine and compare
 
-group = ifelse(clinical$Pregnancy.outcome == "TERM", 1, 0)
+```{r}
+nb.top <- nb.res %>%
+  arrange(desc(pres)) %>%
+  top_n(10) %>%
+  filter()
 
-# Library size as offset
-N = clinical[, "Total.Read.Countsb"]  # total reads
+ar.top <- ar.res  %>%
+  arrange(desc(pres)) %>%
+  top_n(10)
 
-# Variables for fitting the models
-subject = clinical[, "subject.ID"]
-clinical$group = group
-## pregnant women vs non-pregnant women measurement time in weeks
-days = clinical[, "calculated.GA..weeks."]
-
-# Remove taxa with proportions of zeros between 0.2-0.8.
-pheno = round(otu[, -c(1,2)]/100*N)
-yy = as.matrix(pheno)  
-yy = ifelse(is.na(yy), 0, yy)
-zero.p = apply(yy, 2, function(x) {length(x[x != 0])/length(x)} )
-zero.p = sort(zero.p, decreasing = T)
-zero.p = data.frame(zero.p)
-zero.p$id = rownames(zero.p)
-zero.p = data.frame(zero.p[zero.p$zero.p>0.2 & zero.p$zero.p<0.8, ])
-yy = yy[, rownames(zero.p)]
-
-##########################
-## To fit a ZINBMM model, we need to use glmm.zinb funtion to analyze the taxa count data.
-### In the following code, we compared five different models using the function glmm.zinb to separately analyze each taxon for all taxa in the real data.
-
-# choose the first taxon to demonstrate the examples:
-y = as.numeric(yy[, 1])
-
-data = cbind.data.frame(y, subject, group, N)
-
-# The first model compared each taxon between two groups and an offset term for library size is needed in fixed effects. The random effect includes a random intercept. No fixed or random effects is considered for zero part. 
-f1 = glmm.zinb(y ~ group + offset(log(N)), data = data, 
-               random = ~ 1|subject, zi_fixed = ~1, zi_random =NULL)
-summary(f1)
-
-# The second model compared each taxon between two groups, while controlling days, and group by days interaction. And an offset term for library size is needed in fixed effects. The random effect includes a random intercept and a random slope of days. No fixed or random effects is considered for zero part. 
-f2 = glmm.zinb(y ~ group*days + offset(log(N)), data = data, 
-               random = list(subject = pdDiag(~days)), zi_fixed = ~1, zi_random =NULL)
-summary(f2)
-
-# The third model compared each taxon between two groups, while controlling days, and group by days interaction. And an offset term for library size is needed in fixed effects. The random effect includes a random intercept. No fixed or random effects is considered for zero part.
-f3 =  glmm.zinb(y ~ group*days + offset(log(N)), data = data, 
-                random = ~ 1|subject, zi_fixed = ~1, zi_random =NULL)
-summary(f3)
-
-# The fourth model compared each taxon between two groups, while controlling days, and group by days interaction. And an offset term for library size is needed in fixed effects. The random effect includes a random intercept. A correlation structure of AR1 is considered in this model. No fixed or random effects is considered for zero part.
-f4 = glmm.zinb(y ~ group*days  + offset(log(N)), data = data, 
-               random = ~ 1|subject, zi_fixed = ~1, zi_random =NULL, correlation = corAR1()) 
-summary(f4)
-
-# The fifth model compared each taxon between two groups and an offset term for library size is needed in fixed effects. The random effect includes a random intercept. Group is considered for fixed effects in zero part. 
-f5 = glmm.zinb(y ~ group + offset(log(N)), zi_fixed = ~group, zi_random =NULL, data=data, random = ~ 1|subject)
-summary(f5)
-
-# For all taxa, we can analyze them using the fuction mms for all the above models. For demonstration, we use mms for the first model:
-  # The first model:
-  
-  
-  f = mms(y = yy, fixed = ~group + offset(log(N)), 
-          random = ~ 1 | subject, data = data, zi_fixed = ~1, zi_random =NULL,
-          min.p = 0.2, method = "zinb")
+test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27BH", "s__Intestinimonas_massiliensis","f__Barnesiellaceae", "s__Phascolarctobacterium_faecium", "g__Dialister", "s__Bifidobacterium_longum")
 ```
 
+```{r}
+for (x in test.mics) {
+  model_formula <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
+
+  nb.model <- glmm.zinb(model_formula, 
+                           data = model.in, 
+                           random = ~ 1|Patient_Id, 
+                           zi_fixed = ~1, 
+                           zi_random = NULL)
+
+  ar.model <- glmm.zinb(model_formula, 
+                           data = model.in, 
+                           random = ~ 1|Patient_Id, 
+                           zi_fixed = ~1, 
+                           zi_random =  NULL,
+                           correlation = corAR1())
+  
+  g_model <- lme.zig(model_formula, 
+                     data = model.in,
+                     random = ~ 1|Patient_Id,
+                     zi_fixed = ~1, 
+                     zi_random =  NULL) 
+  
+  g_ar_model <- lme.zig(model_formula, 
+                     data = model.in,
+                     random = ~ 1|Patient_Id,
+                     zi_fixed = ~1, 
+                     zi_random =  NULL,
+                     correlation = corAR1()) 
+  
+  
+  nb_tmb <- glmmTMB(as.formula(paste0(x, " ~ Response*Days + (1|Patient_Id) + offset(log(library.size))")),
+                    data = model.in, 
+                    family = nbinom2(),   # Negative binomial family
+                    ziformula = ~ 1 )      # Zero-inflation part (adjust as needed)
+
+
+  print(paste("Microbe:", x))
+  
+  # Compute Mean Squared Error (MSE)
+  mse_ar <- mean((predict(ar.model, type = "response") - model.in[[x]])^2, na.rm = TRUE)
+  mse_nb <- mean((predict(nb.model, type = "response") - model.in[[x]])^2, na.rm = TRUE)
+  mse_tmb <- mean((predict(nb_tmb, type = "response") - model.in[[x]])^2, na.rm = TRUE)
+  mse_g <- mean((predict(g_model, type = "response") - model.in[[x]])^2, na.rm = TRUE)
+  mse_g_ar <-mean((predict(g_ar_model, type = "response") - model.in[[x]])^2, na.rm = TRUE)
+  
+  # Compute Root Mean Squared Error (RMSE)
+  # rmse_ar <- rmse(model.in[[x]], predict(ar.model, type = "response"))
+  # rmse_nb <- rmse(model.in[[x]], predict(nb.model, type = "response"))
+
+  print(c(AR_Model_MSE = mse_ar, NB_Model_MSE = mse_nb, TMB = mse_tmb, G = mse_g, g.ar = mse_g_ar))
+  #print(c(AR_Model_RMSE = rmse_ar, NB_Model_RMSE = rmse_nb))
+
+}
+```
+VERY HIGH MSE...concerning
+
+
+[1] "Microbe: s__Alistipes_finegoldii"
+AR_Model_MSE NB_Model_MSE 
+  7567996784   7567996669 
+AR_Model_RMSE NB_Model_RMSE 
+     86994.23      86994.23 
+
+[1] "Microbe: s__Lachnospiraceae_bacterium_AM48_27BH"
+AR_Model_MSE NB_Model_MSE 
+     9166635      9166645 
+AR_Model_RMSE NB_Model_RMSE 
+     3027.645      3027.647 
+
+[1] "Microbe: s__Intestinimonas_massiliensis"
+AR_Model_MSE NB_Model_MSE 
+    58239366     58239378 
+AR_Model_RMSE NB_Model_RMSE 
+     7631.472      7631.473 
+
+[1] "Microbe: f__Barnesiellaceae"
+AR_Model_MSE NB_Model_MSE 
+  5927030776   5927031417 
+AR_Model_RMSE NB_Model_RMSE 
+     76987.21      76987.22 
+
+[1] "Microbe: s__Phascolarctobacterium_faecium"
+AR_Model_MSE NB_Model_MSE 
+  1266264137   1266263964 
+AR_Model_RMSE NB_Model_RMSE 
+     35584.61      35584.60 
+
+[1] "Microbe: g__Dialister"
+AR_Model_MSE NB_Model_MSE 
+   362496135    362496122 
+AR_Model_RMSE NB_Model_RMSE 
+     19039.33      19039.33 
+
+[1] "Microbe: s__Bifidobacterium_longum"
+AR_Model_MSE NB_Model_MSE 
+  3542945763   3542955716 
+AR_Model_RMSE NB_Model_RMSE 
+     59522.65      59522.73 
 
 Zero-inflated Gaussian mixed models (ZIGMMs) use RA
 ```{r}
