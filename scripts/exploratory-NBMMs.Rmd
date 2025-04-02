@@ -91,12 +91,19 @@ fit_models <- function(x, model.in, model.in.ra) {
   model_formula_g <- as.formula(paste0(x, " ~ Response*Days"))
 
   models <- list(
+    # FZINBMM (Counts)
     "NB" = glmm.zinb(model_formula_g, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # FZINBMM w/ AR1
     "AR_NB" = glmm.zinb(model_formula_nb, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
-    "NB_Off" = glmm.zinb(model_formula_nb, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # FZINBMM w/ no offset
+    "noOff_NB" = glmm.zinb(model_formula_nb, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # ZIGMM (RA)
     "Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # ZIGMM w/ AR1
     "AR_Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    # ZIGMM w/ CAR1
     "CAR_Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
+    # ZIGMM w/ ARMA
     "ARMA_Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
   )
 
