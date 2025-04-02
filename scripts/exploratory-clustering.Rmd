@@ -1,0 +1,68 @@
+---
+title: "response clustering"
+author: "C. Dravillas"
+date: "2025-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(compositions)
+library(ggplot2)
+library(pheatmap)
+```
+
+## Load data
+```{r}
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+load("../manuscript/data/counts-wide.rds")
+load("../manuscript/data/events.rds")
+```
+
+## Prepare data... 
+- CLR transformation? or use RA
+- Need to define time points 
+
+```{r}
+taxa <- counts.w %>%
+  column_to_rownames("microbe")
+
+# add pseudo count for CLR transformation 
+taxa[taxa == 0] <- 1 
+clr_taxa <- t(apply(taxa, 1, function(x) clr(x)))
+
+# Remove 0 variance taxa - n=891
+non_constant_taxa <- apply(clr_taxa, 1, function(x) var(x, na.rm = TRUE)) > 0
+clr_taxa_filt <- clr_taxa[non_constant_taxa, ]
+```
+
+## Clustering
+
+# PCA 
+
+```{r}
+pca_result <- prcomp(t(clr_taxa_filt), center = TRUE, scale. = TRUE)
+pca_df <- as.data.frame(pca_result$x)
+pca_df$sample <- rownames(pca_df)
+
+pca_df <- merge(pca_df, mic.meta, by = "sample")
+pca_df <- merge(pca_df, demographics, by = "Patient Id")
+
+# Plot PCA (color by PersonID or Timepoint)
+ggplot(pca_df, aes(x = PC1, y = PC2, color = `Patient Id`)) + 
+  geom_point(size = 3) + 
+  theme_minimal()
+```
+One major outlier M018, Sample FF08034405
+
+
+# Heirarchical
+```{r}
+sample_dist <- dist(t(clr_taxa_filt), method = "euclidean")
+sample_clustering <- hclust(sample_dist, method = "ward.D2")
+pheatmap(as.matrix(sample_dist), clustering_method = "ward.D2")
+```
+
