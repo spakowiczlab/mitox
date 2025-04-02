@@ -1,0 +1,129 @@
+---
+title: "irAE longitudinal models"
+author: "C. Dravillas"
+date: "2025-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(broom.mixed)
+library(rlist)
+library(NBZIMM)
+```
+
+```{r}
+load("../manuscript/data/clinical.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+load("../manuscript/data/counts-long.rds")
+```
+
+```{r}
+# Let's create a pre-filter for microbes present in less than 4 samples 
+pres <- counts.l %>%
+  filter(sample %in% mic.meta$sample) %>%
+  group_by(Taxonomy) %>%
+  summarize(pres = sum(est.reads > 0)) %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  dplyr::select(-Taxonomy) 
+
+model.in <- counts.l %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  dplyr::select(-Taxonomy) %>%
+  right_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(irae.bin = ifelse(irAE == "Yes", 1, 0),
+  # make days numeric
+         Days = as.integer(Days)) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  filter(!grepl("t__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
+
+model.in.ra <- ra.l %>%
+  right_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(irae.bin = ifelse(irAE == "Yes", 1, 0),
+  # make days numeric
+         Days = as.integer(Days)) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  filter(!grepl("t__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
+
+lib.size <- counts.l %>%
+  filter(Taxonomy %in% c("k__Bacteria","k__Archaea")) %>%
+  group_by(sample) %>%
+  summarize(library.size = sum(est.reads))
+
+model.in <- model.in %>% 
+  left_join(lib.size) 
+
+microbes <- colnames(model.in)
+microbes <- microbes[grepl("__", microbes)]
+microbes.ra <- colnames(model.in.ra)
+microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
+```
+Not sure this is really the model we want to use for this...
+```{r}
+capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
+  mods.list <- list()
+  zero_prop <- sapply(microbes, function(x) mean(modin.dat[[x]] == 0, na.rm = TRUE))
+  
+  for (x in microbes) {
+    tryCatch({
+      model_formula <- as.formula(paste0(x, " ~ irAE*Days"))
+      
+        if (zero_prop[x] >= zero_threshold) {
+        # Use Zero-Inflated Gaussian Model (ZIGMM)
+        model <- lme.zig(model_formula, 
+                           data = modin.dat, 
+                           random = ~ 1|Patient_Id, 
+                           zi_fixed = ~1, 
+                           zi_random = NULL
+                           )
+        model_type <- "ZIGMM"
+      } else {
+        # Use Gaussian Model (GMM)
+        model <- lme(model_formula, 
+                         data = modin.dat, 
+                         random = ~ 1|Patient_Id
+                         )
+        model_type <- "GMM"
+      }
+      
+      model_results <- broom.mixed::tidy(model)
+      model_results <- model_results %>% mutate(microbe = x, model_type = model_type)
+      
+      mods.list[[x]] <- model_results
+      
+      
+    }, error = function(e) {
+      message("Model failed for ", x, ": ", e$message)
+      mods.list[[x]] <- NULL  # Assign NULL to failed models
+    })
+  }
+  
+  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
+  
+  if (length(mods.list.clean) > 0) {
+    mods.df <- bind_rows(mods.list.clean)
+  } else {
+    mods.df <- data.frame() 
+  }
+  
+  return(mods.df)
+}
+
+gmm.out <- capture.ZIGMM(model.in.ra, microbes.ra)
+gmm.out <- gmm.out %>%
+  filter(term == "irAEYes:Days") %>%
+  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
+  left_join(pres)
+```
+
+
