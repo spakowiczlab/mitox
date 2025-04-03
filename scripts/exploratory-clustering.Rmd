@@ -12,6 +12,9 @@ library(tidyverse)
 library(compositions)
 library(ggplot2)
 library(pheatmap)
+library(vegan)
+library(dendextend)
+library(umap)
 ```
 
 ## Load data
@@ -19,6 +22,8 @@ library(pheatmap)
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 load("../manuscript/data/counts-wide.rds")
+load("../manuscript/data/counts-long.rds")
+#load("../manuscript/data/ra-wide.rds")
 load("../manuscript/data/events.rds")
 ```
 
@@ -27,8 +32,11 @@ load("../manuscript/data/events.rds")
 - Need to define time points 
 
 ```{r}
+# counts
 taxa <- counts.w %>%
-  column_to_rownames("microbe")
+  # remove major outlier 
+  # dplyr::select(-`FF08034405`) %>%
+  column_to_rownames("microbe") 
 
 # add pseudo count for CLR transformation 
 taxa[taxa == 0] <- 1 
@@ -37,6 +45,15 @@ clr_taxa <- t(apply(taxa, 1, function(x) clr(x)))
 # Remove 0 variance taxa - n=891
 non_constant_taxa <- apply(clr_taxa, 1, function(x) var(x, na.rm = TRUE)) > 0
 clr_taxa_filt <- clr_taxa[non_constant_taxa, ]
+clr_taxa_filt_t <- t(clr_taxa_filt)
+
+# check order and add demogrpahic info
+meta <- mic.meta %>%
+  # remove major outlier 
+  # filter(!sample == "FF08034405") %>%
+  left_join(demographics)
+
+all.equal(rownames(clr_taxa_filt_t), meta$sample)
 ```
 
 ## Clustering
@@ -44,25 +61,113 @@ clr_taxa_filt <- clr_taxa[non_constant_taxa, ]
 # PCA 
 
 ```{r}
-pca_result <- prcomp(t(clr_taxa_filt), center = TRUE, scale. = TRUE)
+pca_result <- prcomp(clr_taxa_filt_t, center = TRUE, scale. = TRUE)
 pca_df <- as.data.frame(pca_result$x)
 pca_df$sample <- rownames(pca_df)
 
-pca_df <- merge(pca_df, mic.meta, by = "sample")
-pca_df <- merge(pca_df, demographics, by = "Patient Id")
+pca_df <- merge(pca_df, meta, by = "sample")
+```
 
-# Plot PCA (color by PersonID or Timepoint)
+# Plot 
+
+```{r, warning=FALSE, message=FALSE}
 ggplot(pca_df, aes(x = PC1, y = PC2, color = `Patient Id`)) + 
   geom_point(size = 3) + 
-  theme_minimal()
+  theme_minimal() +
+  # remove outlier from visual field 
+  #xlim(-10, 5) +
+  stat_ellipse(aes(group = `Patient Id`), level = 0.95, linetype = "dashed")
 ```
-One major outlier M018, Sample FF08034405
+
+One major outlier M018, Sample FF08034405. This sample seems to be missing a lot
+of taxa present in others. 
 
 
 # Heirarchical
 ```{r}
-sample_dist <- dist(t(clr_taxa_filt), method = "euclidean")
-sample_clustering <- hclust(sample_dist, method = "ward.D2")
-pheatmap(as.matrix(sample_dist), clustering_method = "ward.D2")
+# Compute Aitchison distance (Euclidean on CLR data)
+dist_matrix <- dist(clr_taxa_filt_t, method = "euclidean")
+hc <- hclust(dist_matrix, method = "ward.D2")
+plot(hc, main = "Hierarchical Clustering")
+
+# Convert hclust object to a dendrogram
+dend <- as.dendrogram(hc)
+
+# Assuming you have a vector of patient IDs (e.g., "patient_id") corresponding to samples
+# Example: patient_id <- c("Patient1", "Patient2", "Patient1", "Patient3", "Patient2")
+patient_id <- meta$`Patient Id` # Replace with your actual patient ID data
+
+patient_colors <- as.factor(patient_id)
+palette_colors <- rainbow(length(unique(patient_colors)))
+
+# Color the labels with distinct colors for each patient
+dend <- dend %>%
+  set("labels_col", palette_colors[patient_colors]) %>%
+  set("labels_cex", 0.8)  # Adjust label size if needed
+
+# Plot the dendrogram with colored labels
+plot(dend, main = "Hierarchical Clustering by Patient")
 ```
+
+# K means 
+```{r}
+set.seed(123)
+k <- 3 # Set number of clusters
+kmeans_result <- kmeans(clr_taxa_filt_t, centers = k)
+
+# Add cluster labels to metadata
+meta$Cluster <- as.factor(kmeans_result$cluster)
+
+# PCA Plot with clusters
+ggplot(pca_df, aes(x = PC1, y = PC2, color = meta$Cluster)) + 
+  geom_point(size = 3) + 
+  theme_minimal() + 
+  ggtitle("K-means Clustering of Microbiome Samples")
+```
+M070 ends up in their own cluster with k=3 and k=2...
+
+# UMAP
+```{r}
+umap_result <- umap(clr_taxa_filt_t)
+
+# Convert UMAP output to a dataframe
+umap_df <- as.data.frame(umap_result$layout)
+umap_df$PersonID <- meta$`Patient Id`
+
+# Plot UMAP
+ggplot(umap_df, aes(x = V1, y = V2, color = PersonID)) +
+  geom_point(size = 3) +
+  theme_minimal() 
+```
+```{r}
+umap_result <- umap(clr_taxa_filt_t)
+
+# Convert UMAP result to a data frame for easy plotting
+umap_df <- as.data.frame(umap_result$layout)
+umap_df$Cluster <- as.factor(meta$Cluster)  # Add your cluster or grouping variable here
+
+# Plot UMAP with ellipses for each cluster
+ggplot(umap_df, aes(x = V1, y = V2, color = Cluster)) + 
+  geom_point(size = 3) + 
+  stat_ellipse(type = "norm", size = 1) +  # Add ellipses based on normal distribution
+  theme_minimal() + 
+  ggtitle("UMAP of CLR-Transformed Microbiome Data with Clusters and Ellipses")
+```
+
+
+# Permanova
+```{r}
+library(vegan)
+
+# Compute Aitchison distance
+dist_matrix <- dist(clr_data, method = "euclidean")
+
+# Run PERMANOVA (testing clustering by PersonID)
+permanova_result <- adonis2(dist_matrix ~ metadata$PersonID, data = metadata)
+
+# Print results
+print(permanova_result)
+
+```
+
 
