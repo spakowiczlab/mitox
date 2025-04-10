@@ -15,6 +15,7 @@ library(pheatmap)
 library(vegan)
 library(dendextend)
 library(umap)
+library(patchwork)
 ```
 
 ## Load data
@@ -54,14 +55,79 @@ meta <- mic.meta %>%
   left_join(demographics)
 
 all.equal(rownames(clr_taxa_filt_t), meta$sample)
+
+# define time points 
+irAE.time <- events %>%
+  filter(Event == "irAE") %>%
+  mutate(irAE.day = Days) %>%
+  select(`Patient Id`, irAE.day) 
+
+# need to handle multiple irAE dates
+# M028, none of them are irAE samples per 10 day rule
+# M042, one irAE date makes it an irAE sample 
+# should have n=33
+meta.irae <- meta %>%
+  left_join(irAE.time) %>%
+  mutate(irAE.day = ifelse(irAE.day < 0 | irAE.day > 100, NA, irAE.day),
+         irAE.sample = ifelse(is.na(irAE.day), 0,
+                       ifelse(abs(Days - irAE.day) <= 10, "irAE", "Other"))) %>%
+  filter(irAE == "Yes") %>%
+  group_by(sample) %>%
+  slice_max(irAE.sample, n = 1, with_ties = FALSE) %>%
+  ungroup() 
+
+taxa.irae <- as.matrix(as.data.frame(clr_taxa_filt_t) %>%
+  rownames_to_column("sample") %>%
+  slice(match(meta.irae$sample, sample)) %>%
+  filter(sample %in% meta.irae$sample) %>%
+  column_to_rownames("sample"))
+
+# Remove 0 variance taxa - remove 856 more taxa for irAE pts only 
+taxa.irae_filt <- taxa.irae[, apply(taxa.irae, 2, var) > 0]
+
+all.equal(rownames(taxa.irae_filt), meta.irae$sample)
 ```
 
+
 ## Clustering
+
+# UMAP
+
+```{r}
+umap_result <- umap(taxa.irae_filt)
+
+# Convert UMAP output to a dataframe
+umap_df <- as.data.frame(umap_result$layout)
+umap_df$PatientID <- meta.irae$`Patient Id`
+umap_df$Timepoint <- meta.irae$irAE.sample
+
+umap_long <- umap_df %>%
+  pivot_longer(cols = c(PatientID, Timepoint), names_to = "Grouping", values_to = "Label")
+
+# ggplot(umap_long, aes(x = V1, y = V2, color = Label)) +
+#   geom_point(size = 3) +
+#   theme_minimal() +
+#   facet_wrap(~Grouping) +
+#   theme(legend.position = "bottom")
+
+p1 <- ggplot(umap_df, aes(x = V1, y = V2, color = PatientID)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+p2 <- ggplot(umap_df, aes(x = V1, y = V2, color = Timepoint)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Combine plots side by side
+p1 + p2 
+```
 
 # PCA 
 
 ```{r}
-pca_result <- prcomp(clr_taxa_filt_t, center = TRUE, scale. = TRUE)
+pca_result <- prcomp(taxa.irae_filt, center = TRUE, scale. = TRUE)
 pca_df <- as.data.frame(pca_result$x)
 pca_df$sample <- rownames(pca_df)
 
@@ -77,6 +143,38 @@ ggplot(pca_df, aes(x = PC1, y = PC2, color = `Patient Id`)) +
   # remove outlier from visual field 
   #xlim(-10, 5) +
   stat_ellipse(aes(group = `Patient Id`), level = 0.95, linetype = "dashed")
+```
+
+# UMAP
+```{r}
+umap_result <- umap(taxa.irae_filt)
+
+# Convert UMAP output to a dataframe
+umap_df <- as.data.frame(umap_result$layout)
+umap_df$PersonID <- meta.irae$`Patient Id`
+umap_df$Timepoint <- meta.irae$irAE.sample
+
+umap_long <- umap_df %>%
+  pivot_longer(cols = c(PersonID, Timepoint), names_to = "Grouping", values_to = "Label")
+
+# ggplot(umap_long, aes(x = V1, y = V2, color = Label)) +
+#   geom_point(size = 3) +
+#   theme_minimal() +
+#   facet_wrap(~Grouping) +
+#   theme(legend.position = "bottom")
+
+p1 <- ggplot(umap_df, aes(x = V1, y = V2, color = PersonID)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+p2 <- ggplot(umap_df, aes(x = V1, y = V2, color = Timepoint)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Combine plots side by side
+p1 + p2 
 ```
 
 One major outlier M018, Sample FF08034405. This sample seems to be missing a lot
@@ -126,19 +224,7 @@ ggplot(pca_df, aes(x = PC1, y = PC2, color = meta$Cluster)) +
 ```
 M070 ends up in their own cluster with k=3 and k=2...
 
-# UMAP
-```{r}
-umap_result <- umap(clr_taxa_filt_t)
 
-# Convert UMAP output to a dataframe
-umap_df <- as.data.frame(umap_result$layout)
-umap_df$PersonID <- meta$`Patient Id`
-
-# Plot UMAP
-ggplot(umap_df, aes(x = V1, y = V2, color = PersonID)) +
-  geom_point(size = 3) +
-  theme_minimal() 
-```
 ```{r}
 umap_result <- umap(clr_taxa_filt_t)
 
