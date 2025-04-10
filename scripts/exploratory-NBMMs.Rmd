@@ -168,9 +168,8 @@ print(final_results)
 ```
 save model comparison output
 ```{r}
-write.csv(final_results, file = "../data/modeling-comparison-metrics.csv", row.names = F)
+write.csv(final_results, file = "../data/modeling-comparison-metrics.csv")
 ```
-
 
 Examine Results
 - based on MSE we can rule out NB models
@@ -238,6 +237,12 @@ gmm.out <- gmm.out %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
   left_join(pres)
 ```
+
+save model output
+```{r}
+write.csv(gmm.out, file = "../data/modeling-gaussian.csv", row.names = F)
+```
+
 
 Errors include 
 Model failed for s__Streptococcus_agalactiae: system is computationally singular: reciprocal condition number = 8.59737e-19
