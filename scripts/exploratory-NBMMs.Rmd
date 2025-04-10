@@ -87,51 +87,52 @@ test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27
 ```{r}
 # Function to fit models
 fit_models <- function(x, model.in, model.in.ra) {
-  model_formula_nb <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
-  model_formula_g <- as.formula(paste0(x, " ~ Response*Days"))
+  model_formula_off <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
+  model_formula <- as.formula(paste0(x, " ~ Response*Days"))
 
   models <- list(
     # FZINBMM (Counts)
-    "NB" = glmm.zinb(model_formula_g, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    "NB" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
     # FZINBMM w/ AR1
-    "AR_NB" = glmm.zinb(model_formula_nb, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    "AR_NB" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
     # FZINBMM w/ no offset
-    "noOff_NB" = glmm.zinb(model_formula_nb, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    "noOff_NB" = glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
     # ZIGMM (RA)
-    "Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    "Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
     # ZIGMM w/ AR1
-    "AR_Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    "AR_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
     # ZIGMM w/ CAR1
-    "CAR_Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
+    "CAR_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
     # ZIGMM w/ ARMA
-    "ARMA_Gaussian" = lme.zig(model_formula_g, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
+    "ARMA_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
   )
 
   return(models)
 }
 
-# Function to compute metrics
+# Compute model metrics
 compute_metrics <- function(model, observed) {
+  # mse = mean of (error)^2
   predictions <- predict(model, type = "response")
   residuals_sq <- (predictions - observed)^2
   mse <- mean(residuals_sq, na.rm = TRUE)
   rmse <- sqrt(mse)
 
+  # define n and p 
   n <- length(observed)
-  sigma2 <- mean(residuals(model)^2, na.rm = TRUE)
-  logLik <- -0.5 * n * (log(2 * pi * sigma2) + 1)
+  p <- length(coef(model))
+  
+  # variance of residuals
+  sigma2 <- sum(residuals(model)^2) / (n - p)
+  
+  # Loglik 
+  logLik <- -(n/2) * (log(2*pi*sigma2) + 1) - sum(residuals(model)^2) / (2 * sigma2)
 
-  k <- length(coef(model)) + 1
-  aic <- -2 * logLik + 2 * k
-  bic <- -2 * logLik + k * log(n)
-
-  # Debugging step: Print predictions vs actuals
-  if(length(predictions) != length(observed)) {
-    warning("Length mismatch between predictions and observed values.")
-  } else {
-    print(head(predictions))
-    print(head(observed))
-  }
+  # number of estimate params..i think k should be 6 ?
+  # + random intercept and zi intercept 
+  k <- length(coef(model)) + 2
+  aic <- (2 * k) - (2 * logLik)
+  bic <- (log(n) * k) - (2 * logLik)
 
   return(c(MSE = mse, RMSE = rmse, AIC = aic, BIC = bic, LogLik = logLik))
 }
@@ -165,6 +166,11 @@ final_results[, -1] <- lapply(final_results[, -1], as.double)
 
 print(final_results)
 ```
+save model comparison output
+```{r}
+write.csv(final_results, file = "../data/modeling-comparison-metrics.csv", row.names = F)
+```
+
 
 Examine Results
 - based on MSE we can rule out NB models
