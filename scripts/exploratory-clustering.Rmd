@@ -24,7 +24,6 @@ load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 load("../manuscript/data/counts-wide.rds")
 load("../manuscript/data/counts-long.rds")
-#load("../manuscript/data/ra-wide.rds")
 load("../manuscript/data/events.rds")
 ```
 
@@ -48,7 +47,7 @@ non_constant_taxa <- apply(clr_taxa, 1, function(x) var(x, na.rm = TRUE)) > 0
 clr_taxa_filt <- clr_taxa[non_constant_taxa, ]
 clr_taxa_filt_t <- t(clr_taxa_filt)
 
-# check order and add demogrpahic info
+# check order and add demographic info
 meta <- mic.meta %>%
   # remove major outlier 
   # filter(!sample == "FF08034405") %>%
@@ -76,22 +75,40 @@ meta.irae <- meta %>%
   slice_max(irAE.sample, n = 1, with_ties = FALSE) %>%
   ungroup() 
 
+# all samples from all people n=88
+meta.all <- meta %>%
+  left_join(irAE.time) %>%
+  mutate(irAE.day = ifelse(irAE.day < 0 | irAE.day > 100, NA, irAE.day),
+         irAE.sample = ifelse(is.na(irAE.day), "Other",
+                       ifelse(abs(Days - irAE.day) <= 10, "irAE", "Other"))) %>%
+  group_by(sample) %>%
+  slice_max(irAE.sample, n = 1, with_ties = FALSE) %>%
+  ungroup() 
+
 taxa.irae <- as.matrix(as.data.frame(clr_taxa_filt_t) %>%
   rownames_to_column("sample") %>%
   slice(match(meta.irae$sample, sample)) %>%
   filter(sample %in% meta.irae$sample) %>%
   column_to_rownames("sample"))
 
+taxa.all <- as.matrix(as.data.frame(clr_taxa_filt_t) %>%
+  rownames_to_column("sample") %>%
+  slice(match(meta.all$sample, sample)) %>%
+  filter(sample %in% meta.all$sample) %>%
+  column_to_rownames("sample"))
+
 # Remove 0 variance taxa - remove 856 more taxa for irAE pts only 
 taxa.irae_filt <- taxa.irae[, apply(taxa.irae, 2, var) > 0]
+taxa.all_filt <- taxa.all[, apply(taxa.all, 2, var) > 0]
 
 all.equal(rownames(taxa.irae_filt), meta.irae$sample)
+all.equal(rownames(taxa.all_filt), meta.all$sample)
 ```
 
 
 ## Clustering
 
-# UMAP
+# UMAP irAE samples only
 
 ```{r}
 umap_result <- umap(taxa.irae_filt)
@@ -104,27 +121,95 @@ umap_df$Timepoint <- meta.irae$irAE.sample
 umap_long <- umap_df %>%
   pivot_longer(cols = c(PatientID, Timepoint), names_to = "Grouping", values_to = "Label")
 
-# ggplot(umap_long, aes(x = V1, y = V2, color = Label)) +
-#   geom_point(size = 3) +
-#   theme_minimal() +
-#   facet_wrap(~Grouping) +
-#   theme(legend.position = "bottom")
-
 p1 <- ggplot(umap_df, aes(x = V1, y = V2, color = PatientID)) +
   geom_point(size = 3) +
+  stat_ellipse(aes(group = PatientID), linetype = "dashed") +
   theme_minimal() +
   theme(legend.position = "right")
 
 p2 <- ggplot(umap_df, aes(x = V1, y = V2, color = Timepoint)) +
   geom_point(size = 3) +
+  stat_ellipse(aes(group = Timepoint), linetype = "dashed") +
   theme_minimal() +
   theme(legend.position = "right")
 
 # Combine plots side by side
-p1 + p2 
+p <- p1 + p2 
+p
+
+ggsave("../figures/exploratory-umap-irAE.png", p, width = 12, height = 6, dpi = 300)
 ```
 
-# PCA 
+# UMAP all samples from all people 
+
+```{r}
+umap_result <- umap(taxa.all_filt)
+
+# Convert UMAP output to a dataframe
+umap_df <- as.data.frame(umap_result$layout)
+umap_df$PatientID <- meta.all$`Patient Id`
+umap_df$Timepoint <- meta.all$irAE.sample
+
+umap_long <- umap_df %>%
+  pivot_longer(cols = c(PatientID, Timepoint), names_to = "Grouping", values_to = "Label")
+
+p1 <- ggplot(umap_df, aes(x = V1, y = V2, color = PatientID)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = PatientID), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+p2 <- ggplot(umap_df, aes(x = V1, y = V2, color = Timepoint)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = Timepoint), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "right") 
+
+# Combine plots side by side
+p.all <- p1 + p2 
+p.all
+
+ggsave("../figures/exploratory-umap-all.png", p.all, width = 12, height = 6, dpi = 300)
+```
+
+
+# PCA irAE samples only
+
+```{r}
+pca_result <- prcomp(taxa.irae_filt, scale. = TRUE)
+
+pca_df <- as.data.frame(pca_result$x[, 1:2])
+colnames(pca_df) <- c("PC1", "PC2")
+
+pca_df$PatientID <- meta.irae$`Patient Id`
+pca_df$Timepoint <- meta.irae$irAE.sample
+
+# Plot colored by PatientID
+p1.pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = PatientID)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = PatientID), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Plot colored by Timepoint (e.g., "irAE", "Other")
+p2.pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = Timepoint)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = Timepoint), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Combine plots side by side
+pca.plot <- p1.pca + p2.pca
+pca.plot
+
+ggsave("../figures/exploratory-outlier-pca-irAE.png", pca.plot, width = 12, height = 6, dpi = 300)
+```
+
+
+PCA outlier ? 
+Try removing? Whats going on with this sample
+
+
 
 ```{r}
 pca_result <- prcomp(taxa.irae_filt, center = TRUE, scale. = TRUE)

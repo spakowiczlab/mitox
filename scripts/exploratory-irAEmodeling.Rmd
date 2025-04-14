@@ -18,10 +18,15 @@ library(NBZIMM)
 load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 load("../manuscript/data/counts-long.rds")
+load("../manuscript/data/ra-long.rds")
 ```
 
+Modeling ideas
+
+irAE as response var, with irAE changing over time
+
 ```{r}
-# Let's create a pre-filter for microbes present in less than 4 samples 
+
 pres <- counts.l %>%
   filter(sample %in% mic.meta$sample) %>%
   group_by(Taxonomy) %>%
@@ -35,7 +40,7 @@ model.in <- counts.l %>%
   right_join(mic.meta) %>%
   left_join(demographics) %>%
   # create binary outcome var
-  mutate(irae.bin = ifelse(irAE == "Yes", 1, 0),
+  mutate(irae.bin = ifelse(irAE == "Yes", 1, 0), we are 
   # make days numeric
          Days = as.integer(Days)) %>%
   rename(Patient_Id = `Patient Id`) %>%
@@ -68,6 +73,95 @@ microbes <- microbes[grepl("__", microbes)]
 microbes.ra <- colnames(model.in.ra)
 microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 ```
+
+```{r}
+test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27BH", "s__Intestinimonas_massiliensis","f__Barnesiellaceae", "s__Phascolarctobacterium_faecium", "g__Dialister", "s__Bifidobacterium_longum")
+```
+
+
+```{r}
+# Function to fit models
+fit_models <- function(x, model.in, model.in.ra) {
+  model_formula_off <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
+  model_formula <- as.formula(paste0(x, " ~ Response*Days"))
+
+  models <- list(
+    # FZINBMM (Counts)
+    "NB" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # FZINBMM w/ AR1
+    "AR_NB" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    # FZINBMM w/ no offset
+    "noOff_NB" = glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # ZIGMM (RA)
+    "Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # ZIGMM w/ AR1
+    "AR_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    # ZIGMM w/ CAR1
+    "CAR_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
+    # ZIGMM w/ ARMA
+    "ARMA_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
+  )
+
+  return(models)
+}
+
+# Compute model metrics
+compute_metrics <- function(model, observed) {
+  # mse = mean of (error)^2
+  predictions <- predict(model, type = "response")
+  residuals_sq <- (predictions - observed)^2
+  mse <- mean(residuals_sq, na.rm = TRUE)
+  rmse <- sqrt(mse)
+
+  # define n and p 
+  n <- length(observed)
+  p <- length(coef(model))
+  
+  # variance of residuals
+  sigma2 <- sum(residuals(model)^2) / (n - p)
+  
+  # Loglik 
+  logLik <- -(n/2) * (log(2*pi*sigma2) + 1) - sum(residuals(model)^2) / (2 * sigma2)
+
+  # number of estimate params..i think k should be 6 ?
+  # + random intercept and zi intercept 
+  k <- length(coef(model)) + 2
+  aic <- (2 * k) - (2 * logLik)
+  bic <- (log(n) * k) - (2 * logLik)
+
+  return(c(MSE = mse, RMSE = rmse, AIC = aic, BIC = bic, LogLik = logLik))
+}
+
+# Loop over microbes
+results <- list()
+for (x in test.mics) {
+  models <- fit_models(x, model.in, model.in.ra)
+
+  model_metrics <- lapply(names(models), function(model_name) {
+    # Use the correct observed dataset
+    observed <- if (grepl("Gaussian", model_name)) model.in.ra[[x]] else model.in[[x]]
+    compute_metrics(models[[model_name]], observed)
+  })
+
+  model_metrics <- do.call(rbind, model_metrics)
+  rownames(model_metrics) <- names(models)
+
+  results[[x]] <- model_metrics
+  print(paste("Microbe:", x))
+  print(model_metrics)
+}
+
+# Combine all results into a single data frame
+final_results <- do.call(rbind, lapply(names(results), function(m) {
+  cbind(Microbe = m, results[[m]])
+}))
+
+final_results <- as.data.frame(final_results)
+final_results[, -1] <- lapply(final_results[, -1], as.double)
+
+print(final_results)
+```
+
 Not sure this is really the model we want to use for this...
 ```{r}
 capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
