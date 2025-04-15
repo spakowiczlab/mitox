@@ -188,7 +188,7 @@ capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
   
   for (x in microbes) {
     tryCatch({
-      model_formula <- as.formula(paste0(x, " ~ Response*Days"))
+      model_formula <- as.formula(paste0(x, " ~ Response*(Days + I(Days^2))"))
       
         if (zero_prop[x] >= zero_threshold) {
         # Use Zero-Inflated Gaussian Model (ZIGMM)
@@ -233,14 +233,15 @@ capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
 
 gmm.out <- capture.ZIGMM(model.in.ra, microbes.ra)
 gmm.out <- gmm.out %>%
-  filter(term == "ResponseResponder:Days") %>%
+  filter(term == "ResponseResponder:I(Days^2)" | term == "ResponseResponder:Days") %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
   left_join(pres)
 ```
 
 save model output
 ```{r}
-write.csv(gmm.out, file = "../data/modeling-gaussian.csv", row.names = F)
+write.csv(gmm.out, file = "../data/modeling-gaussian-quad.csv", row.names = F)
+#write.csv(gmm.out, file = "../data/modeling-gaussian.csv", row.names = F)
 ```
 
 
