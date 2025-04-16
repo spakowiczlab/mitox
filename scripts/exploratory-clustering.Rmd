@@ -59,7 +59,7 @@ all.equal(rownames(clr_taxa_filt_t), meta$sample)
 irAE.time <- events %>%
   filter(Event == "irAE") %>%
   mutate(irAE.day = Days) %>%
-  select(`Patient Id`, irAE.day) 
+  dplyr::select(`Patient Id`, irAE.day) 
 
 # need to handle multiple irAE dates
 # M028, none of them are irAE samples per 10 day rule
@@ -107,6 +107,94 @@ all.equal(rownames(taxa.all_filt), meta.all$sample)
 
 
 ## Clustering
+
+# PCA irAE samples only
+
+```{r}
+# Run PCA
+pca_vegan <- rda(taxa.irae_filt, scale = TRUE)
+scores_pca <- scores(pca_vegan, display = "sites")
+
+# Combine with metadata
+pca_df <- as.data.frame(scores_pca[, 1:2])
+colnames(pca_df) <- c("PC1", "PC2")
+pca_df$PatientID <- meta.irae$`Patient Id`
+pca_df$Timepoint <- meta.irae$irAE.sample
+
+# Distances in PCA space
+pca_dist <- dist(scores_pca)
+
+# By PatientID
+bd_patient <- betadisper(pca_dist, group = meta.irae$`Patient Id`)
+dist_to_patient <- as.data.frame(bd_patient$distances)
+dist_to_patient$Group <- meta.irae$`Patient Id`
+colnames(dist_to_patient) <- c("Distance", "PatientID")
+
+# By Timepoint
+bd_timepoint <- betadisper(pca_dist, group = meta.irae$irAE.sample)
+dist_to_timepoint <- as.data.frame(bd_timepoint$distances)
+dist_to_timepoint$Group <- meta.irae$irAE.sample
+colnames(dist_to_timepoint) <- c("Distance", "Timepoint")
+
+# Requires: dist_to_patient and dist_to_timepoint from earlier
+
+# Base PCA plot colored by PatientID
+p1 <- ggplot(pca_df, aes(x = PC1, y = PC2, color = PatientID)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = PatientID), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# PCA plot colored by Timepoint
+p2 <- ggplot(pca_df, aes(x = PC1, y = PC2, color = Timepoint)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = Timepoint), linetype = "dashed") +
+  theme_minimal() 
+
+p_box_pat <- ggplot(dist_to_patient, aes(x = PatientID, y = Distance)) +
+  geom_boxplot(fill = "cornflowerblue") +
+  theme_minimal() +
+  labs(y = "Distance to Centroid") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+p_box_time <- ggplot(dist_to_timepoint, aes(x = Timepoint, y = Distance)) +
+  geom_boxplot(fill = "deeppink3") +
+  theme_minimal() +
+  labs(y = "Distance to Centroid")
+
+(p1 + p2) / (p_box_pat + p_box_time)
+```
+
+
+```{r}
+pca_result <- prcomp(taxa.irae_filt, scale. = TRUE)
+
+pca_df <- as.data.frame(pca_result$x[, 1:2])
+colnames(pca_df) <- c("PC1", "PC2")
+
+pca_df$PatientID <- meta.irae$`Patient Id`
+pca_df$Timepoint <- meta.irae$irAE.sample
+
+# Plot colored by PatientID
+p1.pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = PatientID)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = PatientID), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Plot colored by Timepoint (e.g., "irAE", "Other")
+p2.pca <- ggplot(pca_df, aes(x = PC1, y = PC2, color = Timepoint)) +
+  geom_point(size = 3) +
+  stat_ellipse(aes(group = Timepoint), linetype = "dashed") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# Combine plots side by side
+pca.plot <- p1.pca + p2.pca
+pca.plot
+
+ggsave("../figures/exploratory-outlier-pca-irAE.png", pca.plot, width = 12, height = 6, dpi = 300)
+```
 
 # UMAP irAE samples only
 

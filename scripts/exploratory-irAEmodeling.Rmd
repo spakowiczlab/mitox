@@ -19,45 +19,52 @@ load("../manuscript/data/clinical.rds")
 load("../manuscript/data/microbiome_metadata.rds")
 load("../manuscript/data/counts-long.rds")
 load("../manuscript/data/ra-long.rds")
+load("../manuscript/data/events.rds")
 ```
 
 Modeling ideas
 
-irAE as response var, with irAE changing over time
+irAE as response var, with irAE changing over time, so pt becomes irAE yes after 
+having an irAE? Forever or for some amount of time?
+
+Could also look for known signatures? 
+
+lets so irAE yes if within 10 days so same as clutering def
+
 
 ```{r}
+# define time points 
+irAE.time <- events %>%
+  filter(Event == "irAE") %>%
+  mutate(irAE.day = Days) %>%
+  dplyr::select(`Patient Id`, irAE.day) 
+
+meta.irae <- mic.meta %>%
+  left_join(demographics) %>%
+  left_join(irAE.time) %>%
+  mutate(irAE.day = ifelse(irAE.day < 0 | irAE.day > 100, NA, irAE.day),
+         irAE.sample = ifelse(is.na(irAE.day), 0,
+                       ifelse(abs(Days - irAE.day) <= 10, 1, 0))) %>%
+  group_by(sample) %>%
+  slice_max(irAE.sample, n = 1, with_ties = FALSE) %>%
+  ungroup() 
 
 pres <- counts.l %>%
   filter(sample %in% mic.meta$sample) %>%
   group_by(Taxonomy) %>%
   summarize(pres = sum(est.reads > 0)) %>%
   mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
-  dplyr::select(-Taxonomy) 
+  dplyr::select(-Taxonomy)
 
 model.in <- counts.l %>%
   mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
   dplyr::select(-Taxonomy) %>%
-  right_join(mic.meta) %>%
-  left_join(demographics) %>%
+  full_join(meta.irae) %>%
   # create binary outcome var
-  mutate(irae.bin = ifelse(irAE == "Yes", 1, 0), we are 
-  # make days numeric
-         Days = as.integer(Days)) %>%
+  mutate(Days = as.integer(Days)) %>%
   rename(Patient_Id = `Patient Id`) %>%
   filter(!grepl("t__", microbe)) %>%
   pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
-  filter(sample %in% mic.meta$sample)
-
-model.in.ra <- ra.l %>%
-  right_join(mic.meta) %>%
-  left_join(demographics) %>%
-  # create binary outcome var
-  mutate(irae.bin = ifelse(irAE == "Yes", 1, 0),
-  # make days numeric
-         Days = as.integer(Days)) %>%
-  rename(Patient_Id = `Patient Id`) %>%
-  filter(!grepl("t__", microbe)) %>%
-  pivot_wider(names_from = microbe, values_from = RelAbun, values_fill = 0) %>%
   filter(sample %in% mic.meta$sample)
 
 lib.size <- counts.l %>%
@@ -65,8 +72,17 @@ lib.size <- counts.l %>%
   group_by(sample) %>%
   summarize(library.size = sum(est.reads))
 
-model.in <- model.in %>% 
-  left_join(lib.size) 
+model.in <- model.in %>%
+  left_join(lib.size)
+
+model.in.ra <- ra.l %>%
+  full_join(meta.irae) %>% 
+  # create binary outcome var
+  mutate(Days = as.integer(Days)) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  filter(!grepl("t__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
 
 microbes <- colnames(model.in)
 microbes <- microbes[grepl("__", microbes)]
@@ -75,15 +91,14 @@ microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 ```
 
 ```{r}
-test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27BH", "s__Intestinimonas_massiliensis","f__Barnesiellaceae", "s__Phascolarctobacterium_faecium", "g__Dialister", "s__Bifidobacterium_longum")
+test.mics <- c("f__Muribaculaceae",  "s__Bacteroides_pectinophilus", "s__Enterobacter_roggenkampii", "s__Pseudoflavonifractor_gallinarum", "g__Fournierella", "s__Blautia_sp_MCC283")
 ```
-
 
 ```{r}
 # Function to fit models
 fit_models <- function(x, model.in, model.in.ra) {
-  model_formula_off <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
-  model_formula <- as.formula(paste0(x, " ~ Response*Days"))
+  model_formula_off <- as.formula(paste0("irAE.sample ~ ", x, "*Days + offset(log(library.size))"))
+  model_formula <- as.formula(paste0("irAE.sample ~ ", x, "*Days"))
 
   models <- list(
     # FZINBMM (Counts)
@@ -156,10 +171,10 @@ final_results <- do.call(rbind, lapply(names(results), function(m) {
   cbind(Microbe = m, results[[m]])
 }))
 
-final_results <- as.data.frame(final_results)
-final_results[, -1] <- lapply(final_results[, -1], as.double)
+res_irAE <- as.data.frame(res_irAE)
+res_irAE[, -1] <- lapply(res_irAE[, -1], as.double)
 
-print(final_results)
+print(res_irAE)
 ```
 
 Not sure this is really the model we want to use for this...
@@ -170,7 +185,7 @@ capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
   
   for (x in microbes) {
     tryCatch({
-      model_formula <- as.formula(paste0(x, " ~ irAE*Days"))
+      model_formula <- as.formula(paste0("irAE.sample ~ ", x, "*Days"))
       
         if (zero_prop[x] >= zero_threshold) {
         # Use Zero-Inflated Gaussian Model (ZIGMM)
@@ -214,8 +229,8 @@ capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
 }
 
 gmm.out <- capture.ZIGMM(model.in.ra, microbes.ra)
-gmm.out <- gmm.out %>%
-  filter(term == "irAEYes:Days") %>%
+test <- gmm.out %>%
+  filter(grepl(":Days", term)) %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
   left_join(pres)
 ```

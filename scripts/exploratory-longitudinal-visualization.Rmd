@@ -21,6 +21,18 @@ load("../manuscript/data/counts-long.rds")
 ```
 
 ```{r}
+# ZIGMM
+gmm.out <- read.csv("../data/modeling-gaussian.csv")
+sig <- (gmm.out %>% filter(padj < 0.05))$microbe
+
+# ZIGMM w/ quadratic term 
+quad.out <- read.csv("../data/modeling-gaussian-quad.csv") %>%
+  filter(pres > 4)
+quad.sig <- (quad.out %>% filter(padj < 0.05,
+                                 term == "ResponseResponder:I(Days^2)"))$microbe
+nq.sig <- (quad.out %>% filter(padj < 0.05,
+                                 term == "ResponseResponder:Days"))$microbe
+
 vis.in <- ra.l %>%
   left_join(mic.meta) %>%
   left_join(demographics) %>%
@@ -43,10 +55,52 @@ vis.in.c <- counts.l %>%
   mutate(response.bin = ifelse(Response == "Responder", 1, 0),
   # make days numeric
          Days = as.integer(Days),
-  # create quadratic days 
+  # create quadratic days
          Days2 = Days^2) %>%
-  rename(Patient_Id = `Patient Id`) 
+  rename(Patient_Id = `Patient Id`)
 ```
+
+Looking out significant taxa per the GMM
+```{r}
+vis.in %>% 
+  filter(microbe %in% sig) %>%
+  ggplot(aes(x=Days, y=RelAbun, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+
+ggsave("../figures/exploratory-gmm.png", width = 12, height = 6, dpi = 300)
+```
+
+significant quadratic term
+```{r}
+vis.in %>% 
+  filter(microbe %in% quad.sig) %>%
+  ggplot(aes(x=Days, y=RelAbun, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+
+ggsave("../figures/exploratory-gmm-quad-qterm.png", width = 12, height = 6, dpi = 300)
+```
+
+significant non-quadratic interaction term
+```{r}
+vis.in %>% 
+  filter(microbe %in% nq.sig) %>%
+  ggplot(aes(x=Days, y=RelAbun, group = Patient_Id, color=Response, alpha = 0.5)) +
+  geom_line() +
+  facet_wrap(~microbe, scales = "free") +
+  theme_minimal() 
+
+ggsave("../figures/exploratory-gmm-quad-nqterm.png", width = 6, height = 3, dpi = 300)
+```
+
+
+
+
+
+
 
 Let's look at some taxa of note from the model output:
 response ~ microbe*Days + (1 | Patient_Id)
