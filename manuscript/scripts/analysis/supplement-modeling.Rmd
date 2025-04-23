@@ -1,0 +1,218 @@
+---
+title: "supplemental modeling trials"
+author: "C. Dravillas"
+date: "2025-04-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lme4)
+library(broom.mixed)
+library(rlist)
+library(NBZIMM)
+library(nlme)
+library(BhGLM)
+library(Metrics)
+library(glmmTMB)
+library(ggplot2)
+library(ggnewscale)
+```
+
+# Load data
+
+```{r}
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/counts-long.rds")
+load("../../data/ra-long.rds")
+```
+
+# Prepare data
+
+```{r}
+# Let's create a pre-filter for microbes present in less than 4 samples 
+pres <- counts.l %>%
+  filter(sample %in% mic.meta$sample) %>%
+  group_by(Taxonomy) %>%
+  summarize(pres = sum(est.reads > 0)) %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  dplyr::select(-Taxonomy) 
+
+model.in <- counts.l %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  dplyr::select(-Taxonomy) %>%
+  right_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days)) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  filter(!grepl("t__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = est.reads, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
+
+model.in.ra <- ra.l %>%
+  right_join(mic.meta) %>%
+  left_join(demographics) %>%
+  # create binary outcome var
+  mutate(response.bin = ifelse(Response == "Responder", 1, 0),
+  # make days numeric
+         Days = as.integer(Days)) %>%
+  rename(Patient_Id = `Patient Id`) %>%
+  filter(!grepl("t__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample)
+
+lib.size <- counts.l %>%
+  filter(Taxonomy %in% c("k__Bacteria","k__Archaea")) %>%
+  group_by(sample) %>%
+  summarize(library.size = sum(est.reads))
+
+model.in <- model.in %>% 
+  left_join(lib.size) 
+
+microbes <- colnames(model.in)
+microbes <- microbes[grepl("__", microbes)]
+microbes.ra <- colnames(model.in.ra)
+microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
+```
+
+# Define test set 
+
+```{r}
+test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27BH", "s__Intestinimonas_massiliensis","f__Barnesiellaceae", "s__Phascolarctobacterium_faecium", "g__Dialister", "s__Bifidobacterium_longum")
+```
+
+# Run models
+
+```{r}
+# Function to fit models
+fit_models <- function(x, model.in, model.in.ra) {
+  model_formula_off <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
+  model_formula <- as.formula(paste0(x, " ~ Response*Days"))
+
+  models <- list(
+    # FZINBMM (Counts)
+    "ZINBMM_Offset" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # FZINBMM w/ AR1
+    "ZINBMM_AR1" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    # FZINBMM w/ no offset
+    "ZINBMM" = glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # ZIGMM (RA)
+    "ZIGMM" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    # ZIGMM w/ AR1
+    "ZIGMM_AR1" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    # ZIGMM w/ CAR1
+    "ZIGMM_CAR1" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
+    # ZIGMM w/ ARMA
+    "ZIGMM_ARMA" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
+  )
+
+  return(models)
+}
+
+# Compute model metrics
+compute_metrics <- function(model, observed) {
+  # mse = mean of (error)^2
+  predictions <- predict(model, type = "response")
+  residuals_sq <- (predictions - observed)^2
+  mse <- mean(residuals_sq, na.rm = TRUE)
+  rmse <- sqrt(mse)
+
+  # define n and p 
+  n <- length(observed)
+  p <- length(coef(model))
+  
+  # variance of residuals
+  sigma2 <- sum(residuals(model)^2) / (n - p)
+  
+  # Loglik 
+  logLik <- -(n/2) * (log(2*pi*sigma2) + 1) - sum(residuals(model)^2) / (2 * sigma2)
+
+  # number of estimate params..i think k should be 6 ?
+  # + random intercept and zi intercept 
+  k <- length(coef(model)) + 2
+  aic <- (2 * k) - (2 * logLik)
+  bic <- (log(n) * k) - (2 * logLik)
+
+  return(c(MSE = mse, RMSE = rmse, AIC = aic, BIC = bic, LogLik = logLik))
+}
+
+# Loop over microbes
+results <- list()
+for (x in test.mics) {
+  models <- fit_models(x, model.in, model.in.ra)
+
+  model_metrics <- lapply(names(models), function(model_name) {
+    # Use the correct observed dataset
+    observed <- if (grepl("GMM", model_name)) model.in.ra[[x]] else model.in[[x]]
+    compute_metrics(models[[model_name]], observed)
+  })
+
+  model_metrics <- do.call(rbind, model_metrics)
+  rownames(model_metrics) <- names(models)
+
+  results[[x]] <- model_metrics
+  print(paste("Microbe:", x))
+  print(model_metrics)
+}
+
+# Combine all results into a single data frame
+final_results <- do.call(rbind, lapply(names(results), function(m) {
+  cbind(Microbe = m, results[[m]])
+}))
+
+final_results <- as.data.frame(final_results)
+final_results[, -1] <- lapply(final_results[, -1], as.double)
+final_results <- final_results %>% rownames_to_column("Model") %>%
+  mutate(Model = gsub("\\.\\d+$", "", Model))
+
+print(final_results)
+```
+
+# Save model metrics 
+
+```{r}
+write.csv(final_results, file = "../../data/model-metrics.csv", row.names = F)
+final_results <- read.csv("../../data/model-metrics.csv")
+```
+
+# Visualize
+```{r}
+heatmap.in <- final_results %>%
+  dplyr::select(Model, Microbe, MSE, AIC) %>%
+  pivot_longer(!c(Model, Microbe), names_to = "Metric", values_to = "Score") %>%
+  mutate(Microbe = substr(Microbe, 4, nchar(Microbe)))
+```
+
+Heatmap doesn't look that great, scales are too different per microbe 
+```{r}
+ggplot() +
+  geom_tile(
+    data = filter(heatmap.in, Metric == "MSE"),
+    aes(x = Microbe, y = Model, fill = Score)
+  ) +
+  scale_fill_gradient(low = "darkred", high = "steelblue", name = "MSE") +
+  new_scale_fill() +
+  geom_tile(
+    data = filter(heatmap.in, Metric == "AIC"),
+    aes(x = Microbe, y = Model, fill = Score)
+  ) +
+  scale_fill_gradient(low = "darkred", high = "steelblue", name = "AIC") +
+  facet_wrap(~ Metric, scales = "free_x") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.background = element_rect(fill = "gray90", color = NA)
+  )
+
+ggsave("../../figures/supplemental-model-metrics.png", height = 6, width = 8)
+```
+
+
+
+
