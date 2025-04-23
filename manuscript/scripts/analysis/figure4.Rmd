@@ -1,0 +1,51 @@
+---
+title: "Figure 4 - Longitudinal analysis for response"
+author: "C. Dravillas"
+date: "2025-04-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(ggrepel)
+library(tidyverse)
+library(ggfortify)
+```
+
+# Load data 
+
+```{r}
+load("../../data/ZIGMM-model-output.rds")
+load("../../data/phylum-labels.rds")
+```
+
+# Prep 
+
+```{r}
+colors <- c("cyan4", "darkgoldenrod2", "darkgreen", "salmon2", "cornflowerblue", "deeppink4") 
+
+gmm.out <- gmm.out %>%
+  left_join(phyl_labels) %>%
+  mutate(Phylum = ifelse(padj < 0.05 & abs(estimate) > 1, Phylum, NA),
+         label = ifelse(padj < 0.05 & abs(estimate) > 1, microbe, NA))
+```
+
+# Plot 
+
+```{r}
+gmm.out %>%
+  filter(padj < 1) %>%
+  ggplot(aes(x=estimate, y=-log10(padj), label= label)) + 
+  geom_point(aes(x=estimate, y=-log10(padj), color = Phylum)) +
+  geom_text_repel(size = 2) + 
+  scale_color_manual(values = colors, na.value = "honeydew3") +
+  theme_bw(base_size = 9) +
+  xlab("log2foldchange") +
+  ylab("log10(p-value)") +
+  theme(legend.position =  "none") + # legend matches stacked bar 
+  guides(color = guide_legend(na.translate = FALSE))
+
+```
+
