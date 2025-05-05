@@ -22,15 +22,24 @@ load("../manuscript/data/ra-long.rds")
 load("../manuscript/data/events.rds")
 ```
 
-Modeling ideas
+From last meeting 
+Irae model
+- NO time
+- Use the same gaussian model 
+- Also try irae ~ microbe + (1|ptid) 
+
+
+some other potential ideas
 
 irAE as response var, with irAE changing over time, so pt becomes irAE yes after 
 having an irAE? Forever or for some amount of time?
 
 Could also look for known signatures? 
 
-lets so irAE yes if within 10 days so same as clutering def
 
+
+# Prepare data 
+- lets say irAE yes if within 10 days so same as clustering def
 
 ```{r}
 # define time points 
@@ -90,6 +99,8 @@ microbes.ra <- colnames(model.in.ra)
 microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 ```
 
+# Select dif test microbes for irAE modeling 
+
 ```{r}
 test.mics <- c("f__Muribaculaceae",  "s__Bacteroides_pectinophilus", "s__Enterobacter_roggenkampii", "s__Pseudoflavonifractor_gallinarum", "g__Fournierella", "s__Blautia_sp_MCC283")
 ```
@@ -97,24 +108,24 @@ test.mics <- c("f__Muribaculaceae",  "s__Bacteroides_pectinophilus", "s__Enterob
 ```{r}
 # Function to fit models
 fit_models <- function(x, model.in, model.in.ra) {
-  model_formula_off <- as.formula(paste0("irAE.sample ~ ", x, "*Days + offset(log(library.size))"))
-  model_formula <- as.formula(paste0("irAE.sample ~ ", x, "*Days"))
+  model_formula_off <- as.formula(paste0("irAE.sample ~ ", x, " + offset(log(library.size))"))
+  model_formula <- as.formula(paste0("irAE.sample ~ ", x))
 
   models <- list(
     # FZINBMM (Counts)
-    "NB" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    "ZINBMM_Offset" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
     # FZINBMM w/ AR1
-    "AR_NB" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    "ZINBMM_AR1" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
     # FZINBMM w/ no offset
-    "noOff_NB" = glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    "ZINBMM" = glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
     # ZIGMM (RA)
-    "Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+    "ZIGMM" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
     # ZIGMM w/ AR1
-    "AR_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+    "ZIGMM_AR1" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
     # ZIGMM w/ CAR1
-    "CAR_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
+    "ZIGMM_CAR1" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
     # ZIGMM w/ ARMA
-    "ARMA_Gaussian" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
+    "ZIGMM_ARMA" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
   )
 
   return(models)
@@ -154,7 +165,7 @@ for (x in test.mics) {
 
   model_metrics <- lapply(names(models), function(model_name) {
     # Use the correct observed dataset
-    observed <- if (grepl("Gaussian", model_name)) model.in.ra[[x]] else model.in[[x]]
+    observed <- if (grepl("GMM", model_name)) model.in.ra[[x]] else model.in[[x]]
     compute_metrics(models[[model_name]], observed)
   })
 
@@ -171,68 +182,113 @@ final_results <- do.call(rbind, lapply(names(results), function(m) {
   cbind(Microbe = m, results[[m]])
 }))
 
-res_irAE <- as.data.frame(res_irAE)
-res_irAE[, -1] <- lapply(res_irAE[, -1], as.double)
+final_irAE <- as.data.frame(final_results)
+final_irAE[, -1] <- lapply(final_irAE[, -1], as.double)
+final_irAE <- final_irAE %>% rownames_to_column("Model") %>%
+  mutate(Model = gsub("\\.\\d+$", "", Model))
 
-print(res_irAE)
 ```
+Confirm that ZIGMM fits data best with irAE ~ microbe
 
-Not sure this is really the model we want to use for this...
+Now try microbe ~ irAE
+Need to add try catch for model convergence 
+
 ```{r}
-capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
-  mods.list <- list()
-  zero_prop <- sapply(microbes, function(x) mean(modin.dat[[x]] == 0, na.rm = TRUE))
-  
-  for (x in microbes) {
-    tryCatch({
-      model_formula <- as.formula(paste0("irAE.sample ~ ", x, "*Days"))
-      
-        if (zero_prop[x] >= zero_threshold) {
-        # Use Zero-Inflated Gaussian Model (ZIGMM)
-        model <- lme.zig(model_formula, 
-                           data = modin.dat, 
-                           random = ~ 1|Patient_Id, 
-                           zi_fixed = ~1, 
-                           zi_random = NULL
-                           )
-        model_type <- "ZIGMM"
-      } else {
-        # Use Gaussian Model (GMM)
-        model <- lme(model_formula, 
-                         data = modin.dat, 
-                         random = ~ 1|Patient_Id
-                         )
-        model_type <- "GMM"
-      }
-      
-      model_results <- broom.mixed::tidy(model)
-      model_results <- model_results %>% mutate(microbe = x, model_type = model_type)
-      
-      mods.list[[x]] <- model_results
-      
-      
-    }, error = function(e) {
-      message("Model failed for ", x, ": ", e$message)
-      mods.list[[x]] <- NULL  # Assign NULL to failed models
-    })
-  }
-  
-  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
-  
-  if (length(mods.list.clean) > 0) {
-    mods.df <- bind_rows(mods.list.clean)
-  } else {
-    mods.df <- data.frame() 
-  }
-  
-  return(mods.df)
+# Fit a list of models for each microbe
+fit_models <- function(x, model.in, model.in.ra) {
+  # Make sure x is a column in the datasets
+  model.in[[x]] <- as.numeric(model.in[[x]])
+  model.in.ra[[x]] <- as.numeric(model.in.ra[[x]])
+
+  # Formulas where microbe counts are outcome
+  model_formula_off <- as.formula(paste0(x, " ~ irAE.sample + offset(log(library.size))"))
+  model_formula <- as.formula(paste0(x, " ~ irAE.sample"))
+
+  models <- list(
+    "ZINBMM_Offset" = tryCatch(
+      glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+      error = function(e) NULL
+    ),
+    "ZINBMM_AR1" = tryCatch(
+      glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+      error = function(e) NULL
+    ),
+    "ZINBMM" = tryCatch(
+      glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+      error = function(e) NULL
+    ),
+    "ZIGMM" = tryCatch(
+      lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
+      error = function(e) NULL
+    ),
+    "ZIGMM_AR1" = tryCatch(
+      lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
+      error = function(e) NULL
+    ),
+    "ZIGMM_CAR1" = tryCatch(
+      lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
+      error = function(e) NULL
+    ),
+    "ZIGMM_ARMA" = tryCatch(
+      lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1)),
+      error = function(e) NULL
+    )
+  )
+
+  return(models)
 }
 
-gmm.out <- capture.ZIGMM(model.in.ra, microbes.ra)
-test <- gmm.out %>%
-  filter(grepl(":Days", term)) %>%
-  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
-  left_join(pres)
+# Compute metrics (excluding estimate)
+compute_metrics <- function(model, observed) {
+  if (is.null(model)) {
+    return(c(MSE = NA, RMSE = NA, AIC = NA, BIC = NA, LogLik = NA))
+  }
+
+  predictions <- tryCatch(predict(model, type = "response"), error = function(e) NA)
+  residuals_sq <- (predictions - observed)^2
+  mse <- mean(residuals_sq, na.rm = TRUE)
+  rmse <- sqrt(mse)
+
+  n <- length(observed)
+  p <- length(coef(model))
+  sigma2 <- sum(residuals(model)^2, na.rm = TRUE) / (n - p)
+  logLik <- -(n/2) * (log(2 * pi * sigma2) + 1) - sum(residuals(model)^2, na.rm = TRUE) / (2 * sigma2)
+  k <- length(coef(model)) + 2
+
+  aic <- (2 * k) - (2 * logLik)
+  bic <- (log(n) * k) - (2 * logLik)
+
+  return(c(MSE = mse, RMSE = rmse, AIC = aic, BIC = bic, LogLik = logLik))
+}
+
+# Loop over microbes
+results <- list()
+for (x in test.mics) {
+  models <- fit_models(x, model.in, model.in.ra)
+
+  model_metrics <- lapply(names(models), function(model_name) {
+    observed <- if (grepl("GMM", model_name)) model.in.ra[[x]] else model.in[[x]]
+    compute_metrics(models[[model_name]], observed)
+  })
+
+  model_metrics <- do.call(rbind, model_metrics)
+  rownames(model_metrics) <- names(models)
+
+  # Add microbe name
+  model_metrics <- cbind(Microbe = x, Model = rownames(model_metrics), model_metrics)
+  results[[x]] <- model_metrics
+
+  print(paste("Microbe:", x))
+  print(model_metrics)
+}
+
+# Combine all results into a single data frame
+final_mic <- do.call(rbind, results)
+final_mic <- as.data.frame(final_mic)
+
+# Ensure numeric columns
+num_cols <- c("MSE", "RMSE", "AIC", "BIC", "LogLik")
+final_mic[num_cols] <- lapply(final_mic[num_cols], as.numeric)
 ```
 
-
+And ZIGMM with no specified correlation structure is still clear winner 
