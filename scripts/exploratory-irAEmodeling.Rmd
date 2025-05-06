@@ -93,6 +93,26 @@ model.in.ra <- ra.l %>%
   pivot_wider(names_from = microbe, values_from = RelAbun, values_fill = 0) %>%
   filter(sample %in% mic.meta$sample)
 
+microbe_mat <- ra.l %>%
+  filter(!grepl("t__", microbe)) %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun, values_fill = 0) %>%
+  filter(sample %in% mic.meta$sample) %>%
+  column_to_rownames("sample") %>%
+  as.matrix()
+
+# add pseudo count
+microbe_mat_pseudo <- microbe_mat + 1e-6
+# CLR transform 
+clr_microbe_mat <- compositions::clr(microbe_mat_pseudo)
+
+# combine with metadata
+model.in.ra.clr <- as.data.frame(clr_microbe_mat) %>%
+  rownames_to_column("sample") %>%
+  full_join(meta.irae) %>% 
+  # create binary outcome var
+  mutate(Days = as.integer(Days)) %>%
+  rename(Patient_Id = `Patient Id`)
+
 microbes <- colnames(model.in)
 microbes <- microbes[grepl("__", microbes)]
 microbes.ra <- colnames(model.in.ra)
@@ -105,94 +125,9 @@ microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 test.mics <- c("f__Muribaculaceae",  "s__Bacteroides_pectinophilus", "s__Enterobacter_roggenkampii", "s__Pseudoflavonifractor_gallinarum", "g__Fournierella", "s__Blautia_sp_MCC283")
 ```
 
-```{r}
-# Function to fit models
-fit_models <- function(x, model.in, model.in.ra) {
-  model_formula_off <- as.formula(paste0("irAE.sample ~ ", x, " + offset(log(library.size))"))
-  model_formula <- as.formula(paste0("irAE.sample ~ ", x))
 
-  models <- list(
-    # FZINBMM (Counts)
-    "ZINBMM_Offset" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
-    # FZINBMM w/ AR1
-    "ZINBMM_AR1" = glmm.zinb(model_formula_off, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
-    # FZINBMM w/ no offset
-    "ZINBMM" = glmm.zinb(model_formula, data = model.in, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
-    # ZIGMM (RA)
-    "ZIGMM" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL),
-    # ZIGMM w/ AR1
-    "ZIGMM_AR1" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corAR1()),
-    # ZIGMM w/ CAR1
-    "ZIGMM_CAR1" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corCAR1()),
-    # ZIGMM w/ ARMA
-    "ZIGMM_ARMA" = lme.zig(model_formula, data = model.in.ra, random = ~ 1 | Patient_Id, zi_fixed = ~1, zi_random = NULL, correlation = corARMA(p = 1, q = 1))
-  )
-
-  return(models)
-}
-
-# Compute model metrics
-compute_metrics <- function(model, observed) {
-  # mse = mean of (error)^2
-  predictions <- predict(model, type = "response")
-  residuals_sq <- (predictions - observed)^2
-  mse <- mean(residuals_sq, na.rm = TRUE)
-  rmse <- sqrt(mse)
-
-  # define n and p 
-  n <- length(observed)
-  p <- length(coef(model))
-  
-  # variance of residuals
-  sigma2 <- sum(residuals(model)^2) / (n - p)
-  
-  # Loglik 
-  logLik <- -(n/2) * (log(2*pi*sigma2) + 1) - sum(residuals(model)^2) / (2 * sigma2)
-
-  # number of estimate params..i think k should be 6 ?
-  # + random intercept and zi intercept 
-  k <- length(coef(model)) + 2
-  aic <- (2 * k) - (2 * logLik)
-  bic <- (log(n) * k) - (2 * logLik)
-
-  return(c(MSE = mse, RMSE = rmse, AIC = aic, BIC = bic, LogLik = logLik))
-}
-
-# Loop over microbes
-results <- list()
-for (x in test.mics) {
-  models <- fit_models(x, model.in, model.in.ra)
-
-  model_metrics <- lapply(names(models), function(model_name) {
-    # Use the correct observed dataset
-    observed <- if (grepl("GMM", model_name)) model.in.ra[[x]] else model.in[[x]]
-    compute_metrics(models[[model_name]], observed)
-  })
-
-  model_metrics <- do.call(rbind, model_metrics)
-  rownames(model_metrics) <- names(models)
-
-  results[[x]] <- model_metrics
-  print(paste("Microbe:", x))
-  print(model_metrics)
-}
-
-# Combine all results into a single data frame
-final_results <- do.call(rbind, lapply(names(results), function(m) {
-  cbind(Microbe = m, results[[m]])
-}))
-
-final_irAE <- as.data.frame(final_results)
-final_irAE[, -1] <- lapply(final_irAE[, -1], as.double)
-final_irAE <- final_irAE %>% rownames_to_column("Model") %>%
-  mutate(Model = gsub("\\.\\d+$", "", Model))
-
-```
-Confirm that ZIGMM fits data best with irAE ~ microbe
-
-Now try microbe ~ irAE
+microbe ~ irAE + (1|id)
 Need to add try catch for model convergence 
-
 ```{r}
 # Fit a list of models for each microbe
 fit_models <- function(x, model.in, model.in.ra) {
@@ -290,5 +225,56 @@ final_mic <- as.data.frame(final_mic)
 num_cols <- c("MSE", "RMSE", "AIC", "BIC", "LogLik")
 final_mic[num_cols] <- lapply(final_mic[num_cols], as.numeric)
 ```
-
 And ZIGMM with no specified correlation structure is still clear winner 
+
+
+irAE ~ microbe + (1|id)
+With a binary outcome variable we shouldnt use gaussian
+Need to instead you glmm with binomial family 
+- use RA
+- use CLR transformed RA
+- use counts with library size offset 
+
+glmmTMB reports model metrics no need to calculate
+
+```{r}
+# Function to fit models
+fit_models <- function(x, model.in, model.in.ra, model.in.ra.clr) {
+  model_formula <- as.formula(paste0("irAE.sample ~ ", x))
+  
+  models <- list(
+    glmmTMB_Counts   = glmmTMB(formula = model_formula, ziformula = ~1, family = binomial, data = model.in),
+    glmmTMB_RA       = glmmTMB(formula = model_formula, ziformula = ~1, family = binomial, data = model.in.ra),
+    glmmTMB_CLR_RA   = glmmTMB(formula = model_formula, ziformula = ~1, family = binomial, data = model.in.ra.clr)
+  )
+  
+  return(models)
+}
+
+# Function to extract model metrics from glmmTMB objects
+extract_model_metrics <- function(model) {
+  data.frame(
+    AIC = AIC(model),
+    BIC = BIC(model),
+    LogLik = logLik(model)[1]  # extract numeric value
+  )
+}
+
+# Loop over microbes
+results <- list()
+for (x in test.mics) {
+  models <- fit_models(x, model.in, model.in.ra, model.in.ra.clr)
+  
+  model_metrics <- lapply(models, extract_model_metrics)
+  model_metrics_df <- bind_rows(model_metrics, .id = "Model")
+  model_metrics_df$Microbe <- x
+  
+  results[[x]] <- model_metrics_df
+  print(paste("Microbe:", x))
+  print(model_metrics_df)
+}
+
+final_irAE <- bind_rows(results)
+```
+
+looks like RA is best, def not counts 

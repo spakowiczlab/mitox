@@ -31,6 +31,8 @@ load("../manuscript/data/events.rds")
 - CLR transformation? or use RA
 - Need to define time points 
 
+do people clr transform counts?? thought usually RA? 
+
 ```{r}
 # counts
 taxa <- counts.w %>%
