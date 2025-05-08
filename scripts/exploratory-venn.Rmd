@@ -1,0 +1,86 @@
+---
+title: "venn diagram"
+author: "C. Dravillas"
+date: "2025-05-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(VennDiagram)
+```
+
+Check overlap between the various model results 
+
+4 groups total 
+ancom-bc vs longitudinal
+responders and non-responders 
+
+read in necessary results 
+```{r}
+load("../manuscript/data/ANCOM-BC2_response_baseline.RData")
+load("../manuscript/data/ZIGMM-model-output.rds")
+```
+
+get microbe sets 
+- should also check/include structural zeroes 
+- what term do we want to look at ?
+  - if interested in how the two models perform, we could just look at response
+  - this term is dif between groups (at baseline)
+  - but first we will look at the interaction term since that's what i have saved
+  - baseline, linear, quadratic terms 
+
+```{r}
+ancom.r <- (res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder > 0))$taxon
+ancom.nr <- (res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder < 0))$taxon
+
+# almost no point in this, only one value...this is telling 
+# base.r <- (gmm.out %>%
+#   filter(term == "ResponseResponder",
+#          padj < 0.05,
+#          estimate > 0))$microbe 
+# base.nr <- (gmm.out %>%
+#   filter(term == "ResponseResponder",
+#          padj < 0.05,
+#          estimate < 0))$microbe 
+# what if we look at unadjusted p-value instead
+base.r <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate > 0))$microbe 
+base.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate < 0))$microbe 
+
+lin.r <- (gmm.out %>%
+  filter(term == "ResponseResponder:Days",
+         padj < 0.05,
+         estimate > 0))$microbe 
+lin.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder:Days",
+         padj < 0.05,
+         estimate < 0))$microbe 
+
+quad.r <- (gmm.out %>%
+  filter(term == "ResponseResponder:I(Days^2)",
+         padj < 0.05,
+         estimate > 0))$microbe 
+quad.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder:I(Days^2)",
+         padj < 0.05,
+         estimate < 0))$microbe 
+```
+
+
+Examine overlap
+```{r}
+
+```
+
