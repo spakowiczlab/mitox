@@ -14,7 +14,7 @@ library(broom.mixed)
 library(rlist)
 library(NBZIMM)
 library(nlme)
-library(BhGLM)
+# library(BhGLM)
 library(Metrics)
 library(glmmTMB)
 ```
@@ -25,6 +25,7 @@ library(glmmTMB)
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/ra-long.rds")
+load("../../data/counts-long.rds")
 ```
 
 # Prepare data
@@ -44,6 +45,13 @@ model.in.ra <- ra.l %>%
 
 microbes.ra <- colnames(model.in.ra)
 microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
+
+pres <- counts.l %>%
+  filter(sample %in% mic.meta$sample) %>%
+  group_by(Taxonomy) %>%
+  summarize(pres = sum(est.reads > 0)) %>%
+  mutate(microbe = str_extract(Taxonomy, "[^|]+$")) %>%
+  dplyr::select(-Taxonomy) 
 ```
 
 
@@ -100,10 +108,12 @@ capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
 
 gmm.out <- capture.ZIGMM(model.in.ra, microbes.ra)
 gmm.out <- gmm.out %>%
-  filter(term == "ResponseResponder:I(Days^2)" | term == "ResponseResponder:Days") %>%
+  filter(term == "ResponseResponder:I(Days^2)" | term == "ResponseResponder:Days" | term == "ResponseResponder") %>%
   mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
   left_join(pres)
 ```
+
+Note we expect the quadratic terms to be smaller!
 
 # Save 
 
