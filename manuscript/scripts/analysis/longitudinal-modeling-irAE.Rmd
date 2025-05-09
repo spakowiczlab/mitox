@@ -25,6 +25,7 @@ library(glmmTMB)
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/ra-long.rds")
+load("../../data/events.rds")
 ```
 
 # Prepare data
@@ -114,17 +115,13 @@ capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
 gmm.out.mic <- capture.ZIGMM(model.in.ra, microbes.ra)
 gmm.out.mic <- gmm.out.mic %>%
   filter(term == "irAE.sample") %>%
-  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
-  left_join(pres)
+  mutate(padj = p.adjust(p.value, method = "bonferroni")) 
 ```
 
 
-irAE ~ microbe
-With a binary outcome variable we shouldnt use gmm
-We should instead be using bernoulli, does ZI exist ?
-Why not just do ANCOM-BC2 again with the full sample set, split by irAE ?  
-Multiple samples from patients so need mixed model
-
+irAE ~ microbe + (1|ID)
+With a binary outcome variable we shouldnt use gaussian
+Need to instead you glmm with binomial family 
 ```{r}
 capture.glmmTMB <- function(modin.dat, microbes, outcome = "microbe", zero_threshold = 0.1) {
   mods.list <- list()
@@ -177,54 +174,7 @@ capture.glmmTMB <- function(modin.dat, microbes, outcome = "microbe", zero_thres
 gmm.out.irae <- capture.glmmTMB(model.in.ra, microbes.ra, "irae")
 gmm.out.irae <- gmm.out.irae %>%
   filter(!grepl("(Intercept)", term)) %>%
-  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
-  left_join(pres)
+  mutate(padj = p.adjust(p.value, method = "bonferroni"))
 ```
-
 Nothing significant after p adjust 
-
-```{r}
-capture.glmmTMB <- function(modin.dat, microbes, outcome = "microbe", zero_threshold = 0.1) {
-  mods.list <- list()
-  zero_prop <- sapply(microbes, function(x) mean(modin.dat[[x]] == 0, na.rm = TRUE))
-
-  for (x in microbes) {
-    tryCatch({
-      model_formula <- as.formula(paste0("irAE.sample ~ ", x, " + (1 | Patient_Id)"))
-      
-        model <- glmmTMB(
-          formula = model_formula,
-          family = binomial,  # Binomial family for binary outcome
-          data = modin.dat
-        )
-        model_type <- "ZIBMM"
-      
-
-      model_results <- broom.mixed::tidy(model)
-      model_results <- model_results %>% mutate(microbe = x, model_type = model_type)
-      mods.list[[x]] <- model_results
-
-    }, error = function(e) {
-      message("Model failed for ", x, ": ", e$message)
-      mods.list[[x]] <- NULL  # Assign NULL to failed models
-    })
-  }
-
-  mods.list.clean <- mods.list[!sapply(mods.list, is.null)]
-
-  if (length(mods.list.clean) > 0) {
-    mods.df <- bind_rows(mods.list.clean)
-  } else {
-    mods.df <- data.frame() 
-  }
-
-  return(mods.df)
-}
-
-bmm.out.irae <- capture.glmmTMB(model.in.ra, microbes.ra, "irae")
-bmm.out.irae <- bmm.out.irae %>%
-  filter(!grepl("(Intercept)", term)) %>%
-  mutate(padj = p.adjust(p.value, method = "bonferroni")) %>%
-  left_join(pres)
-```
 

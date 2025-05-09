@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(VennDiagram)
+library(ggVennDiagram)
+library(patchwork)
 ```
 
 Check overlap between the various model results 
@@ -40,47 +42,101 @@ ancom.nr <- (res.recist %>%
   filter(q_ResponseResponder < 0.05,
          lfc_ResponseResponder < 0))$taxon
 
+gmm.out <- gmm.out %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
 # almost no point in this, only one value...this is telling 
-# base.r <- (gmm.out %>%
-#   filter(term == "ResponseResponder",
-#          padj < 0.05,
-#          estimate > 0))$microbe 
-# base.nr <- (gmm.out %>%
-#   filter(term == "ResponseResponder",
-#          padj < 0.05,
-#          estimate < 0))$microbe 
-# what if we look at unadjusted p-value instead
 base.r <- (gmm.out %>%
   filter(term == "ResponseResponder",
-         p.value < 0.05,
-         estimate > 0))$microbe 
+         padj < 0.05,
+         estimate > 0))$taxon
 base.nr <- (gmm.out %>%
   filter(term == "ResponseResponder",
-         p.value < 0.05,
-         estimate < 0))$microbe 
+         padj < 0.05,
+         estimate < 0))$taxon
 
 lin.r <- (gmm.out %>%
   filter(term == "ResponseResponder:Days",
          padj < 0.05,
-         estimate > 0))$microbe 
+         estimate > 0))$taxon 
 lin.nr <- (gmm.out %>%
   filter(term == "ResponseResponder:Days",
          padj < 0.05,
-         estimate < 0))$microbe 
+         estimate < 0))$taxon 
 
 quad.r <- (gmm.out %>%
   filter(term == "ResponseResponder:I(Days^2)",
          padj < 0.05,
-         estimate > 0))$microbe 
+         estimate > 0))$taxon 
 quad.nr <- (gmm.out %>%
   filter(term == "ResponseResponder:I(Days^2)",
          padj < 0.05,
-         estimate < 0))$microbe 
+         estimate < 0))$taxon 
 ```
 
 
-Examine overlap
+Examine overlap across groups 
 ```{r}
+venn1 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  Base_R = base.r,
+  Base_NR = base.nr
+)
 
+venn2 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  LIN_R = lin.r,
+  LIN_NR = lin.nr
+)
+
+venn3 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  QUAD_R = quad.r,
+  QUAD_NR = quad.nr
+)
+
+# Create plots
+p1 <- ggVennDiagram(venn1, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none")
+
+p2 <- ggVennDiagram(venn2, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "darkseagreen2") +
+  theme(legend.position = "none")
+
+p3 <- ggVennDiagram(venn3, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "salmon2") +
+  theme(legend.position = "none")
+
+p1 + p2 + p3
+
+ggsave("../figures/exploratory-venn_all-terms.png",  width = 12, height = 5, dpi = 300)
+```
+
+Examine overlap at baseline across different p-val cutoffs
+```{r}
+# what if we look at unadjusted p-value instead
+base.r0.1<- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         padj < 0.1,
+         estimate > 0))$taxon
+base.nr.1 <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         padj < 0.1,
+         estimate < 0))$taxon
+
+# there is still very little overlap
+# what if we increase p-value cut off
+base.r. <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         padj < 0.2,
+         estimate > 0))$taxon 
+base.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         padj < 0.2,
+         estimate < 0))$taxon 
 ```
 
