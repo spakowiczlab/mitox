@@ -104,4 +104,35 @@ tab2 <- CreateTableOne(
 print(tab2)
 ```
 
+Table 3 - Summary of the immune-related adverse event types and grades
+
+"Common irAEs include skin toxicity, colitis, hepatitis, pneumonia, nephritis, and endocrine disorders. Rare but severe irAEs include encephalitis, myocarditis, and haematological toxicity"
+
+Adrenal insufficiency  Autoimmune hepatitis              Delirium              Diarrhea 
+                    3                     2                     1                     1 
+      Hyperthyroidism        Hypothyroidism    Maculo-paular rash       Psoriasis flare 
+                    1                     2                     1                     1 
+                 Rash          Skin itching           Thyroiditis 
+                    5                     1                     1 
+                    
+```{r}
+irae.in <- irae %>%
+  filter(`Patient Id` %in% (demo.filt %>% filter(irAE == "irAE"))$`Patient Id`) %>%
+  mutate(Grade = as.factor(`CTCAE grade (final)`),
+         Type = ifelse(Symptoms %in% c("Rash", "Skin itching", "Maculo-paular rash", "Psoriasis flare"), 
+                       "Skin Toxicity", 
+                       ifelse(Symptoms %in% c("Adrenal insufficiency", "Hypothyroidism", "Hyperthyroidism", "Thyroiditis"), "Endocrine Disorder",
+                       ifelse(Symptoms == "Autoimmune hepatitis", "Autoimmune Hepatitis", Symptoms))))
+```
+
+```{r}
+table3 <- table1(~ Type + Grade, data = irae.in)
+  
+  table1(Type + Grade,
+       data=irae.in,  extra.col=list(`P-value`=pvalue), 
+       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
+
+table3
+```
+
 
