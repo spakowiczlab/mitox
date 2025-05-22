@@ -31,6 +31,7 @@ load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
 # Figure Features 
 ```{r}
 colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#DDCC77","#882255")
+colors <- c("cyan4", "darkgoldenrod2", "darkgreen", "salmon2", "cornflowerblue", "deeppink4") 
 
 # Response ID's
 irae.id <- mic.meta %>%
@@ -140,6 +141,7 @@ res.irae <- res.irae%>%
     lfc_irAEYes = -lfc_irAEYes)
 
 colors <- c("#6699CC", "#999933", "#CC6677","#44AA99","#882255")
+colors <- c("cyan4", "darkgoldenrod2", "darkgreen", "salmon2", "deeppink4") 
 ```
 
 ```{r}
@@ -221,6 +223,7 @@ box.in <- rbind(irae, no_irae) %>%
 
 
 colors <- c("#CC6677","#6699CC","#44AA99")
+colors <- c("darkgreen", "cyan4", "salmon2")
 ```
 
 ```{r}
