@@ -24,6 +24,8 @@ read in necessary results
 ```{r}
 load("../manuscript/data/ANCOM-BC2_response_baseline.RData")
 load("../manuscript/data/ZIGMM-model-output.rds")
+load("../manuscript/data/ANCOM-BC2_irae_baseline.RData")
+load("../manuscript/data/ZIGMM-model-output-irAE.rds")
 ```
 
 get microbe sets 
@@ -119,24 +121,103 @@ ggsave("../figures/exploratory-venn_all-terms.png",  width = 12, height = 5, dpi
 Examine overlap at baseline across different p-val cutoffs
 ```{r}
 # what if we look at unadjusted p-value instead
-base.r0.1<- (gmm.out %>%
+base.r.05 <- (gmm.out %>%
   filter(term == "ResponseResponder",
-         padj < 0.1,
+         p.value < 0.05,
+         estimate > 0))$taxon
+base.nr.05 <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate < 0))$taxon
+
+base.r.1 <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.1,
          estimate > 0))$taxon
 base.nr.1 <- (gmm.out %>%
   filter(term == "ResponseResponder",
-         padj < 0.1,
+         p.value < 0.1,
          estimate < 0))$taxon
 
 # there is still very little overlap
 # what if we increase p-value cut off
-base.r. <- (gmm.out %>%
+base.r.2 <- (gmm.out %>%
   filter(term == "ResponseResponder",
-         padj < 0.2,
+         p.value < 0.2,
          estimate > 0))$taxon 
-base.nr <- (gmm.out %>%
+base.nr.2 <- (gmm.out %>%
   filter(term == "ResponseResponder",
-         padj < 0.2,
+         p.value < 0.2,
          estimate < 0))$taxon 
 ```
+
+```{r}
+venn4 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  Base_R.05 = base.r.05,
+  Base_NR.05 = base.nr.05
+)
+
+venn5 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  Base_R.1 = base.r.1,
+  Base_NR.1 = base.nr.1
+)
+
+venn6 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  Base_R.2 = base.r.2,
+  Base_NR.2 = base.nr.2
+)
+
+# Create plots
+p4 <- ggVennDiagram(venn4, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none")
+
+p5 <- ggVennDiagram(venn5, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "darkseagreen2") +
+  theme(legend.position = "none")
+
+p6 <- ggVennDiagram(venn6, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "salmon2") +
+  theme(legend.position = "none")
+
+p4 + p5 + p6
+
+ggsave("../figures/exploratory-venn_base.png",  width = 12, height = 5, dpi = 300)
+```
+```{r}
+venn.05_r <- list(
+  ANCOM_R = ancom.r,
+  Base_R.05 = base.r.05
+)
+  
+venn.05_nr <- list(
+  ANCOM_NR = ancom.nr,
+  Base_NR.05 = base.nr.05
+)
+
+venn.1_r <- list(
+  ANCOM_R = ancom.r,
+  Base_R.1 = base.r.1
+)
+  
+venn.1_nr <- list(
+  ANCOM_NR = ancom.nr,
+  Base_NR.1 = base.nr.1
+)
+
+
+# Create plots
+r.05 <- ggVennDiagram(venn.05_r , label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none")
+
+r.05 
+```
+
 
