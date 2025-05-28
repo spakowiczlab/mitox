@@ -1,0 +1,150 @@
+---
+title: "alpha diversity"
+author: "C. Dravillas"
+date: "2025-02-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(randomForest)
+library(ggplot2)
+library(ROCR)
+library(gdata)
+library(vegan)
+library(ggpubr)
+```
+
+```{r}
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/ra-long.rds")
+load("../../data/counts-long.rds")
+```
+
+# Prepare clinical data
+```{r}
+# baseline samples 
+base.samps <- mic.meta %>% 
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+# Response ID's
+resp.id <- mic.meta %>%
+  left_join(demographics) %>%
+  mutate(irAE.status = ifelse(irAE == "Yes", "irAE", "No irAE")) %>%
+  select(sample, Response, irAE.status) %>%
+  filter(sample %in% base.samps$sample)
+```
+
+
+# calculate alpha diversity with RA and counts 
+# shannon, simpson, inverse simpson
+```{r}
+ra.in <- ra.l %>%
+  filter(grepl("s__", microbe),
+         sample %in% resp.id$sample)
+counts.in <- counts.l %>%
+    filter(grepl("s__", Taxonomy),
+         sample %in% resp.id$sample)
+
+div.ra <- ra.in %>% 
+  group_by(sample) %>%
+  summarize(sobs = specnumber(RelAbun),
+            Shannon = diversity(RelAbun, index = "shannon"),
+            Simpson = diversity(RelAbun, index = "simpson"),
+            Inverse.Simpson = 1/Simpson) 
+
+div.counts <- counts.in %>%
+  group_by(sample) %>%
+  summarize(sobs = specnumber(est.reads),
+            Shannon = diversity(est.reads, index = "shannon"),
+            Simpson = diversity(est.reads, index = "simpson"),
+            Inverse.Simpson = 1/Simpson) 
+```
+
+
+# Calculate alpha diversity
+# chao and ACE
+```{r}
+# estimateR requires count data so lets estimate from RA
+# lets use 1/min(RA) = total reads, assuming smallest RA = 1 read
+tot.reads = ra.in %>%
+  mutate(RelAbun = RelAbun / 100) %>%
+  filter(RelAbun != 0) %>%
+  group_by(sample) %>%
+  arrange(RelAbun) %>%
+  summarise(min_ra = min(RelAbun)) %>%
+  mutate(tot.reads = 1/min_ra)
+
+ra.in.w <- ra.in %>%
+  left_join(tot.reads) %>%
+  mutate(est.counts = round(tot.reads*(RelAbun/100))) %>%
+  select(sample, microbe, est.counts) %>%
+  pivot_wider(names_from = "microbe", values_from = "est.counts") %>%
+  column_to_rownames("sample") 
+  
+counts.in.w <- counts.in %>%
+  pivot_wider(names_from = "Taxonomy", values_from = "est.reads") %>%
+  column_to_rownames("sample") 
+
+# ACE requires low abundance, 1 and 2 reads, we don't have any in these count
+# estimates so ACE will return NaN 
+c.ace <- diversity_estimates <- estimateR(counts.in.w)
+
+# estimateR requires count data so lets estimate from RA
+ra.ace <- diversity_estimates <- estimateR(ra.in.w)
+
+# Extract Chao1 and ACE and add to diversity tables 
+div.ra <- div.ra %>%
+  mutate(Chao = ra.ace["S.chao1", ],
+         ACE = ra.ace["S.ACE", ])
+div.counts <- div.counts %>%
+    mutate(Chao = c.ace["S.chao1", ])
+```
+
+```{r}
+div.ra.resp <- div.ra %>%
+  left_join(resp.id) %>%
+  select(-sobs, -sample) %>% 
+  pivot_longer(!c(Response, irAE.status),
+    names_to = "Signature",
+               values_to = "Score") %>%
+  mutate(data.type = "RA")
+  
+div.c.resp <- div.counts %>%
+  left_join(resp.id) %>%
+  select(-sobs, -sample) %>% 
+  pivot_longer(!c(Response, irAE.status),
+               names_to = "Signature",
+               values_to = "Score") %>%
+  mutate(data.type = "Counts")
+
+div <- rbind(div.c.resp, div.ra.resp)
+```
+
+# Save 
+```{r}
+save(div, file = "../../data/alpha-diversity.rds")
+```
+
+<!-- ## Diversity Visualization  -->
+
+<!-- ## Density curves -->
+<!-- ```{r} -->
+<!-- div %>% -->
+<!--   ggplot(aes(x = log(Score), fill = Response)) + -->
+<!--   geom_density(alpha = 0.4) +  # Density plot with transparency -->
+<!--   facet_grid(data.type ~ Signature, scales = "free") + -->
+<!--   theme_bw(base_size = 7) + -->
+<!--   scale_fill_manual(values = c("cornflowerblue", "deeppink4")) + -->
+<!--   theme(legend.position = "top") +  # Move legend for clarity -->
+<!--   labs(x = "Log(Score)", y = "Density")  -->
+
+<!-- ggsave("../../figures/densityplots_diversity.png", height = 5, width = 8) -->
+<!-- ``` -->
