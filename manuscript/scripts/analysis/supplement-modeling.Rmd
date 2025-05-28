@@ -33,7 +33,7 @@ load("../../data/ra-long.rds")
 # Prepare data
 
 ```{r}
-# Let's create a pre-filter for microbes present in less than 4 samples 
+# Could create a pre-filter for microbes present in less than 4 samples 
 pres <- counts.l %>%
   filter(sample %in% mic.meta$sample) %>%
   group_by(Taxonomy) %>%
@@ -84,6 +84,11 @@ microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 # Define test set 
 
 ```{r}
+# truly random selection
+overlap <- intersect(microbes, microbes.ra)
+random.test.mics <- sample(overlap, min(10, length(filtered_mics)))
+
+# selected microbes for testing 
 test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27BH", "s__Intestinimonas_massiliensis","f__Barnesiellaceae", "s__Phascolarctobacterium_faecium", "g__Dialister", "s__Bifidobacterium_longum")
 ```
 
