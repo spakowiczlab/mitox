@@ -1,7 +1,7 @@
 ---
-title: "Figure 4 - Longitudinal analysis for response"
+title: "Figure 5"
 author: "C. Dravillas"
-date: "2025-04-23"
+date: "2025-05-23"
 output: html_document
 ---
 
@@ -17,7 +17,7 @@ library(ggfortify)
 # Load data 
 
 ```{r}
-load("../../data/ZIGMM-model-output.rds")
+load("../../data/ZIGMM-model-output-irAE.rds")
 load("../../data/phylum-labels.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
@@ -28,7 +28,7 @@ load("../../data/counts-long.rds")
 
 ```{r}
 colors <- c("darkgreen","darkgoldenrod2","cyan4","cornflowerblue", "salmon2", "deeppink4") 
-gmm.out <- gmm.out %>%
+gmm.out <- gmm.out.mic %>%
   left_join(phyl_labels) %>%
   mutate(label = ifelse(padj < 0.05, microbe, NA),
          Phylum = ifelse(padj < 0.05, Phylum, NA))
@@ -39,8 +39,7 @@ gmm.out <- gmm.out %>%
 Figure 4A - Volcano Linear Term
 ```{r}
 gmm.out %>%
-  filter(padj < 1,
-         term == "ResponseResponder:Days") %>%
+  filter(padj < 1) %>%
   ggplot(aes(x=estimate, y=-log10(padj), label= label)) + 
   geom_point(aes(x=estimate, y=-log10(padj), color = Phylum)) +
   geom_text_repel(size = 2) + 
@@ -50,7 +49,7 @@ gmm.out %>%
   ylab("log10(p-value)") +
   guides(color = guide_legend(na.translate = FALSE))
 
-ggsave("../../figures/Fig4A-ZIGMM-nonquad-volcano.png", height = 4, width = 7, dpi = 300)
+ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.png", height = 4, width = 7, dpi = 300)
 ```
 
 ```{r}
@@ -123,5 +122,3 @@ vis.in.c %>%
 
 ggsave("../../figures/Fig4C-lineplot.png", height = 4, width = 5, dpi = 300)
 ```
-
-

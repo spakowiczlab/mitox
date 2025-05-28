@@ -27,6 +27,7 @@ load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
 load("../../data/struct0_response.rds")
 load("../../data/struct0_irae.rds")
+load("../../data/alpha-diversity.rds")
 # load("../../data/vsc.rds")
 # vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
@@ -131,7 +132,28 @@ phyl.ra %>%
 ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3, width = 7, dpi = 300)
 ```
 
-Figure 2B - Volcano Plot R vs. NR
+Figure 2B - Alpha Diversity 
+# boxplots - look terrible 
+```{r}
+div  %>%
+  filter(data.type == "RA",
+         Signature != "Inverse.Simpson") %>%
+  ggplot(aes(x=Response, y=log(Score))) +
+  geom_boxplot(aes(fill = Response)) + 
+  facet_wrap(~Signature, scales = "free") + 
+  theme_bw(base_size = 7) +
+  scale_fill_manual(values=c("deeppink4", "cornflowerblue")) +
+  theme(legend.position = "none") +
+  stat_compare_means(
+    method = "t.test",
+    size = 2.5,          # smaller font
+    vjust = 13          # push lower vertically
+  )
+
+ggsave("../../figures/boxplots_diversity-response.png", width = 3, height = 3, dpi = 300)
+```
+
+Figure 2C - Volcano Plot R vs. NR
 ```{r}
 phyl_labels <- phyl_labels %>%
   mutate(taxon = substr(microbe, 4, nchar(microbe)))
@@ -167,8 +189,9 @@ g
 ggsave("../../figures/Fig2B-response-baseline-volcano.png", height = 4, width = 7, dpi = 300)
 ```
 
+Figure 2D - Beta Diversity 
 
-Figure 2C - Structural Zero Box plots
+Figure 2E - Structural Zero Box plots
 
 ```{r}
 counts <- counts.w %>%
@@ -248,7 +271,7 @@ box.in %>%
 ggsave("../../figures/Fig2C-response-s0-baseline-boxplots.png", height = 3, width = 7, dpi = 300)
 ```
 
-## Diversity Boxplots
+## Figure 2F - Machine Learning 
 
 
 

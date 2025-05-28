@@ -24,6 +24,7 @@ load("../../data/phylum-labels.rds")
 load("../../data/taxonomy-key.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
+load("../../data/alpha-diversity.rds")
 # load("../../data/vsc.rds")
 # vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
@@ -122,8 +123,27 @@ phyl.ra %>%
 
 ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3, width = 7, dpi = 300)
 ```
+Figure 3B - 
+```{r}
+div  %>%
+  filter(data.type == "RA",
+         Signature != "Inverse.Simpson") %>%
+  ggplot(aes(x=irAE.status, y=log(Score))) +
+  geom_boxplot(aes(fill = irAE.status)) + 
+  facet_wrap(~Signature, scales = "free") + 
+  theme_bw(base_size = 7) +
+  scale_fill_manual(values=c("deeppink4", "cornflowerblue")) +
+  theme(legend.position = "none") +
+  stat_compare_means(
+    method = "t.test",
+    size = 2.5,          
+    vjust = 11          
+  )
 
-Figure 3B - Volcano Plot irAE vs. No irAE
+ggsave("../../figures/boxplots_diversity-irAE.png", width = 3, height = 3, dpi = 300)
+```
+
+Figure 3C - Volcano Plot irAE vs. No irAE
 initially irAE yes will be on the right, but want to swap so that R and No irAE
 are on the same side
 ```{r}
