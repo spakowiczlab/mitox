@@ -77,7 +77,7 @@ quad.nr <- (gmm.out %>%
 ```
 
 
-Examine overlap across groups 
+Examine overlap across groups with padj, notably sparse
 ```{r}
 venn1 <- list(
   ANCOM_R = ancom.r,
@@ -114,9 +114,47 @@ p3 <- ggVennDiagram(venn3, label = "count", label_alpha = 0) +
   theme(legend.position = "none")
 
 p1 + p2 + p3
-
-ggsave("../figures/exploratory-venn_all-terms.png",  width = 12, height = 5, dpi = 300)
 ```
+
+
+```{r}
+venn1 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  Base_R = base.r,
+  Base_NR = base.nr
+)
+
+venn2 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  LIN_R = lin.r,
+  LIN_NR = lin.nr
+)
+
+venn3 <- list(
+  ANCOM_R = ancom.r,
+  ANCOM_NR = ancom.nr,
+  QUAD_R = quad.r,
+  QUAD_NR = quad.nr
+)
+
+# Create plots
+p1 <- ggVennDiagram(venn1, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none")
+
+p2 <- ggVennDiagram(venn2, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "darkseagreen2") +
+  theme(legend.position = "none")
+
+p3 <- ggVennDiagram(venn3, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "salmon2") +
+  theme(legend.position = "none")
+
+p1 + p2 + p3
+```
+
 
 Examine overlap at baseline across different p-val cutoffs
 ```{r}
@@ -212,12 +250,99 @@ venn.1_nr <- list(
 )
 
 
-# Create plots
-r.05 <- ggVennDiagram(venn.05_r , label = "count", label_alpha = 0) +
+# Venn diagrams
+r.05 <- ggVennDiagram(venn.05_r, label = "count", label_alpha = 0) +
   scale_fill_gradient(low = "white", high = "cornflowerblue") +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        plot.margin = margin(5, 10, 5, 10))
 
-r.05 
+nr.05 <- ggVennDiagram(venn.05_nr, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "coral") +
+  theme(legend.position = "none",
+        plot.margin = margin(5, 10, 5, 10))
+
+r.1 <- ggVennDiagram(venn.1_r, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "seagreen") +
+  theme(legend.position = "none",
+        plot.margin = margin(5, 10, 5, 10))
+
+nr.1 <- ggVennDiagram(venn.1_nr, label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "orchid") +
+  theme(legend.position = "none",
+        plot.margin = margin(5, 10, 5, 10))
+
+(r.05 | nr.05 | r.1 | nr.1) + plot_layout(guides = "collect")
+
 ```
 
+```{r}
+gmm.out <- gmm.out %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
 
+ancom.r <- (res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder > 0))$taxon
+ancom.nr <- (res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder < 0))$taxon
+base.r <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate > 0))$taxon
+base.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate < 0))$taxon
+
+lin.r <- (gmm.out %>%
+  filter(term == "ResponseResponder:Days",
+         p.value < 0.05,
+         estimate > 0))$taxon 
+lin.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder:Days",
+         p.value < 0.05,
+         estimate < 0))$taxon 
+quad.r <- (gmm.out %>%
+  filter(term == "ResponseResponder:I(Days^2)",
+         p.value < 0.05,
+         estimate > 0))$taxon 
+quad.nr <- (gmm.out %>%
+  filter(term == "ResponseResponder:I(Days^2)",
+         p.value < 0.05,
+         estimate < 0))$taxon 
+```
+
+```{r}
+p1 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.base = base.nr), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p2 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.base = base.r), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+
+p3 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.lin = lin.nr), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p4 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.lin = lin.r), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+
+p5 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.quad = quad.nr), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p6 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.quad = quad.r), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+```
+
+```{r}
+(p1 | p2 ) /
+(p3 | p4 ) /
+(p5 | p6)
+```
