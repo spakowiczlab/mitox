@@ -12,6 +12,10 @@ library(ggplot2)
 library(ggrepel)
 library(tidyverse)
 library(ggfortify)
+
+library(VennDiagram)
+library(ggVennDiagram)
+library(patchwork)
 ```
 
 # Load data 
@@ -22,6 +26,7 @@ load("../../data/phylum-labels.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/counts-long.rds")
+load("../../data/ANCOM-BC2_response_baseline.RData")
 ```
 
 # Prep 
@@ -123,5 +128,95 @@ vis.in.c %>%
 
 ggsave("../../figures/Fig4C-lineplot.png", height = 4, width = 5, dpi = 300)
 ```
+
+# Figure 4D - Venn Diagram(s)
+
+```{r}
+gmm.out <- gmm.out %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+ancom.r <- (res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder > 0))$taxon
+ancom.nr <- (res.recist %>%
+  filter(q_ResponseResponder < 0.05,
+         lfc_ResponseResponder < 0))$taxon
+
+r.padj <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         padj < 0.05,
+         estimate > 0))$taxon
+nr.padj <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         padj < 0.05,
+         estimate < 0))$taxon
+
+r.pval <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate > 0))$taxon
+nr.pval <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.05,
+         estimate < 0))$taxon
+
+r.pval.1 <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.1,
+         estimate > 0))$taxon
+nr.pval.1 <- (gmm.out %>%
+  filter(term == "ResponseResponder",
+         p.value < 0.1,
+         estimate < 0))$taxon
+```
+
+```{r}
+p1 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.padj = nr.padj), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p2 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.padj = r.padj), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+
+p3 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.pval.05 = nr.pval), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p4 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.pval.05 = r.pval), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+
+p5 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.pval.1 = nr.pval.1), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p6 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.pval.1 = r.pval.1), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+```
+
+
+```{r}
+(p1 | p2 ) /
+(p3 | p4 ) /
+(p5 | p6)
+```
+
+
+```{r}
+nr.padj.v
+r.padj.v
+
+nr.pval.v
+r.pval.v
+
+nr.pval.1.v
+r.pval.1.v
+```
+
 
 

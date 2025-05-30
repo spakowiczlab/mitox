@@ -12,6 +12,10 @@ library(ggplot2)
 library(ggrepel)
 library(tidyverse)
 library(ggfortify)
+
+library(VennDiagram)
+library(ggVennDiagram)
+library(patchwork)
 ```
 
 # Load data 
@@ -22,6 +26,7 @@ load("../../data/phylum-labels.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/counts-long.rds")
+load("../../data/ANCOM-BC2_irae_baseline.RData")
 ```
 
 # Prep 
@@ -121,4 +126,76 @@ vis.in.c %>%
   theme_minimal()
 
 ggsave("../../figures/Fig4C-lineplot.png", height = 4, width = 5, dpi = 300)
+```
+
+# Figure 5C - Venn Diagram(s)
+
+```{r}
+gmm.out <- gmm.out.mic %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+ancom.irae <- (res.irae %>%
+  filter(q_irAEYes < 0.05,
+         lfc_irAEYes > 0))$taxon
+ancom <- (res.irae %>%
+  filter(q_irAEYes < 0.05,
+         lfc_irAEYes < 0))$taxon
+
+padj.irae <- (gmm.out %>%
+  filter(padj < 0.05,
+         estimate > 0))$taxon
+padj <- (gmm.out %>%
+  filter(padj < 0.05,
+         estimate < 0))$taxon
+
+pval.irae <- (gmm.out %>%
+  filter(p.value < 0.05,
+         estimate > 0))$taxon
+pval <- (gmm.out %>%
+  filter(p.value < 0.05,
+         estimate < 0))$taxon
+
+pval.1.irae <- (gmm.out %>%
+  filter(p.value < 0.1,
+         estimate > 0))$taxon
+pval.1 <- (gmm.out %>%
+  filter(p.value < 0.1,
+         estimate < 0))$taxon
+```
+
+
+```{r}
+p1 <- ggVennDiagram(list(ANCOM = ancom.irae, GMM.padj = padj.irae), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "darkgoldenrod2")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p2 <- ggVennDiagram(list(ANCOM = ancom, GMM.padj = padj), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cyan4") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+
+p3 <- ggVennDiagram(list(ANCOM = ancom.irae, GMM.pval.05 = pval.irae), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "darkgoldenrod2")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p4 <- ggVennDiagram(list(ANCOM = ancom, GMM.pval.05 = pval), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cyan4") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+
+p5 <- ggVennDiagram(list(ANCOM = ancom.irae, GMM.pval.1 = pval.1.irae), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "darkgoldenrod2")  +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+p6 <- ggVennDiagram(list(ANCOM = ancom, GMM.pval.1 = pval.1), label = "count", label_alpha = 0) +
+  scale_fill_gradient(low = "white", high = "cyan4") +
+  theme(legend.position = "none") +
+  xlim(-10, 10) 
+```
+
+
+```{r}
+(p2 | p1 ) /
+(p4 | p3 ) /
+(p6 | p5)
 ```
