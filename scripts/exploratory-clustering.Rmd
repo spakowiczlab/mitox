@@ -16,6 +16,7 @@ library(vegan)
 library(dendextend)
 library(umap)
 library(patchwork)
+library(ggpubr)
 ```
 
 ## Load data
@@ -37,7 +38,7 @@ do people clr transform counts?? thought usually RA?
 # counts
 taxa <- counts.w %>%
   # remove major outlier 
-  # dplyr::select(-`FF08034405`) %>%
+  dplyr::select(-`FF08034405`) %>%
   column_to_rownames("microbe") 
 
 # add pseudo count for CLR transformation 
@@ -52,7 +53,7 @@ clr_taxa_filt_t <- t(clr_taxa_filt)
 # check order and add demographic info
 meta <- mic.meta %>%
   # remove major outlier 
-  # filter(!sample == "FF08034405") %>%
+  filter(!sample == "FF08034405") %>%
   left_join(demographics)
 
 all.equal(rownames(clr_taxa_filt_t), meta$sample)
@@ -162,7 +163,8 @@ p_box_pat <- ggplot(dist_to_patient, aes(x = PatientID, y = Distance)) +
 p_box_time <- ggplot(dist_to_timepoint, aes(x = Timepoint, y = Distance)) +
   geom_boxplot(fill = "deeppink3") +
   theme_minimal() +
-  labs(y = "Distance to Centroid")
+  labs(y = "Distance to Centroid") +
+  stat_compare_means(method = "t.test", label = "p.format") 
 
 (p1 + p2) / (p_box_pat + p_box_time)
 ```
