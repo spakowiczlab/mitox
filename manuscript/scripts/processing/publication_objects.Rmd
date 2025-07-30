@@ -29,6 +29,9 @@ Should we remove M032 since we don't have response information and no irAE?
 <!-- #paths.tdrive <- "T:/Labs/Spakowicz/" -->
 <!-- ``` -->
 
+Get BMI and meds from 
+file.path(paths$tdrive, "mitox/Clinical info/Patient Data 7-1-22.xlsm")
+
 read in necessary data
 ```{r warning=FALSE}
 # irAEs

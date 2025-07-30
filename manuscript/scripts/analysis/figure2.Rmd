@@ -12,6 +12,7 @@ library(ggplot2)
 library(ggrepel)
 library(tidyverse)
 library(ggfortify)
+library(ggpubr)
 ```
 
 # Load data 
@@ -28,6 +29,8 @@ load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
 load("../../data/struct0_response.rds")
 load("../../data/struct0_irae.rds")
 load("../../data/alpha-diversity.rds")
+load("../../data/respondersig-output.rds")
+load("../../data/respondersig-output-baseline.rds")
 # load("../../data/vsc.rds")
 # vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
@@ -129,7 +132,7 @@ phyl.ra %>%
   facet_grid(~Response, scales = "free_x", space = "free", switch = "x") +
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
-ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3, width = 7, dpi = 300)
+ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3.5, width = 5, dpi = 500)
 ```
 
 Figure 2B - Alpha Diversity 
@@ -150,7 +153,7 @@ div  %>%
     vjust = 13          # push lower vertically
   )
 
-ggsave("../../figures/boxplots_diversity-response.png", width = 3, height = 3, dpi = 300)
+ggsave("../../figures/Fig2B-boxplots_diversity-response.png", width = 3, height = 3, dpi = 500)
 ```
 
 Figure 2C - Volcano Plot R vs. NR
@@ -186,7 +189,7 @@ g <- res.recist %>%
 
 g
 
-ggsave("../../figures/Fig2B-response-baseline-volcano.png", height = 4, width = 7, dpi = 300)
+ggsave("../../figures/Fig2B-response-baseline-volcano.png", height = 4, width = 5, dpi = 500)
 ```
 
 Figure 2D - Beta Diversity 
@@ -271,7 +274,17 @@ box.in %>%
 ggsave("../../figures/Fig2C-response-s0-baseline-boxplots.png", height = 3, width = 7, dpi = 300)
 ```
 
+# respondersig
+```{r}
+rsig_plot(rsig, batch.correction = "Log.transformed")
+rsig_plot(rsig.baseline, batch.correction = "Log.transformed")
+```
+
+
+
 ## Figure 2F - Machine Learning 
+
+
 
 
 
