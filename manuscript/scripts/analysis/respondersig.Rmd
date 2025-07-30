@@ -1,0 +1,56 @@
+---
+title: "respondersig"
+author: "C. Dravillas"
+date: "2025-06-26"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(respondersig)
+```
+
+# Read in data
+```{r}
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/respondersig-input.rds")
+```
+
+# Format
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+samp.info <- mic.meta %>%
+  left_join(demographics) %>%
+  select(sample, Response) %>%
+  rename("response" = "Response") %>%
+  mutate(response = ifelse(response == "Responder", "R", "NR")) %>%
+  filter(sample %in% taxa$sample,
+         # remove problematic outlier
+         sample != "FF08034405")
+
+samp.info.base <- samp.info %>%
+  filter(sample %in% baseline$sample)
+
+taxa <- taxa %>% filter(sample %in% samp.info$sample)
+taxa.base <- taxa %>% filter(sample %in% baseline$sample)
+```
+
+# Try respondersig function
+```{r}
+rsig <- respondersig::prep_input(tax = taxa, meta = samp.info)
+rsig.baseline <- respondersig::prep_input(tax = taxa.base, meta = samp.info.base)
+```
+## Save output
+```{r}
+save(rsig, file = "../../data/respondersig-output.rds")
+save(rsig.baseline, file = "../../data/respondersig-output-baseline.rds")
+```
+
