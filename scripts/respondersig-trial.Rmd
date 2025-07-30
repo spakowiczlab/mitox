@@ -9,29 +9,65 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
-library(respondersig)
+library(vegan)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 ```
 
-# Read in data
+# load respondersig output
 ```{r}
-load("../manuscript/data/clinical.rds")
-load("../manuscript/data/microbiome_metadata.rds")
-
-taxa <- read.csv("../data/2024-08-30_mpa_aggregated_long.csv")
+load("../manuscript/data/mitox-respondersig-output.rda")
+load("../manuscript/data/respondersig-output.rds")
+load("../manuscript/data/respondersig-output-baseline.rds")
 ```
 
-# Format
 ```{r}
-samp.info <- mic.meta %>%
-  left_join(demographics) %>%
-  select(sample, Response) %>%
-  rename("response" = "Response") %>%
-  filter(sample %in% taxa$sample)
-```
+calculate_centroid_distances <- function(data_matrix, response_vector) {
+  centroid_groups <- c("Responder", "Non_Responder")
+  centroid_matrix <- data_matrix[response_vector %in% centroid_groups, , drop = FALSE]
+  centroid_labels <- response_vector[response_vector %in% centroid_groups]
 
-# Try respondersig function 
-```{r}
-rsig <- respondersig::prepInput(tax = taxa, meta = samp.info, tax.level = "All")
+  # need to use colMeans instead of betadisper since we want NR/R dist to respondersig centroids
+  responder_centroid <- colMeans(centroid_matrix[centroid_labels == "Responder", , drop = FALSE])
+  nonresponder_centroid <- colMeans(centroid_matrix[centroid_labels == "Non_Responder", , drop = FALSE])
+
+  test_groups <- c("R", "NR")
+  test_matrix <- data_matrix[response_vector %in% test_groups, , drop = FALSE]
+  test_labels <- response_vector[response_vector %in% test_groups]
+
+  dist_to_responder <- apply(test_matrix, 1, function(x) dist(rbind(x, responder_centroid), method = "euclidean"))
+  dist_to_nonresponder <- apply(test_matrix, 1, function(x) dist(rbind(x, nonresponder_centroid), method = "euclidean"))
+
+  data.frame(
+    Sample = rownames(test_matrix),
+    Group = test_labels,
+    respondersig.R = dist_to_responder,
+    respondersig.NR = dist_to_nonresponder
+  )
+}
+
+methods_list <- list(
+  Uncorrected = rsig.baseline$Uncorrected,
+  Log         = rsig.baseline$Log.transformed,
+  PLSDA       = rsig.baseline$PLSDA,
+  sPLSDA      = rsig.baseline$sPLSDA
+)
+
+all_dists <- lapply(names(methods_list), function(name) {
+  mat <- methods_list[[name]]
+  res <- calculate_centroid_distances(mat, rsig.baseline$Response)
+  res$Method <- name
+  return(res)
+})
+
+distances_combined <- bind_rows(all_dists) %>%
+  pivot_longer(cols = starts_with("respondersig"), names_to = "Centroid", values_to = "Distance")
+
+ggplot(distances_combined, aes(x = Centroid, y = Distance, fill = Group)) +
+  geom_boxplot(outlier.size = 0.8) +
+  facet_wrap(~Method, scales = "free_y") +
+  theme_minimal(base_size = 13) 
 ```
 
 
