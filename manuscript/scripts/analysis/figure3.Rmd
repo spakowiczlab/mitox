@@ -25,6 +25,7 @@ load("../../data/taxonomy-key.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
 load("../../data/alpha-diversity.rds")
+load("../../data/respondersig-irAE-baseline.rds")
 # load("../../data/vsc.rds")
 # vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
@@ -121,9 +122,9 @@ phyl.ra %>%
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
 
-ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3, width = 7, dpi = 300)
+ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3.5, width = 5, dpi = 300)
 ```
-Figure 3B - 
+Figure 3B - diversity boxplots
 ```{r}
 div  %>%
   filter(data.type == "RA",
@@ -132,7 +133,7 @@ div  %>%
   geom_boxplot(aes(fill = irAE.status)) + 
   facet_wrap(~Signature, scales = "free") + 
   theme_bw(base_size = 7) +
-  scale_fill_manual(values=c("deeppink4", "cornflowerblue")) +
+  scale_fill_manual(values=c("#CC6677", "#F21A00")) +
   theme(legend.position = "none") +
   stat_compare_means(
     method = "t.test",
@@ -140,7 +141,7 @@ div  %>%
     vjust = 11          
   )
 
-ggsave("../../figures/boxplots_diversity-irAE.png", width = 3, height = 3, dpi = 300)
+ggsave("../../figures/Fig3B_boxplots_diversity-irAE.png", width = 3, height = 3, dpi = 300)
 ```
 
 Figure 3C - Volcano Plot irAE vs. No irAE
@@ -150,7 +151,7 @@ are on the same side
 phyl_labels <- phyl_labels %>%
   mutate(taxon = substr(microbe, 4, nchar(microbe)))
 
-res.irae <- res.irae%>%
+res.irae <- res.irae %>%
   left_join(phyl_labels) %>%
   mutate(Phylum = ifelse(q_irAEYes < 0.05 & abs(lfc_irAEYes) > 1, 
                          ifelse(Phylum %in% phyl.ra$Phylum, Phylum, "Other"), NA),
@@ -179,11 +180,54 @@ g <- res.irae %>%
 
 g
 
-ggsave("../../figures/Fig3B-irae-baseline-volcano.png", height = 4, width = 7)
+ggsave("../../figures/Fig3C-irae-baseline-volcano.png", height = 4, width = 5, dpi = 300)
+```
+
+Figure 3D - Respondersig 
+
+```{r}
+# create hull var
+hull_var <- rsig.baseline$Response
+hull_var[hull_var %in% c("Responder", "Non_Responder")] <- NA
+
+# plot and save 
+rsig.plot <- rsig_plot(rsig.baseline, batch.correction = "Log.transformed", hull = hull_var)
+ggsave("../../figures/Fig3D-respondersig-plot.svg", plot = rsig.plot, height = 4, width = 4, dpi = 500)
+```
+irAE and no-irAE groups do not differ significantly 
+but could show distance to centroid here 
+```{r}
+get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
+  set.seed(seed)
+  keep <- !is.na(group)
+  data_in <- dist.in[keep, , drop = FALSE]
+  group <- droplevels(group[keep])
+
+  adon.results <- adonis2(data_in ~ group, 
+                          method = "euclidean", 
+                          permutations = perm)
+
+  return(adon.results)
+}
+
+# for log.transformed input
+uncorrected.pval <- get_pval(rsig.baseline$Uncorrected, hull_var)
+log.pval <- get_pval(rsig.baseline$Log.transformed, hull_var)
+plsda.pval <- get_pval(rsig.baseline$PLSDA, hull_var)
+splsda.pval <- get_pval(rsig.baseline$sPLSDA, hull_var)
+
+print("Uncorrected")
+uncorrected.pval
+print("Log.transformed")
+log.pval
+print("PLSDA")
+plsda.pval
+print("sPLSDA")
+splsda.pval 
 ```
 
 
-Figure 3C - Structural Zero Box plots
+Figure 3E - Structural Zero Box plots
 
 ```{r}
 counts <- counts.w %>%
@@ -262,42 +306,42 @@ box.in %>%
   ) +
   xlab("")
 
-ggsave("../../figures/Fig3C-irAE-s0-baseline-boxplots.png", height = 3, width = 7)
+ggsave("../../figures/Fig3E-irAE-s0-baseline-boxplots.png", height = 3, width = 5)
 ```
 
 
-Try Volcano colored by association with R and NR
-```{r}
-load("../../data/ANCOM-BC2_response_baseline.RData")
+<!-- Try Volcano colored by association with R and NR -->
+<!-- ```{r} -->
+<!-- load("../../data/ANCOM-BC2_response_baseline.RData") -->
 
-r.sig <- res.recist %>%
-  mutate(taxon = gsub("_", " ", taxon)) %>%
-  filter(q_ResponseResponder < 0.05,
-         lfc_ResponseResponder > 0)
+<!-- r.sig <- res.recist %>% -->
+<!--   mutate(taxon = gsub("_", " ", taxon)) %>% -->
+<!--   filter(q_ResponseResponder < 0.05, -->
+<!--          lfc_ResponseResponder > 0) -->
 
-nr.sig <- res.recist %>%
-  filter(q_ResponseResponder < 0.05,
-         lfc_ResponseResponder < 0)
+<!-- nr.sig <- res.recist %>% -->
+<!--   filter(q_ResponseResponder < 0.05, -->
+<!--          lfc_ResponseResponder < 0) -->
 
-res.irae.recist <- res.irae %>%
-  mutate(res.assoc = ifelse(taxon %in% r.sig$taxon, "Associated with R",
-                            ifelse(taxon %in% nr.sig$taxon, "Associated with NR", NA)),
-         label = ifelse((taxon %in% r.sig$taxon | taxon %in% r.sig$taxon) & q_irAEYes < 0.05, taxon, NA),
-         irAE = ifelse(lfc_irAEYes > 0, "irAE", "No-irAE"))
+<!-- res.irae.recist <- res.irae %>% -->
+<!--   mutate(res.assoc = ifelse(taxon %in% r.sig$taxon, "Associated with R", -->
+<!--                             ifelse(taxon %in% nr.sig$taxon, "Associated with NR", NA)), -->
+<!--          label = ifelse((taxon %in% r.sig$taxon | taxon %in% r.sig$taxon) & q_irAEYes < 0.05, taxon, NA), -->
+<!--          irAE = ifelse(lfc_irAEYes > 0, "irAE", "No-irAE")) -->
 
-res.irae.recist %>%
-  filter(q_irAEYes < 1) %>%
-  ggplot(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), label = label)) + 
-  geom_point(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), color = res.assoc)) + 
-  geom_text_repel(size = 2) +
-  scale_color_manual(values = c("orange", "green4"), na.value = "honeydew3") +
-  theme_bw(base_size = 9) +
-  xlab("log2foldchange") +
-  ylab("log10(p-value)") +
-  theme(legend.position =  "bottom") + # legend matches stacked bar 
-  guides(color = guide_legend(na.translate = FALSE)) 
+<!-- res.irae.recist %>% -->
+<!--   filter(q_irAEYes < 1) %>% -->
+<!--   ggplot(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), label = label)) +  -->
+<!--   geom_point(aes(x=lfc_irAEYes, y=-log10(q_irAEYes), color = res.assoc)) +  -->
+<!--   geom_text_repel(size = 2) + -->
+<!--   scale_color_manual(values = c("orange", "green4"), na.value = "honeydew3") + -->
+<!--   theme_bw(base_size = 9) + -->
+<!--   xlab("log2foldchange") + -->
+<!--   ylab("log10(p-value)") + -->
+<!--   theme(legend.position =  "bottom") + # legend matches stacked bar  -->
+<!--   guides(color = guide_legend(na.translate = FALSE))  -->
 
-ggsave("../../figures/Fig3B-irae-baseline-volcano-experimental.png", height = 4, width = 7)
+<!-- ggsave("../../figures/Fig3B-irae-baseline-volcano-experimental.png", height = 4, width = 7) -->
 
-table(res.irae.recist$res.assoc, res.irae.recist$irAE)
-```
+<!-- table(res.irae.recist$res.assoc, res.irae.recist$irAE) -->
+<!-- ``` -->
