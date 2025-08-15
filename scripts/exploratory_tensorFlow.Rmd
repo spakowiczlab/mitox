@@ -1,0 +1,128 @@
+---
+title: "tensorFlow experimentation"
+author: "C. Dravillas"
+date: "2025-08-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(keras)
+library(tensorflow)
+library(reticulate)
+
+use_virtualenv("r-tf", required = TRUE)
+```
+
+load baseline response data 
+```{r}
+load("../../data/respondersig-output-baseline.rds")
+```
+
+```{r}
+# Find indices where Group == "Experimental"
+keep_idx <- which(rsig.baseline$Group == "Experimental")
+
+# Filter all list elements by these indices
+rsig.filt <- lapply(rsig.baseline, function(x) {
+  if (is.data.frame(x)) {
+    x[keep_idx, , drop = FALSE]  
+  } else {
+    x[keep_idx]                  
+  }
+})
+
+taxa <- rsig.filt$Uncorrected
+response <- rsig.filt$Response 
+response <- ifelse(response == "R", 1, 0)
+```
+
+split testing and training 
+```{r}
+set.seed(43202)
+
+train_idx <- sample(seq_len(nrow(taxa)), size = 0.8 * nrow(taxa))
+
+X_train <- taxa[train_idx, ]
+X_test  <- taxa[-train_idx, ]
+y_train <- response[train_idx]
+y_test  <- response[-train_idx]
+
+# 7. Convert to matrices/numeric vectors
+X_train <- as.matrix(X_train)
+X_test  <- as.matrix(X_test)
+y_train <- as.numeric(y_train)
+y_test  <- as.numeric(y_test)
+```
+
+```{r}
+# 1) Scale using TRAIN stats only (no leakage)
+X_train_sc <- scale(X_train)
+ctr <- attr(X_train_sc, "scaled:center")
+scl <- attr(X_train_sc, "scaled:scale")
+X_test_sc  <- scale(X_test, center = ctr, scale = scl)
+
+input_dim <- ncol(X_train_sc)
+
+model <- keras_model_sequential(
+  list(
+    layer_dense(units = 32, activation = "relu", input_shape = input_dim),
+    layer_dropout(rate = 0.3),
+    layer_dense(units = 16, activation = "relu"),
+    layer_dropout(rate = 0.3),
+    layer_dense(units = 1, activation = "sigmoid")
+  )
+)
+
+# Compile
+model %>% compile(
+  optimizer = "adam",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+
+#############################
+
+model |>
+  compile(
+    optimizer = optimizer_adam(learning_rate = 1e-3),
+    loss = "binary_crossentropy",
+    metrics = c("accuracy", metric_auc(name="auc"))
+  )
+
+cb <- list(
+  callback_early_stopping(monitor = "val_auc", mode = "max", patience = 15, restore_best_weights = TRUE)
+)
+
+# 3) Train
+history <- model |>
+  fit(
+    x = as.matrix(X_train_sc),
+    y = as.numeric(y_train),
+    epochs = 200,
+    batch_size = 16,
+    validation_split = 0.2,
+    callbacks = cb,
+    verbose = 1
+  )
+
+# 4) Evaluate on TEST
+ev <- model |>
+  evaluate(as.matrix(X_test_sc), as.numeric(y_test), verbose = 0)
+
+cat(sprintf("Test Accuracy: %.3f\n", ev[["accuracy"]]))
+cat(sprintf("Test AUC:      %.3f\n", ev[["auc"]]))
+
+# 5) Predictions, ROC, confusion matrix
+p_test <- as.numeric(model |> predict(as.matrix(X_test_sc)))
+roc_obj <- roc(y_test, p_test)
+cat(sprintf("pROC AUC:      %.3f\n", as.numeric(auc(roc_obj))))
+
+pred_class <- as.integer(p_test >= 0.5)
+table(Predicted=pred_class, Actual=y_test)
+```
+
+
