@@ -195,7 +195,64 @@ g
 ggsave("../../figures/Fig2C-response-baseline-volcano.png", height = 4, width = 5, dpi = 500)
 ```
 
-Figure 2D - Beta Diversity 
+Figure 2D - Respondersig
+
+```{r}
+# specify hull vector
+hull_var <- rsig.baseline$Response
+hull_var[hull_var %in% c("R", "NR")] <- NA
+
+# plot
+rsig.plot <- rsig_plot(rsig.baseline, batch.correction = "Log.transformed", hull = hull_var)
+ggsave("../../figures/Fig2D-respondersig-plot.svg", plot = rsig.plot, height = 4, width = 4, dpi = 500)
+```
+
+# Get pval for hull difs
+
+For D, include 3 pvalues
+1. Respondersig datasets alone
+2. Experimental dataset alone
+3. Both
+
+```{r}
+get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
+  set.seed(seed)
+  keep <- !is.na(group)
+  data_in <- dist.in[keep, , drop = FALSE]
+  group <- droplevels(group[keep])
+
+  adon.results <- adonis2(data_in ~ group, 
+                          method = "euclidean", 
+                          permutations = perm)
+
+  return(adon.results)
+}
+
+# respondersig alone pval for log.transformed input
+log.pval <- get_pval(rsig.baseline$Log.transformed, hull_var)
+
+# Experimental dataset alone
+expr_var <- rsig.baseline$Response
+expr_var[expr_var %in% c("Responder", "Non_Responder")] <- NA
+expr.pval <- get_pval(rsig.baseline$Log.transformed, expr_var)
+
+# ALL
+all_var <- recode(rsig.baseline$Response,
+                   R  = "Responder",
+                   NR = "Non_Responder")
+all.pval <- get_pval(rsig.baseline$Log.transformed, all_var)
+
+
+print("Log.transformed respondersig alone")
+log.pval
+print("Log.transformed experimetnal alone")
+expr.pval
+print("Log.transformed all")
+all.pval
+
+
+
+```
 
 Figure 2E - Structural Zero Box plots
 
@@ -277,53 +334,7 @@ box.in %>%
 ggsave("../../figures/Fig2E-response-s0-baseline-boxplots.png", height = 3, width = 5, dpi = 300)
 ```
 
-# respondersig
 
-add a pval to show difference between the two hulls? 
-
-```{r}
-# specify hull vector
-hull_var <- rsig.baseline$Response
-hull_var[hull_var %in% c("R", "NR")] <- NA
-
-# plot
-rsig.plot <- rsig_plot(rsig.baseline, batch.correction = "Log.transformed", hull = hull_var)
-ggsave("../../figures/Fig2D-respondersig-plot.svg", plot = rsig.plot, height = 4, width = 4, dpi = 500)
-```
-# Get pval for hull difs
-```{r}
-get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
-  set.seed(seed)
-  keep <- !is.na(group)
-  data_in <- dist.in[keep, , drop = FALSE]
-  group <- droplevels(group[keep])
-
-  adon.results <- adonis2(data_in ~ group, 
-                          method = "euclidean", 
-                          permutations = perm)
-
-  return(adon.results)
-}
-
-# for log.transformed input
-uncorrected.pval <- get_pval(rsig.baseline$Uncorrected, hull_var)
-log.pval <- get_pval(rsig.baseline$Log.transformed, hull_var)
-plsda.pval <- get_pval(rsig.baseline$PLSDA, hull_var)
-splsda.pval <- get_pval(rsig.baseline$sPLSDA, hull_var)
-
-print("Uncorrected")
-uncorrected.pval
-print("Log.transformed")
-log.pval
-print("PLSDA")
-plsda.pval
-print("sPLSDA")
-splsda.pval 
-```
-```{r}
-# for pca as in rsig plot input
-
-```
 
 
 
