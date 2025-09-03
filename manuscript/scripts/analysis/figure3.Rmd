@@ -186,14 +186,35 @@ ggsave("../../figures/Fig3C-irae-baseline-volcano.png", height = 4, width = 5, d
 Figure 3D - Respondersig 
 
 ```{r}
-# create hull var
-hull_var <- rsig.baseline$Response
-hull_var[hull_var %in% c("Responder", "Non_Responder")] <- NA
+keep_idx <- rsig.baseline$Group == "Experimental"
 
-# plot and save 
-rsig.plot <- rsig_plot(rsig.baseline, batch.correction = "Log.transformed", hull = hull_var)
+rsig.filt <- lapply(rsig.baseline, function(x) {
+  if (is.data.frame(x)) {
+    x[keep_idx, , drop = FALSE]
+  } else if (length(x) == length(rsig.baseline$Group)) {
+    x[keep_idx]
+  } else {
+    x  
+  }
+})
+
+# plot
+rsig.plot <- rsig_plot(rsig.filt, batch.correction = "Log.transformed")
+
 ggsave("../../figures/Fig3D-respondersig-plot.svg", plot = rsig.plot, height = 4, width = 4, dpi = 500)
 ```
+
+
+# ```{r}
+# # create hull var
+# hull_var <- rsig.baseline$Response
+# hull_var[hull_var %in% c("Responder", "Non_Responder")] <- NA
+# 
+# # plot and save 
+# rsig.plot <- rsig_plot(rsig.baseline, batch.correction = "Log.transformed", hull = hull_var)
+# ggsave("../../figures/Fig3D-respondersig-plot.svg", plot = rsig.plot, height = 4, width = 4, dpi = 500)
+# ```
+
 irAE and no-irAE groups do not differ significantly 
 but could show distance to centroid here 
 ```{r}
@@ -201,7 +222,7 @@ get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
   set.seed(seed)
   keep <- !is.na(group)
   data_in <- dist.in[keep, , drop = FALSE]
-  group <- droplevels(group[keep])
+  group <- droplevels(group[keep])+
 
   adon.results <- adonis2(data_in ~ group, 
                           method = "euclidean", 
@@ -211,19 +232,11 @@ get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
 }
 
 # for log.transformed input
-uncorrected.pval <- get_pval(rsig.baseline$Uncorrected, hull_var)
-log.pval <- get_pval(rsig.baseline$Log.transformed, hull_var)
-plsda.pval <- get_pval(rsig.baseline$PLSDA, hull_var)
-splsda.pval <- get_pval(rsig.baseline$sPLSDA, hull_var)
+pval <- get_pval(rsig.filt$Log.transformed, rsig.filt$Response)
 
-print("Uncorrected")
-uncorrected.pval
-print("Log.transformed")
-log.pval
-print("PLSDA")
-plsda.pval
-print("sPLSDA")
-splsda.pval 
+print("Log-transformed")
+pval
+
 ```
 
 
@@ -308,6 +321,114 @@ box.in %>%
 
 ggsave("../../figures/Fig3E-irAE-s0-baseline-boxplots.png", height = 3, width = 5)
 ```
+# Figure 3F - baseline timepoint distance to irAE centroid vs no-irAE per person
+Q: are the irae pts more variable?
+
+```{r}
+taxa_mat <- rsig.filt$Log.transformed
+group <- rsig.filt$Response
+```
+
+# first lets get the dist to centroid - in the "feature space"
+```{r}
+centroids <- taxa_mat %>%
+  mutate(Group = group) %>%
+  group_by(Group) %>%
+  summarise(across(everything(), mean), .groups = "drop")
+
+euclidean_dist <- function(x, center) sqrt(sum((x - center)^2))
+
+distances <- mapply(function(i, g) {
+  center <- centroids %>% filter(Group == g) %>% select(-Group) %>% as.numeric()
+  euclidean_dist(as.numeric(taxa_mat[i, ]), center)
+}, i = seq_len(nrow(taxa_mat)), g = group)
+
+df_centroid <- data.frame(
+  Sample = rownames(taxa_mat),
+  Group = group,
+  DistanceToCentroid = distances
+)
+
+df_centroid |>
+  ggplot(aes(x = Group, y = DistanceToCentroid, fill = Group)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.4) +
+  theme_bw() +
+  labs(x = "Group", y = "Distance to group centroid") +
+  stat_compare_means(method = "wilcox.test") +
+  theme(legend.position = "none")
+```
+
+# betadisper defines centroids in distance matrix space, not raw feature means
+
+# Using uncorrected values get * with permutation test 
+# wilcoxon not signifianct ~ is the distribution of distances the same?
+```{r}
+taxa_mat <- rsig.filt$Uncorrected
+dist_mat <- dist(taxa_mat, method = "euclidean")
+
+bd <- betadisper(dist_mat, group)
+
+df_bd <- data.frame(
+  Sample = rownames(taxa_mat),
+  Group = group,
+  DistanceToCentroid = bd$distances
+)
+
+# Does dispersion differ between the groups? 
+# permutation test: shuffles group labels and computes distances many times to
+# get the null distribution
+anova_bd <- permutest(bd)
+anova_bd
+
+# extract p-value from permutation test
+# p_val <- anova_bd$tab["Pr(>F)"][1]  # single row
+
+ggplot(df_bd, aes(x = Group, y = DistanceToCentroid, fill = Group)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.4) +
+  theme_bw() +
+  labs(x = "Group", y = "Distance to group centroid (betadisper)") +
+  stat_compare_means(method = "wilcox.test") +
+  theme(legend.position = "none")
+```
+
+# Pairwise distances 
+```{r}
+dist_mat <- as.matrix(dist(taxa_mat, method = "euclidean"))
+
+# convert distance matrix to long format
+dist_long <- as.data.frame(dist_mat) %>%
+  mutate(Sample1 = rownames(.)) %>%
+  pivot_longer(cols = -Sample1, names_to = "Sample2", values_to = "Distance") %>%
+  filter(Sample1 < Sample2)  # keep unique pairs
+
+# add group info
+dist_long <- dist_long %>%
+  mutate(
+    Group1 = group[match(Sample1, rownames(taxa_mat))],
+    Group2 = group[match(Sample2, rownames(taxa_mat))]
+  ) %>%
+  filter(Group1 == Group2) %>%  # only keep within-group distances
+  rename(Group = Group1)
+
+wilcox.test(Distance ~ Group, data = dist_long)
+
+ggplot(dist_long, aes(x = Group, y = Distance, fill = Group)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.3) +
+  theme_bw() +
+  labs(x = "Group", y = "Pairwise distances within group") +
+  stat_compare_means(method = "wilcox.test") +
+  theme(legend.position = "none")
+```
+
+
+
+
+
+
+
 
 
 <!-- Try Volcano colored by association with R and NR -->
