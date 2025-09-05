@@ -1,0 +1,121 @@
+---
+title: "core microbiome analysis"
+author: "C. Dravillas"
+date: "2025-09-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(betareg)
+```
+
+# Load data
+```{r}
+load("../manuscript/data/counts-wide.rds")
+load("../manuscript/data/ra-wide.rds")
+load("../manuscript/data/microbiome_metadata.rds")
+load("../manuscript/data/clinical.rds")
+```
+
+```{r}
+pts <- mic.meta |>
+  group_by(`Patient Id`) |>
+  filter(n() > 2) |>
+  ungroup()
+
+# n = 26
+resp <- demographics |>
+  select(`Patient Id`, Response, irAE) |>
+  filter(`Patient Id` %in% pts$`Patient Id`)
+
+ra.spec <- as.matrix(ra.w |>
+  filter(grepl("s__", microbe)) |>
+  select(microbe, pts$sample) |>
+  column_to_rownames("microbe"))
+
+all.equal(colnames(ra.spec), pts$sample)
+```
+
+Binarize the abundance matrix at species level
+For each pt with > 1 sample
+Drop microbes with 0’s in each sample
+What fraction of the microbes are found in both (all) samples
+Core.fraction = Consistent microbes / total microbes
+
+```{r}
+# binarize
+mat_bin <- (ra.spec > 0) * 1
+
+# compute core fraction per patient
+core_df <- lapply(unique(pts$`Patient Id`), function(pid) {
+  # get samples for this patient
+  cols <- which(pts$`Patient Id` == pid)
+  
+  submat <- mat_bin[, cols, drop = FALSE]
+  
+  # microbes present in ≥1 sample
+  present_any <- rowSums(submat) > 0
+  
+  # microbes present in all samples
+  present_all <- rowSums(submat) == length(cols)
+  
+  total_microbes <- sum(present_any)
+  consistent_microbes <- sum(present_all)
+  
+  core_fraction <- consistent_microbes / total_microbes
+  
+  data.frame(
+    `Patient Id` = pid,
+    core.fraction = core_fraction
+  )
+})
+
+core_df <- bind_rows(core_df) |>
+  dplyr::rename(`Patient Id` = Patient.Id) |>
+  left_join(resp)
+```
+
+Closer to 1 = more stable microbiome 
+```{r}
+core_df |> 
+  ggplot(aes(x = Response, y = core.fraction, fill = Response)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.4) +
+  theme_bw() +
+  labs(x = "Response", y = "Core fraction of microbes") +
+  stat_compare_means(method = "wilcox.test") +
+  theme(legend.position = "none")
+
+core_df |> 
+  ggplot(aes(x = irAE, y = core.fraction, fill = irAE)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.4) +
+  theme_bw() +
+  labs(x = "Response", y = "Core fraction of microbes") +
+  stat_compare_means(method = "wilcox.test") +
+  theme(legend.position = "none")
+```
+
+Beta regression more appropriate for value bounded by 0 and 1 ?
+
+```{r}
+mod <- betareg(core.fraction ~ Response, data = core_df)
+summary(mod)
+```
+
+```{r}
+mod <- betareg(core.fraction ~ irAE, data = core_df)
+summary(mod)
+```
+
+```{r}
+plogis(0.3295)
+plogis(0.3295 - 0.6268)
+```
+
+We modeled the core fraction (0–1) using beta regression. Those who did not 
+experience an irAE had a higher estimated mean core fraction (0.58) compared to 
+who did (0.43), p = 0.06, suggesting greater within-patient microbial stability.
