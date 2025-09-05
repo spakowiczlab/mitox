@@ -245,13 +245,10 @@ all.pval <- get_pval(rsig.baseline$Log.transformed, all_var)
 
 print("Log.transformed respondersig alone")
 log.pval
-print("Log.transformed experimetnal alone")
+print("Log.transformed experimental alone")
 expr.pval
 print("Log.transformed all")
 all.pval
-
-
-
 ```
 
 Figure 2E - Structural Zero Box plots

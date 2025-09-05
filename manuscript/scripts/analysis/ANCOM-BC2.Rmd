@@ -19,6 +19,7 @@ remotes::install_github("pbradz/ANCOMBC", ref = "bugfix", force = TRUE, quiet = 
 load input data
 ```{r}
 load("../../data/counts-long.rds")
+load("../../data/ra-long.rds")
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 ```

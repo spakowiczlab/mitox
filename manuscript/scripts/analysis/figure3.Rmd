@@ -324,6 +324,10 @@ ggsave("../../figures/Fig3E-irAE-s0-baseline-boxplots.png", height = 3, width = 
 # Figure 3F - baseline timepoint distance to irAE centroid vs no-irAE per person
 Q: are the irae pts more variable?
 
+dist to centroid using the corrected data - no sig
+betadisper on dist matrix - permutation test *
+pairwise distances show a difference 
+
 ```{r}
 taxa_mat <- rsig.filt$Log.transformed
 group <- rsig.filt$Response
@@ -394,6 +398,9 @@ ggplot(df_bd, aes(x = Group, y = DistanceToCentroid, fill = Group)) +
 ```
 
 # Pairwise distances 
+
+check that not counting the same distance twice 
+null model ?? 
 ```{r}
 dist_mat <- as.matrix(dist(taxa_mat, method = "euclidean"))
 
@@ -423,8 +430,7 @@ ggplot(dist_long, aes(x = Group, y = Distance, fill = Group)) +
   theme(legend.position = "none")
 ```
 
-
-
+No irAE definitely more tightly clustered!
 
 
 
