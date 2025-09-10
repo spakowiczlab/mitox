@@ -422,14 +422,15 @@ dist_long <- dist_long %>%
 wilcox.test(Distance ~ Group, data = dist_long)
 
 ggplot(dist_long, aes(x = Group, y = Distance, fill = Group)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_boxplot(alpha = 0.7, trim = FALSE) +
   geom_jitter(width = 0.2, alpha = 0.3) +
+  scale_fill_manual(values = c("No irAE" = "#E69F00", "irAE" = "#3B9AB2")) +
   theme_bw() +
   labs(x = "Group", y = "Pairwise distances within group") +
-  stat_compare_means(method = "wilcox.test") +
   theme(legend.position = "none")
-```
 
+ggsave("../../figures/Fig3F-pairwise-dist_boxplots.png", height = 3, width = 3)
+```
 No irAE definitely more tightly clustered!
 
 
