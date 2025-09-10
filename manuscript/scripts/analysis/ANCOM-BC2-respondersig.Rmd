@@ -1,0 +1,142 @@
+---
+title: "ANCOM-BC2 respondersig"
+author: "C. Dravillas"
+date: "2025-09-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ANCOMBC)
+library(phyloseq)
+library(tidyverse)
+library(respondersig)
+```
+
+## Load data
+
+Note, we are using RA here. ANCOM works best with count data, but we didn't get 
+the metaphlan estimated counts when we initially processed respondersig, as it 
+wasn't a known option. 
+
+```{r}
+utils::data("met4ra", package = "respondersig")
+utils::data("metadata", package = "respondersig")
+```
+
+## Prep data
+```{r}
+# filter to baseline 
+meta <- metadata |>
+  filter(timepoint == "pre") |>
+  select(sample, response) |>
+  rename(Response = "response")
+
+taxa <- met4ra |>
+  filter(sample %in% meta$sample,
+         grepl("s__", clade_name)) |>
+  select(clade_name, relative_abundance, sample) |>
+  pivot_wider(names_from = sample, values_from = relative_abundance, values_fill = 0) |>
+  column_to_rownames("clade_name")
+
+taxa <- as.matrix(taxa) / 100
+
+meta <- meta |>
+  column_to_rownames("sample")
+
+taxa <- taxa[, rownames(meta), drop = FALSE]
+
+all.equal(rownames(meta), colnames(taxa))
+```
+
+
+## Metaphlan to Phyloseq to TreeSummarizeExperiment
+```{r}
+## tax is a matrix or data.frame with the table of taxonomic abundances, rows are taxa, columns are samples
+## metadat is an optional data.frame of specimen metadata, rows are samples, columns are variables
+## if simplenames=TRUE, use only the most detailed level of taxa names in the final object
+## if roundtointeger=TRUE, values will be rounded to the nearest integer
+metaphlanToPhyloseq <- function(tax, metadat, simplenames=TRUE, 
+                                roundtointeger=FALSE, split="|"){
+  
+    xnames = rownames(tax)
+    shortnames = gsub(paste0(".+\\", split), "", xnames)
+    
+    if(simplenames){
+        rownames(tax) = substr(shortnames, 4, nchar(shortnames))
+    }
+    
+    tax <- as.matrix(tax)
+    if(roundtointeger){
+        tax = round(tax * 1e4)
+    }
+    
+    x2 = strsplit(xnames, split=split, fixed=TRUE)
+    taxmat = matrix(NA, ncol=max(sapply(x2, length)), nrow=length(x2))
+    colnames(taxmat) = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "Strain")[1:ncol(taxmat)]
+    rownames(taxmat) = rownames(tax)
+    
+    for (i in 1:nrow(taxmat)){
+        taxmat[i, 1:length(x2[[i]])] <- x2[[i]]
+    }
+    
+    taxmat = gsub("[a-z]__", "", taxmat)
+    taxmat = phyloseq::tax_table(taxmat)
+    otutab = phyloseq::otu_table(tax, taxa_are_rows=TRUE)
+    
+    if(is.null(metadat)){
+        res = phyloseq::phyloseq(taxmat, otutab)
+    }else{
+        res = phyloseq::phyloseq(taxmat, otutab, phyloseq::sample_data(metadat))
+    }
+    
+    return(res)
+}
+
+phylo <- metaphlanToPhyloseq(taxa, meta)
+phylo
+```
+## Run ANCOM
+```{r}
+run_ancombc2 <- function(level, grp) {
+  # try with phyloseq object
+  out <- ANCOMBC::ancombc2(data = phylo, 
+                         tax_level = level, 
+                         fix_formula = grp, 
+                         group = grp, 
+                         struc_zero = TRUE, 
+                         s0_perc = 0,
+                         prv_cut = 0,
+                         lib_cut = 0,
+                         p_adj_method = "BH")
+
+  res <- out$res
+  struct0 <- out$zero_ind
+  feature_tab <- out$feature_table
+  
+  return(list(res = res, struct0 = struct0, feature_tab = feature_tab))
+}
+
+# R vs. NR
+tax_levels <- c("Species", "Genus", "Family", "Order", "Class", "Phylum", "Kingdom")
+res_list <- lapply(tax_levels, function(level) run_ancombc2(level, "Response"))
+res.recist <- do.call(rbind, lapply(res_list, function(x) x$res))
+struct0.recist <- do.call(rbind, lapply(res_list, function(x) x[[2]]))
+feature.recist <- do.call(rbind, lapply(res_list, function(x) x[[3]]))
+```
+
+## Save ancom output
+```{r}
+res.rsig <- res.recist
+struct0.rsig <- struct0.recist
+feature.rsig <- feature.recist
+
+save(res.rsig , struct0.rsig, feature.rsig, file = "../../data/ANCOM-BC2_respondersig.RData")
+```
+
+## Check on duplicates - duplicates are all 'unclassified' taxa 
+```{r}
+duplicates <- duplicated(res.recist$taxon)
+res.recist[duplicates | duplicated(res.recist$taxon, fromLast = TRUE), ]
+```
