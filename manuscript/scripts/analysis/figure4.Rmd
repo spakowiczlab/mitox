@@ -115,7 +115,7 @@ vis.in.c <- counts.l %>%
 vis.in.c %>% 
   filter(microbe == "s__Phocaeicola_plebeius") %>%
   ggplot(aes(x = Days, y = est.reads, group = Patient_Id, color = Response)) +
-  scale_color_manual(values = c("deeppink4", "cornflowerblue")) +
+  scale_color_manual(values = c("#E69F00", "#3B9AB2")) +
   geom_line(alpha = 0.5) +
   geom_smooth(
     aes(group = Response),
@@ -168,32 +168,32 @@ nr.pval.1 <- (gmm.out %>%
          p.value < 0.1,
          estimate < 0))$taxon
 ```
-
+"#E69F00", "#3B9AB2"
 ```{r}
 p1 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.padj = nr.padj), label = "count", label_alpha = 0) +
-  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  scale_fill_gradient(low = "white", high = "#E69F00")  +
   theme(legend.position = "none") +
   xlim(-10, 10) 
 p2 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.padj = r.padj), label = "count", label_alpha = 0) +
-  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  scale_fill_gradient(low = "white", high = "#3B9AB2") +
   theme(legend.position = "none") +
   xlim(-10, 10) 
 
 p3 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.pval.05 = nr.pval), label = "count", label_alpha = 0) +
-  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  scale_fill_gradient(low = "white", high = "#E69F00")  +
   theme(legend.position = "none") +
   xlim(-10, 10) 
 p4 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.pval.05 = r.pval), label = "count", label_alpha = 0) +
-  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  scale_fill_gradient(low = "white", high = "#3B9AB2") +
   theme(legend.position = "none") +
   xlim(-10, 10) 
 
 p5 <- ggVennDiagram(list(ANCOM = ancom.nr, GMM.pval.1 = nr.pval.1), label = "count", label_alpha = 0) +
-  scale_fill_gradient(low = "white", high = "deeppink4")  +
+  scale_fill_gradient(low = "white", high = "#E69F00")  +
   theme(legend.position = "none") +
   xlim(-10, 10) 
 p6 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.pval.1 = r.pval.1), label = "count", label_alpha = 0) +
-  scale_fill_gradient(low = "white", high = "cornflowerblue") +
+  scale_fill_gradient(low = "white", high = "#3B9AB2") +
   theme(legend.position = "none") +
   xlim(-10, 10) 
 ```
@@ -203,6 +203,14 @@ p6 <- ggVennDiagram(list(ANCOM = ancom.r, GMM.pval.1 = r.pval.1), label = "count
 (p1 | p2 ) /
 (p3 | p4 ) /
 (p5 | p6)
+```
+```{r}
+final_plot <- (p1 | p2) /
+              (p3 | p4) /
+              (p5 | p6)
+
+ggsave("../../figures/Fig4D-venn.svg", final_plot,
+       width = 4, height = 7, dpi = 300)
 ```
 
 
