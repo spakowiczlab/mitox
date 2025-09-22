@@ -15,6 +15,7 @@ library(ggfortify)
 library(ggpubr)
 library(respondersig)
 library(vegan)
+library(ggVennDiagram)
 ```
 
 # Load data 
@@ -33,6 +34,7 @@ load("../../data/struct0_irae.rds")
 load("../../data/alpha-diversity.rds")
 load("../../data/respondersig-output.rds")
 load("../../data/respondersig-output-baseline.rds")
+load("../../data/ANCOM-BC2_respondersig.RData")
 # load("../../data/vsc.rds")
 # vir.key <- read.csv("../../data/CRISPR_VSG-to-species.csv", sep = "\t")
 ```
@@ -331,12 +333,99 @@ box.in %>%
 ggsave("../../figures/Fig2E-response-s0-baseline-boxplots.png", height = 3, width = 5, dpi = 300)
 ```
 
+## Figure 2F - Overlap with respondersig
+
+respondersig was on RA which could definitely have an impact 
+check direction 
+```{r}
+res.recist.sig.r <- (res.recist |>
+  filter(q_ResponseResponder < 0.05 & lfc_ResponseResponder > 0))$taxon
+res.recist.sig.nr <- (res.recist |>
+  filter(q_ResponseResponder < 0.05 & lfc_ResponseResponder < 0))$taxon
+
+res.rsig.sig.r <- (res.rsig |>
+  filter(q_ResponseResponder < 0.05 & lfc_ResponseResponder > 0))$taxon
+res.rsig.sig.nr <- (res.rsig |>
+  filter(q_ResponseResponder < 0.05 & lfc_ResponseResponder < 0))$taxon
+
+intersect(res.recist.sig.r, res.rsig.sig.r)
+intersect(res.recist.sig.nr, res.rsig.sig.nr)
+```
+
+lets use the ones with recognizeable names 
+```{r}
+r.overlap <- setdiff(intersect(res.recist.sig.r, res.rsig.sig.r), 
+                     grep("GB", intersect(res.recist.sig.r, res.rsig.sig.r), 
+                          value = TRUE))
+  
+nr.overlap <- setdiff(intersect(res.recist.sig.nr, res.rsig.sig.nr), 
+                     grep("GB", intersect(res.recist.sig.nr, res.rsig.sig.nr), 
+                          value = TRUE))
+
+overlap <- c(r.overlap, nr.overlap)
+```
+
+```{r}
+res.in <- res.recist |>
+  filter(taxon %in% overlap) |>
+  select(taxon, lfc_ResponseResponder) |>
+  mutate(Dataset = "Experimental")
+
+mit.in <- res.rsig |>
+  filter(taxon %in% overlap) |>
+  select(taxon, lfc_ResponseResponder) |>
+  mutate(Dataset = "Respondersig")
+```
+
+Effect size plot showing top overlapping microbes 
+```{r}
+microbe_order <- (res.in |>
+  rbind(mit.in) |>
+  group_by(taxon) |>
+  summarize(avg = mean(lfc_ResponseResponder)) |>
+  dplyr::arrange(desc(avg)))$taxon
+
+res.in |>
+  rbind(mit.in) |>
+  ggplot(aes(y = fct_relevel(taxon, rev(microbe_order)), x = lfc_ResponseResponder, fill = Dataset)) +
+  scale_fill_manual(values = c("#F21A00", "#3B9AB2")) +
+  scale_y_discrete(position = "right") +
+  geom_col(position = position_dodge(width = 0.8)) +
+  theme_bw() +
+  labs(x = "Effect Size", y = "")
+
+ggsave("../../figures/Fig2F-rsig-overlap-effect-size.svg", height = 2.5, width = 4.5, dpi = 300)
+```
+
+microbe_order <- data %>%
+  dplyr::arrange(desc(log2FoldChange)) %>%
+  rownames(.) 
+
+data$`Taxonomic Grouping` <- factor(data$`Taxonomic Grouping`, levels = c( "Actinobacteria", "Proteobacteria", "Uroviricota", "Other"))
+
+Microbe_Effect_Size <- data %>%
+  ggplot(aes(x=log2FoldChange, y=reorder(rownames(data), log2FoldChange), fill=`Taxonomic Grouping`)) +
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  ylab(" ") +
+  xlab("Effect Size") +
+  scale_fill_manual(values=c("red3","cornflowerblue", "deeppink4", "darkslateblue")) +
+  theme(legend.key.size = unit(1, 'cm'), legend.title = element_text(size=10), legend.text = element_text(size=8), axis.text =element_text(size = 10), axis.title=element_text(size=10))
 
 
+<!-- # previous version of 2F -->
+<!-- ```{r} -->
+<!-- venn_data <- list( -->
+<!--   Trial = res.recist.sig, -->
+<!--   Respondersig   = res.rsig.sig -->
+<!-- ) -->
 
+<!-- ggVennDiagram(venn_data, label_alpha = 0) + -->
+<!--   scale_fill_gradient(low = "#6699CC", high = "white") + -->
+<!--   theme(legend.position = "none") -->
 
-## Figure 2F - Machine Learning 
-
+<!-- ggsave("../../figures/Fig2F-rsig-overlap-venn.svg", height = 3, width = 3, dpi = 300) -->
+<!-- ``` -->
 
 
 
