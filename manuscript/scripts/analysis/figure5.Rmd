@@ -69,7 +69,7 @@ gmm.out %>%
   ylab("log10(p-value)") +
   guides(color = guide_legend(na.translate = FALSE))
 
-ggsave("../../figures/Fig4B-ZIGMM-quad-volcano.png", height = 4, width = 7, dpi = 300)
+ggsave("../../figures/Fig5B-ZIGMM-quad-volcano-irae.png", height = 4, width = 7, dpi = 300)
 ```
 
 <!-- Volcano plots are looking pretty sparse. Quadratic terms seem almost not worth  -->
@@ -198,3 +198,12 @@ p6 <- ggVennDiagram(list(ANCOM = ancom, GMM.pval.1 = pval.1), label = "count", l
 (p4 | p3 ) /
 (p6 | p5)
 ```
+```{r}
+final_plot <- (p1 | p2) /
+              (p3 | p4) /
+              (p5 | p6)
+
+ggsave("../../figures/Fig5C-venn.svg", final_plot,
+       width = 4, height = 7, dpi = 300)
+```
+
