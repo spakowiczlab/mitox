@@ -1,0 +1,10 @@
+---
+title: "Figure 6 - predictive modeling"
+author: "C. Dravillas"
+date: "2025-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```

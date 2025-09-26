@@ -26,6 +26,7 @@ load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/counts-long.rds")
 load("../../data/ANCOM-BC2_irae_baseline.RData")
+load("../../data/irae.rds")
 ```
 
 # Prep 
@@ -72,11 +73,17 @@ vis.in.c <- counts.l %>%
          Days = as.integer(Days),
   # create quadratic days
          Days2 = Days^2) %>%
-  rename(Patient_Id = `Patient Id`)
+  rename(Patient_Id = `Patient Id`) |>
+  filter(microbe == "s__Phocaeicola_dorei") 
 ```
 
 ```{r}
-vis.in.c %>% 
+irae.time <- irae |>
+  rename(irae.days = Days,
+         Patient_Id = `Patient Id`) |>
+  right_join(vis.in.c)
+
+irae.time %>% 
   filter(microbe == "s__Phocaeicola_dorei") %>%
   ggplot(aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)) +
   scale_color_manual(values = c("#E69F00", "#3B9AB2")) +
@@ -171,4 +178,7 @@ final_plot <- (p1 | p2) /
 ggsave("../../figures/Fig5C-venn.svg", final_plot,
        width = 4, height = 7, dpi = 300)
 ```
+
+# Figure 5D 
+
 

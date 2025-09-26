@@ -61,7 +61,7 @@ microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 ```
 
 
-microbe ~ irAE 
+microbe ~ irAE sample 
 ```{r}
 capture.ZIGMM <- function(modin.dat, microbes, zero_threshold = 0.1) {
   mods.list <- list()
