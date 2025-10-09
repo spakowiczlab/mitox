@@ -27,6 +27,7 @@ load("../../data/microbiome_metadata.rds")
 load("../../data/counts-long.rds")
 load("../../data/ANCOM-BC2_irae_baseline.RData")
 load("../../data/irae.rds")
+load("../../data/core-score-min3.rds")
 ```
 
 # Prep 
@@ -79,24 +80,80 @@ vis.in.c <- counts.l %>%
 
 ```{r}
 irae.time <- irae |>
-  rename(irae.days = Days,
-         Patient_Id = `Patient Id`) |>
-  right_join(vis.in.c)
+  mutate(irae.days = as.integer(Days)) |>
+  rename(Patient_Id = `Patient Id`) |>
+  select(-Days) |>
+  right_join(vis.in.c) 
 
-irae.time %>% 
-  filter(microbe == "s__Phocaeicola_dorei") %>%
-  ggplot(aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)) +
-  scale_color_manual(values = c("#E69F00", "#3B9AB2")) +
+# irae.time %>% 
+#   filter(microbe == "s__Phocaeicola_dorei") %>%
+#   ggplot(aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)) +
+#   scale_color_manual(values = c("#E69F00", "#3B9AB2")) +
+#   geom_line(alpha = 0.5) +
+#   geom_smooth(
+#     aes(group = irAE),
+#     method = "loess",
+#     se = FALSE,
+#     linewidth = 1.2
+#   ) +
+#   theme_minimal()
+
+points_df <- tibble(Patient_Id = character(),
+                    irAE = character(),
+                    Days_event = numeric(),
+                    est.reads = numeric())
+
+patients <- unique(base_df$Patient_Id)
+
+for (pid in patients) {
+  # get patient's irAE status
+  patient_irAE <- unique(base_df$irAE[base_df$Patient_Id == pid])
+  
+  # skip if irAE is "No"
+  if (patient_irAE == "No") next
+  
+  # check if patient has this microbe present at any timepoint
+  patient_data <- base_df %>%
+    filter(Patient_Id == pid) %>%
+    filter(!is.na(Days) & !is.na(est.reads)) %>%
+    distinct(Days, est.reads)
+  
+  # skip if the patient never has the microbe
+  if (nrow(patient_data) == 0 || all(patient_data$est.reads == 0)) next
+  
+  # get this patient's irAE event days
+  patient_events <- unique(base_df$irae.days[base_df$Patient_Id == pid])
+  
+  for (d in patient_events) {
+    if (nrow(patient_data) >= 2) {
+      y <- approx(x = patient_data$Days,
+                  y = patient_data$est.reads,
+                  xout = d,
+                  rule = 2)$y
+    } else {
+      y <- patient_data$est.reads[1]
+    }
+    
+    points_df <- bind_rows(points_df,
+                           tibble(Patient_Id = pid,
+                                  irAE = "Yes",
+                                  Days_event = d,
+                                  est.reads = y))
+  }
+}
+ggplot(base_df, aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)) +
   geom_line(alpha = 0.5) +
-  geom_smooth(
-    aes(group = irAE),
-    method = "loess",
-    se = FALSE,
-    linewidth = 1.2
+  geom_smooth(aes(group = irAE), method = "loess", se = FALSE, linewidth = 1.2) +
+  geom_point(
+    data = points_df,
+    aes(x = Days_event, y = est.reads, color = irAE),
+    shape = 21, fill = "black", size = 3, stroke = 1
   ) +
+  scale_color_manual(values = c("#E69F00", "#3B9AB2")) +
   theme_minimal()
 
-ggsave("../../figures/Fig5C-lineplot.png", height = 4, width = 5, dpi = 300)
+
+ggsave("../../figures/Fig5C-lineplot.png", height = 4.5, width = 5, dpi = 300)
 ```
 
 # Figure 5C - Venn Diagram(s)
@@ -179,6 +236,25 @@ ggsave("../../figures/Fig5C-venn.svg", final_plot,
        width = 4, height = 7, dpi = 300)
 ```
 
-# Figure 5D 
+# Figure 5D - SCHEMA
+
+# Figure 5E - Boxplots core score
+
+aes(x = irae.status, y = core.score)
+
+```{r}
+core_df |> 
+  ggplot(aes(x = irAE, y = core.fraction, fill = irAE)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.2, alpha = 0.4) +
+  theme_bw() +
+  labs(x = "irAE", y = "Core score") +
+  scale_fill_manual(values = c("#E69F00", "#3B9AB2")) +
+  #stat_compare_means(method = "wilcox.test") +
+  theme(legend.position = "none")
+
+ggsave("../../figures/Fig5E-boxplot.png", height = 4.5, width = 5, dpi = 300)
+```
+
 
 
