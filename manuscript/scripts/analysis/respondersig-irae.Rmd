@@ -31,11 +31,10 @@ baseline <- mic.meta %>%
 samp.info <- mic.meta %>%
   left_join(demographics) %>%
   select(sample, irAE) %>%
-  mutate(response = ifelse(irAE == "Yes", "irAE", "No irAE")) %>%
+  mutate(irAE = ifelse(irAE == "Yes", "irAE", "No irAE")) %>%
   filter(sample %in% taxa$sample,
          # remove problematic outlier
-         sample != "FF08034405") %>%
-  select(-irAE)
+         sample != "FF08034405") 
 
 samp.info.base <- samp.info %>%
   filter(sample %in% baseline$sample)
@@ -47,7 +46,7 @@ taxa.base <- taxa %>% filter(sample %in% baseline$sample)
 # Try respondersig function
 ```{r}
 #rsig <- respondersig::prep_input(tax = taxa, meta = samp.info)
-rsig.baseline <- respondersig::prep_input(tax = taxa.base, meta = samp.info.base)
+rsig.baseline <- respondersig::prep_input(tax = taxa.base, meta = samp.info.base, group.var = "irAE")
 ```
 
 ```{r}

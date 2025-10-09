@@ -13,6 +13,7 @@ library(vegan)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(respondersig)
 ```
 
 # load respondersig output
@@ -69,5 +70,10 @@ ggplot(distances_combined, aes(x = Centroid, y = Distance, fill = Group)) +
   facet_wrap(~Method, scales = "free_y") +
   theme_minimal(base_size = 13) 
 ```
+
+```{r}
+dist <- respondersig::dist_to_centroid(rsig.baseline)
+```
+
 
 
