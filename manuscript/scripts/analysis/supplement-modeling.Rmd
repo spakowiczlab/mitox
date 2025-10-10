@@ -191,7 +191,8 @@ final_results <- read.csv("../../data/model-metrics.csv")
 heatmap.in <- final_results %>%
   dplyr::select(Model, Microbe, MSE, AIC) %>%
   pivot_longer(!c(Model, Microbe), names_to = "Metric", values_to = "Score") %>%
-  mutate(Microbe = substr(Microbe, 4, nchar(Microbe)))
+  mutate(Microbe = substr(Microbe, 4, nchar(Microbe)),
+         Microbe = gsub("_", " ", Microbe))
 ```
 
 Heatmap doesn't look that great, scales are too different per microbe 
@@ -215,8 +216,96 @@ ggplot() +
     strip.background = element_rect(fill = "gray90", color = NA)
   )
 
+# ggsave("../../figures/supplemental-model-metrics.png", height = 6, width = 8)
+```
+
+```{r}
+ggplot() +
+  # MSE tile
+  geom_tile(
+    data = filter(heatmap.in, Metric == "MSE"),
+    aes(x = Microbe, y = Model, fill = Score)
+  ) +
+  scale_fill_gradient(
+    low = "cadetblue3", high = "red3", name = "MSE"
+  ) +
+  new_scale_fill() +
+  
+  # AIC tile
+  geom_tile(
+    data = filter(heatmap.in, Metric == "AIC"),
+    aes(x = Microbe, y = Model, fill = Score)
+  ) +
+  scale_fill_gradient(
+    low = "cadetblue3", high = "red3", name = "AIC"
+  ) +
+  
+  # Facet by metric
+  facet_wrap(~ Metric, scales = "free_x") +
+  
+  # Clean theme
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.x = element_text(
+      angle = 45, hjust = 1, face = "italic"  # italic x labels
+    ),
+    axis.text.y = element_text(),
+    strip.background = element_rect(fill = "gray90", color = NA),
+    strip.text = element_text(),
+    panel.grid = element_blank(),
+    legend.position = "right"
+  ) +
+  labs(x = NULL, y = NULL)
+
 ggsave("../../figures/supplemental-model-metrics.png", height = 6, width = 8)
 ```
+# just GMM
+```{r}
+heatmap.in <- final_results %>%
+  dplyr::select(Model, Microbe, MSE, AIC) %>%
+  pivot_longer(!c(Model, Microbe), names_to = "Metric", values_to = "Score") %>%
+  mutate(Microbe = substr(Microbe, 4, nchar(Microbe)),
+         Microbe = gsub("_", " ", Microbe)) %>%
+  filter(grepl("GMM", Model))
+
+ggplot() +
+  # MSE tile
+  geom_tile(
+    data = filter(heatmap.in, Metric == "MSE"),
+    aes(x = Microbe, y = Model, fill = Score)
+  ) +
+  scale_fill_gradient(
+    low = "cadetblue3", high = "red3", name = "MSE"
+  ) +
+  new_scale_fill() +
+  
+  # AIC tile
+  geom_tile(
+    data = filter(heatmap.in, Metric == "AIC"),
+    aes(x = Microbe, y = Model, fill = Score)
+  ) +
+  scale_fill_gradient(
+    low = "cadetblue3", high = "red3", name = "AIC"
+  ) +
+  
+  # Facet by metric
+  facet_wrap(~ Metric, scales = "free_x") +
+  
+  # Clean theme
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.x = element_text(
+      angle = 45, hjust = 1, face = "italic"  # italic x labels
+    ),
+    axis.text.y = element_text(),
+    strip.background = element_rect(fill = "gray90", color = NA),
+    strip.text = element_text(),
+    panel.grid = element_blank(),
+    legend.position = "right"
+  ) +
+  labs(x = NULL, y = NULL)
+```
+
 
 
 
