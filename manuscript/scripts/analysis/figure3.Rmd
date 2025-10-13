@@ -186,6 +186,11 @@ ggsave("../../figures/Fig3C-irae-baseline-volcano.png", height = 4, width = 5, d
 Figure 3D - Respondersig 
 
 ```{r}
+rsig_plot(rsig.baseline, batch.correction = "Log.transformed")
+```
+
+
+```{r}
 keep_idx <- rsig.baseline$Group == "Experimental"
 
 rsig.filt <- lapply(rsig.baseline, function(x) {

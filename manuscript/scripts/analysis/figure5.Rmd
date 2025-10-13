@@ -55,7 +55,7 @@ gmm.out %>%
   ylab("log10(p-value)") +
   guides(color = guide_legend(na.translate = FALSE))
 
-ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.png", height = 4, width = 7, dpi = 300)
+ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.svg", height = 4, width = 7, dpi = 300)
 ```
 
 Figure 5B - line plot ?
@@ -103,17 +103,17 @@ points_df <- tibble(Patient_Id = character(),
                     Days_event = numeric(),
                     est.reads = numeric())
 
-patients <- unique(base_df$Patient_Id)
+patients <- unique(irae.time$Patient_Id)
 
 for (pid in patients) {
   # get patient's irAE status
-  patient_irAE <- unique(base_df$irAE[base_df$Patient_Id == pid])
+  patient_irAE <- unique(irae.time$irAE[irae.time$Patient_Id == pid])
   
   # skip if irAE is "No"
   if (patient_irAE == "No") next
   
   # check if patient has this microbe present at any timepoint
-  patient_data <- base_df %>%
+  patient_data <- irae.time %>%
     filter(Patient_Id == pid) %>%
     filter(!is.na(Days) & !is.na(est.reads)) %>%
     distinct(Days, est.reads)
@@ -122,7 +122,7 @@ for (pid in patients) {
   if (nrow(patient_data) == 0 || all(patient_data$est.reads == 0)) next
   
   # get this patient's irAE event days
-  patient_events <- unique(base_df$irae.days[base_df$Patient_Id == pid])
+  patient_events <- unique(irae.time$irae.days[irae.time$Patient_Id == pid])
   
   for (d in patient_events) {
     if (nrow(patient_data) >= 2) {
@@ -141,19 +141,19 @@ for (pid in patients) {
                                   est.reads = y))
   }
 }
-ggplot(base_df, aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)) +
+ggplot(irae.time, aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)) +
   geom_line(alpha = 0.5) +
   geom_smooth(aes(group = irAE), method = "loess", se = FALSE, linewidth = 1.2) +
   geom_point(
     data = points_df,
     aes(x = Days_event, y = est.reads, color = irAE),
-    shape = 21, fill = "black", size = 3, stroke = 1
+    shape = 4, color = "black", size = 3, stroke = 1
   ) +
   scale_color_manual(values = c("#E69F00", "#3B9AB2")) +
   theme_minimal()
 
 
-ggsave("../../figures/Fig5C-lineplot.png", height = 4.5, width = 5, dpi = 300)
+ggsave("../../figures/Fig5C-lineplot.svg", height = 4.5, width = 5, dpi = 300)
 ```
 
 # Figure 5C - Venn Diagram(s)
@@ -253,7 +253,7 @@ core_df |>
   #stat_compare_means(method = "wilcox.test") +
   theme(legend.position = "none")
 
-ggsave("../../figures/Fig5E-boxplot.png", height = 4.5, width = 5, dpi = 300)
+ggsave("../../figures/Fig5E-boxplot.svg", height = 4.5, width = 5, dpi = 300)
 ```
 
 
