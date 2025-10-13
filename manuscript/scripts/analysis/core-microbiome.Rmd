@@ -14,10 +14,10 @@ library(betareg)
 
 # Load data
 ```{r}
-load("../manuscript/data/counts-wide.rds")
-load("../manuscript/data/ra-wide.rds")
-load("../manuscript/data/microbiome_metadata.rds")
-load("../manuscript/data/clinical.rds")
+load("../../data/counts-wide.rds")
+load("../../data/ra-wide.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/clinical.rds")
 ```
 
 ```{r}
@@ -77,9 +77,9 @@ core_df <- bind_rows(core_df) |>
   dplyr::rename(`Patient Id` = Patient.Id) |>
   left_join(resp)
 
-saveRDS(core_df, "../manuscript/data/core-score-min3.rds")
+save(core_df, file = "../../data/core-score-min3.rds")
 
-#write.csv(core_df, "../../manuscript/data/core-score-min2.csv")
+#write.csv(core_df, "../../../data/core-score-min2.csv")
 ```
 
 Closer to 1 = more stable microbiome 
