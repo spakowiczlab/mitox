@@ -18,13 +18,72 @@ load("../../data/counts-wide.rds")
 load("../../data/ra-wide.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../data/clinical.rds")
+load("../../data/events.rds")
 ```
 
 ```{r}
+irAE.time <- events %>%
+  filter(Event == "irAE") %>%
+  mutate(irAE.day = Days) %>%
+  dplyr::select(`Patient Id`, irAE.day) 
+
+# get irae samples 
+meta.irae <- mic.meta %>%
+  left_join(demographics) %>%
+  left_join(irAE.time) %>%
+  mutate(irAE.day = ifelse(irAE.day < 0 | irAE.day > 100, NA, irAE.day),
+         irAE.sample = ifelse(is.na(irAE.day), 0,
+                       ifelse(abs(Days - irAE.day) <= 10, 1, 0))) %>%
+  group_by(sample) %>%
+  slice_max(irAE.sample, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(sample, `Patient Id`, irAE.sample)
+
+# pts with more than 2 samples 
 pts <- mic.meta |>
   group_by(`Patient Id`) |>
   filter(n() > 2) |>
-  ungroup()
+  ungroup() |>
+  left_join(meta.irae) |>
+    group_by(`Patient Id`) %>%
+  # Step 1: Keep all irAE samples
+  mutate(irae_keep = ifelse(irAE.sample == 1, TRUE, FALSE)) %>%
+  # Step 2: Count how many slots are left per patient
+  group_modify(~{
+    patient_data <- .
+    n_keep <- sum(patient_data$irae_keep)
+    n_slots <- 3 - n_keep
+    
+    if (n_slots <= 0) {
+      # already have 3 or more irAE samples, keep only these
+      return(patient_data %>% filter(irae_keep))
+    } else {
+      # select irAE samples + most spread out remaining samples
+      remaining <- patient_data %>% filter(!irae_keep)
+      
+      if (nrow(remaining) <= n_slots) {
+        selected_remaining <- remaining
+      } else {
+        # pick samples that maximize spread in Days
+        # start with first and last
+        selected_remaining <- remaining %>%
+          slice_min(Days, n = 1) %>%
+          bind_rows(remaining %>% slice_max(Days, n = 1))
+        
+        # if more slots left, pick middle sample
+        if (nrow(selected_remaining) < n_slots) {
+          middle <- remaining %>%
+            filter(!Days %in% selected_remaining$Days) %>%
+            slice(1)
+          selected_remaining <- bind_rows(selected_remaining, middle)
+        }
+      }
+      
+      bind_rows(patient_data %>% filter(irae_keep), selected_remaining)
+    }
+  }) %>%
+  ungroup() %>%
+  select(-irae_keep)
 
 # n = 26
 resp <- demographics |>
