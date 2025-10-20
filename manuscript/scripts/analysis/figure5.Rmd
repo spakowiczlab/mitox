@@ -55,7 +55,7 @@ gmm.out %>%
   ylab("log10(p-value)") +
   guides(color = guide_legend(na.translate = FALSE))
 
-ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.svg", height = 4, width = 7, dpi = 300)
+ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.svg", height = 4, width = 10, dpi = 300)
 ```
 
 Figure 5B - line plot ?
