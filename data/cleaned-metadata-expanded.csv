@@ -1,0 +1,251 @@
+sample,timepoint,response,city,country,dataset,age,sex,bmi,irAE,days,immunotherapy,drug.regimen,ldh,ifn,stage,progressed,vital_status,pfs,os,RECIST,ppi,h2ra,patient_id,met_site,race,ethnicity,adjuvant,week,months_to_progression,months_followed,any_prog,months_to_death,antibio_flag_6mo,antibio_flag_1mo,mel.type,muts,numberofbaselinemets
+SRR6000894,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000893,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000899,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000873,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000874,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000877,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000871,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000878,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000944,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000940,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000945,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000943,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000890,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000869,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000946,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000949,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000896,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000947,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000903,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000905,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000902,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000901,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000906,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000942,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000910,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000900,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000931,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000870,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000907,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000891,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000909,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000908,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000911,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000892,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000920,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000912,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000921,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000932,pre,Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR6000895,pre,Non_Responder,Chicago,United States,Matson_2019,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168895,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,78,male,22.96,0,5,PD-1,nivolumab,162,0,IV-C,1,1,56,81,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168896,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,60,male,33.94,0,-52,PD-1,nivolumab,166,0,IV-C,1,1,78,418,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168902,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,66,male,24.99,1,-8,PD-1,anti-pd-1 (investigational),306,0,IV-D,1,1,128,193,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168903,pre,Responder,Pittsburgh,United States,McCulloch_2022,77,male,27.86,0,-4,PD-1,nivolumab,205,0,IV-A,0,0,910,910,PR,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168906,post,Responder,Pittsburgh,United States,McCulloch_2022,76,male,32.56,1,280,PD-1,nivolumab,224,0,IV-A,0,0,1155,1155,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168907,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,66,female,18.420000000000002,0,47,PD-1,nivolumab,283,0,IV-C,1,1,235,319,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168911,post,Responder,Pittsburgh,United States,McCulloch_2022,49,male,42.26,1,63,PD-1,pembrolizumab,166,0,IV-B,1,1,306,712,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168913,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,66,male,36.799999999999997,1,-8,PD-1,nivolumab,536,0,IV-A,1,1,223,386,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168916,post,Responder,Pittsburgh,United States,McCulloch_2022,73,male,29.7,1,1083,PD-1,pembrolizumab,218,1,IV-C,0,0,2000,2000,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168918,pre,Responder,Pittsburgh,United States,McCulloch_2022,84,male,25.24,0,-7,PD-1,pembrolizumab,248,0,IV-C,0,0,864,864,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168928,post,Responder,Pittsburgh,United States,McCulloch_2022,73,male,20.36,0,380,PD-1,pembrolizumab,332,0,IV-C,0,0,1659,1659,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168934,post,Responder,Pittsburgh,United States,McCulloch_2022,70,male,31.39,0,349,PD-1,pembrolizumab,184,1,IV-B,0,0,1769,1769,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168935,post,Responder,Pittsburgh,United States,McCulloch_2022,62,male,35.979999999999997,1,84,PD-1,nivolumab,184,0,IV-D,0,0,1413,1413,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168936,post,Responder,Pittsburgh,United States,McCulloch_2022,66,male,30.1,1,130,PD-1,pembrolizumab,175,0,IV-B,0,0,1437,1437,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168939,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,67,male,28.49,0,63,PD-1,pembrolizumab,155,1,IV-A,1,1,252,909,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168940,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,76,male,18.920000000000002,0,-14,PD-1,nivolumab,160,0,IV-C,1,1,91,238,PD,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168942,pre,Responder,Pittsburgh,United States,McCulloch_2022,64,female,39.79,1,0,PD-1,pembrolizumab,282,1,IV-B,1,1,551,551,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168943,pre,Responder,Pittsburgh,United States,McCulloch_2022,78,male,39,1,-3,PD-1,pembrolizumab,165,1,IV-B,0,0,1361,1361,PR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168946,post,Responder,Pittsburgh,United States,McCulloch_2022,78,male,22.61,0,427,PD-1,pembrolizumab,247,0,IV-C,0,1,624,684,CR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168950,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,65,male,32.44,1,69,PD-1,pembrolizumab,168,0,IV-B,1,1,64,432,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168951,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,77,female,27.21,0,3,PD-1,pembrolizumab,386,0,IV-D,1,1,174,174,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168954,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,65,female,32.26,1,107,PD-1,pembrolizumab,170,0,IV-A,1,0,84,1300,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168955,post,Responder,Pittsburgh,United States,McCulloch_2022,59,female,38.450000000000003,1,73,PD-1,pembrolizumab,563,0,IV-A,0,0,1306,1306,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168956,post,Responder,Pittsburgh,United States,McCulloch_2022,66,female,27.24,1,324,PD-1,nivolumab,1108,0,IV-C,0,0,1792,1792,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168958,post,Responder,Pittsburgh,United States,McCulloch_2022,65,male,32.99,0,385,PD-1,pembrolizumab,161,0,IV-B,0,0,1842,1842,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168961,post,Responder,Pittsburgh,United States,McCulloch_2022,41,female,28.93,0,488,PD-1,pembrolizumab,208,0,IV-C,1,1,472,1216,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168965,post,Responder,Pittsburgh,United States,McCulloch_2022,66,female,36.17,1,75,PD-1,nivolumab,151,0,IV-C,0,0,1043,1043,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168966,post,Responder,Pittsburgh,United States,McCulloch_2022,43,female,41.22,1,128,PD-1,pembrolizumab,195,0,IV-A,1,1,528,1229,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168967,post,Responder,Pittsburgh,United States,McCulloch_2022,74,male,32.130000000000003,0,567,PD-1,pembrolizumab,171,0,IV-A,0,0,1820,1820,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168971,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,82,male,26.16,1,18,PD-1,pembrolizumab,182,0,IV-A,1,1,266,788,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168973,post,Responder,Pittsburgh,United States,McCulloch_2022,83,male,28.89,0,837,PD-1,pembrolizumab,256,1,IV-A,0,0,2053,2053,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168976,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,60,male,28.41,0,0,PD-1,pembrolizumab,202,0,IV-C,1,0,138,1224,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168977,post,Responder,Pittsburgh,United States,McCulloch_2022,83,male,23.08,1,182,PD-1,pembrolizumab,175,0,IV-A,1,1,1358,1358,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168979,post,Responder,Pittsburgh,United States,McCulloch_2022,65,female,28.98,1,10,PD-1,pembrolizumab,341,0,IV-C,0,0,1271,1271,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168983,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,84,male,25.92,1,117,PD-1,nivolumab,178,0,IV-A,1,1,101,166,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168922,post,Responder,Pittsburgh,United States,McCulloch_2022,69,male,22.52,1,1280,PD-1,pembrolizumab,166,0,IV-C,0,0,2172,2172,CR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168930,pre,Responder,Pittsburgh,United States,McCulloch_2022,84,male,33.979999999999997,1,0,PD-1,pembrolizumab,183,0,IV-C,0,0,1340,1340,PR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168975,pre,Responder,Pittsburgh,United States,McCulloch_2022,71,female,30.12,1,0,PD-1,pembrolizumab,223,1,IV-B,0,0,1316,1316,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168982,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,48,male,37.36,0,0,PD-1,pembrolizumab,222,1,IV-C,1,1,80,304,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168894,post,Responder,Pittsburgh,United States,McCulloch_2022,64,female,42.14,0,5,PD-1,nivolumab,166,0,IV-C,0,0,978,978,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168897,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,79,male,20.309999999999899,0,7,PD-1,nivolumab,141,0,IV-A,1,1,199,483,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168901,post,Responder,Pittsburgh,United States,McCulloch_2022,77,male,35.4,0,84,PD-1,anti-pd-1 (investigational),166,0,IV-C,0,1,525,525,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168909,pre,Responder,Pittsburgh,United States,McCulloch_2022,64,male,22.77,1,0,PD-1,pembrolizumab,202,1,IV-B,1,1,440,600,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168914,post,Responder,Pittsburgh,United States,McCulloch_2022,87,male,33.75,1,1,PD-1,pembrolizumab,203,0,IV-A,0,0,1021,1021,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168945,pre,Responder,Pittsburgh,United States,McCulloch_2022,68,male,28.41,0,-7,PD-1,pembrolizumab,346,1,IV-B,0,0,1279,1279,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168959,post,Responder,Pittsburgh,United States,McCulloch_2022,72,male,27.5,1,593,PD-1,pembrolizumab,200,0,IV-C,1,1,272,1061,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168960,post,Responder,Pittsburgh,United States,McCulloch_2022,84,male,32.54,1,231,PD-1,nivolumab,221,0,IV-A,0,1,1190,1250,CR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168962,post,Responder,Pittsburgh,United States,McCulloch_2022,66,male,26.43,0,498,PD-1,pembrolizumab,268,1,IV-A,0,0,1736,1736,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168969,pre,Responder,Pittsburgh,United States,McCulloch_2022,76,male,36.340000000000003,1,-229,PD-1,nivolumab,224,0,IV-A,1,1,517,743,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168970,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,69,male,37.75,0,84,PD-1,pembrolizumab,165,0,IV-A,1,0,179,1334,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168974,pre,Responder,Pittsburgh,United States,McCulloch_2022,56,male,27.59,1,-8,PD-1,pembrolizumab,213,1,IV-C,0,0,1476,1476,PR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168987,post,Responder,Pittsburgh,United States,McCulloch_2022,35,female,33.630000000000003,1,41,PD-1,nivolumab,171,0,IV-B,0,0,1265,1265,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168904,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,85,male,34.28,1,7,PD-1,pembrolizumab,244,0,IV-C,1,0,77,850,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168908,post,Responder,Pittsburgh,United States,McCulloch_2022,58,female,19.7,1,15,PD-1,nivolumab,254,0,IV-C,1,1,563,724,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168912,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,62,male,39.299999999999997,1,1005,PD-1,nivolumab,415,0,IV-C,1,1,199,924,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168915,post,Responder,Pittsburgh,United States,McCulloch_2022,66,male,21.18,0,230,PD-1,pembrolizumab,136,0,IV-D,1,0,1195,1195,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168920,pre,Responder,Pittsburgh,United States,McCulloch_2022,40,male,43.13,0,-72,PD-1,nivolumab,191,0,IV-B,1,1,323,323,SD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168921,post,Responder,Pittsburgh,United States,McCulloch_2022,68,male,31.79,0,433,PD-1,pembrolizumab,192,0,IV-D,1,1,537,564,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168924,post,Responder,Pittsburgh,United States,McCulloch_2022,61,male,24.55,1,130,PD-1,pembrolizumab,269,0,IV-D,0,0,959,959,CR,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168925,pre,Responder,Pittsburgh,United States,McCulloch_2022,78,male,33.47,1,-1,PD-1,pembrolizumab,178,1,IV-C,0,0,1490,1490,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168926,pre,Responder,Pittsburgh,United States,McCulloch_2022,63,male,23.11,1,-1,PD-1,pembrolizumab,157,0,IV-D,1,1,619,635,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168927,post,Responder,Pittsburgh,United States,McCulloch_2022,77,male,26.94,0,580,PD-1,pembrolizumab,483,1,IV-B,1,0,2079,2079,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168932,post,Responder,Pittsburgh,United States,McCulloch_2022,73,female,34.369999999999997,1,13,PD-1,pembrolizumab,231,0,IV-B,0,0,1162,1162,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168933,post,Responder,Pittsburgh,United States,McCulloch_2022,89,male,27.86,1,491,PD-1,pembrolizumab,202,0,IV-D,0,0,1791,1791,CR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168944,post,Responder,Pittsburgh,United States,McCulloch_2022,82,male,40.49,1,483,PD-1,pembrolizumab,189,0,IV-B,0,0,1421,1421,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168952,pre,Responder,Pittsburgh,United States,McCulloch_2022,56,female,37.19,1,0,PD-1,pembrolizumab,267,0,IV-A,0,0,1176,1176,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168953,post,Responder,Pittsburgh,United States,McCulloch_2022,66,female,24.98,1,658,PD-1,pembrolizumab,183,0,IV-C,0,0,1921,1921,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168964,post,Responder,Pittsburgh,United States,McCulloch_2022,61,male,28.34,0,4,PD-1,pembrolizumab,194,0,IV-C,1,1,303,303,PD,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168985,pre,Responder,Pittsburgh,United States,McCulloch_2022,60,male,30.36,1,0,PD-1,pembrolizumab,185,1,IV-A,0,0,1386,1386,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168941,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,79,male,39.82,1,-105,PD-1,pembrolizumab,368,0,IV-C,1,1,58,88,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168963,post,Responder,Pittsburgh,United States,McCulloch_2022,73,male,27.7,1,727,PD-1,pembrolizumab,224,1,IV-A,1,1,1126,1172,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168972,post,Responder,Pittsburgh,United States,McCulloch_2022,80,male,35.32,1,399,PD-1,pembrolizumab,204,0,IV-B,1,0,764,1905,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168980,post,Responder,Pittsburgh,United States,McCulloch_2022,74,female,32.659999999999997,1,841,PD-1,pembrolizumab,140,0,IV-A,0,0,2142,2142,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168981,post,Responder,Pittsburgh,United States,McCulloch_2022,74,male,27.05,1,663,PD-1,pembrolizumab,329,0,IV-B,1,1,815,1654,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168986,pre,Responder,Pittsburgh,United States,McCulloch_2022,80,female,22.79,1,0,PD-1,pembrolizumab,271,1,IV-A,0,0,1386,1386,PR,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168898,post,Responder,Pittsburgh,United States,McCulloch_2022,73,male,26.4,1,42,PD-1,pembrolizumab,157,0,IV-B,0,0,1200,1200,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168899,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,32,female,33.1,0,6,PD-1,nivolumab,270,0,IV-C,1,0,250,871,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168900,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,80,female,35.03,1,0,PD-1,nivolumab,182,0,IV-C,1,1,70,96,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168905,post,Responder,Pittsburgh,United States,McCulloch_2022,60,male,41.57,0,225,PD-1,nivolumab,161,0,IV-C,0,0,1094,1094,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168910,post,Responder,Pittsburgh,United States,McCulloch_2022,89,male,25.32,1,4,PD-1,pembrolizumab,171,0,IV-A,0,0,998,998,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168917,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,53,female,18.03,0,25,PD-1,pembrolizumab,603,0,IV-C,1,1,70,124,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168919,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,73,male,24.92,0,66,PD-1,pembrolizumab,213,0,IV-A,1,0,105,896,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168923,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,82,male,24.95,0,78,PD-1,pembrolizumab,246,0,IV-D,1,1,135,141,PD,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168929,pre,Responder,Pittsburgh,United States,McCulloch_2022,56,male,23.24,0,-2,PD-1,pembrolizumab,212,1,IV-C,0,0,1390,1390,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168931,post,Responder,Pittsburgh,United States,McCulloch_2022,77,female,28.9,0,429,PD-1,pembrolizumab,175,0,IV-A,1,1,562,562,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168937,post,Responder,Pittsburgh,United States,McCulloch_2022,72,male,26.62,1,30,PD-1,pembrolizumab,373,1,IV-B,0,0,1694,1694,PR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168938,pre,Responder,Pittsburgh,United States,McCulloch_2022,70,male,32.14,1,-7,PD-1,pembrolizumab,228,0,IV-A,0,0,889,889,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168947,post,Non_Responder,Pittsburgh,United States,McCulloch_2022,77,female,26.3,1,6,PD-1,pembrolizumab,234,0,IV-C,1,1,98,234,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168948,post,Responder,Pittsburgh,United States,McCulloch_2022,52,female,41.54,1,427,PD-1,pembrolizumab,250,0,IV-D,0,0,1658,1658,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168949,post,Responder,Pittsburgh,United States,McCulloch_2022,76,female,23.79,0,98,PD-1,pembrolizumab,165,0,IV-D,0,0,1448,1448,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168968,post,Responder,Pittsburgh,United States,McCulloch_2022,82,female,25.96,1,632,PD-1,pembrolizumab,188,1,IV-A,0,0,2087,2087,PR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168957,post,Responder,Pittsburgh,United States,McCulloch_2022,47,female,30.77,1,2,PD-1,nivolumab,158,0,IV-B,0,0,1128,1128,CR,1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168978,post,Responder,Pittsburgh,United States,McCulloch_2022,75,male,30.87,1,479,PD-1,pembrolizumab,158,0,IV-A,0,0,1922,1922,CR,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR16168984,pre,Non_Responder,Pittsburgh,United States,McCulloch_2022,55,male,31.31,1,-14,PD-1,pembrolizumab,203,1,IV-C,1,0,126,1490,PD,0,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162200,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,58,male,40.799999999999798,NA,NA,NA,NA,NA,NA,NA,1,NA,194,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162201,pre,Responder,Houston,United States,Gopalakrishnan_2019,86,male,46.3,NA,NA,NA,NA,NA,NA,NA,0,NA,1947,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162202,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,78,female,20.4,NA,NA,NA,NA,NA,NA,NA,1,NA,85,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162203,pre,Responder,Houston,United States,Gopalakrishnan_2019,NA,female,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162204,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,71,male,26.9,NA,NA,NA,NA,NA,NA,NA,1,NA,81,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162205,pre,Responder,Houston,United States,Gopalakrishnan_2019,75,male,24.1,NA,NA,NA,NA,NA,NA,NA,0,NA,305,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162206,pre,Responder,Houston,United States,Gopalakrishnan_2019,78,male,24,NA,NA,NA,NA,NA,NA,NA,0,NA,1391,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162207,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,73,female,27.9,NA,NA,NA,NA,NA,NA,NA,1,NA,405,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162208,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,78,male,22.9,NA,NA,NA,NA,NA,NA,NA,0,NA,1712,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162209,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,41,female,24.3,NA,NA,NA,NA,NA,NA,NA,1,NA,376,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162210,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,69,male,31.4,NA,NA,NA,NA,NA,NA,NA,1,NA,21,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162211,pre,Responder,Houston,United States,Gopalakrishnan_2019,72,female,24.2,NA,NA,NA,NA,NA,NA,NA,0,NA,1666,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162212,pre,Responder,Houston,United States,Gopalakrishnan_2019,85,male,27.7,NA,NA,NA,NA,NA,NA,NA,0,NA,1384,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162213,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,79,male,26.1,NA,NA,NA,NA,NA,NA,NA,1,NA,69,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162214,pre,Responder,Houston,United States,Gopalakrishnan_2019,47,male,27.3,NA,NA,NA,NA,NA,NA,NA,0,NA,379,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162215,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,52,male,45.4,NA,NA,NA,NA,NA,NA,NA,1,NA,55,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162216,pre,Responder,Houston,United States,Gopalakrishnan_2019,67,female,29.2,NA,NA,NA,NA,NA,NA,NA,0,NA,830,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162217,pre,Responder,Houston,United States,Gopalakrishnan_2019,64,male,37.4,NA,NA,NA,NA,NA,NA,NA,0,NA,337,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162218,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,71,male,27,NA,NA,NA,NA,NA,NA,NA,1,NA,86,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162219,pre,Responder,Houston,United States,Gopalakrishnan_2019,65,male,30.6,NA,NA,NA,NA,NA,NA,NA,0,NA,1549,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162220,pre,Responder,Houston,United States,Gopalakrishnan_2019,56,male,41.8,NA,NA,NA,NA,NA,NA,NA,0,NA,1483,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162221,pre,Responder,Houston,United States,Gopalakrishnan_2019,62,female,31.8,NA,NA,NA,NA,NA,NA,NA,0,NA,1546,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162222,pre,Responder,Houston,United States,Gopalakrishnan_2019,21,female,27.8,NA,NA,NA,NA,NA,NA,NA,0,NA,1513,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162223,pre,Non_Responder,Houston,United States,Gopalakrishnan_2019,64,male,29.6,NA,NA,NA,NA,NA,NA,NA,1,NA,302,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+ERR2162224,pre,Responder,Houston,United States,Gopalakrishnan_2019,81,female,28.8,NA,NA,NA,NA,NA,NA,NA,1,NA,54,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930494,pre,Responder,Dallas,United States,Frankel_2017,76,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P23_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930495,pre,Responder,Dallas,United States,Frankel_2017,63,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P7_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930496,post,Responder,Dallas,United States,Frankel_2017,63,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P7_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930498,pre,Responder,Dallas,United States,Frankel_2017,75,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P10_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930500,post,Responder,Dallas,United States,Frankel_2017,69,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P14_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930501,pre,Non_Responder,Dallas,United States,Frankel_2017,80,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P16_Frankel,"Lung, Nodes",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930505,pre,Responder,Dallas,United States,Frankel_2017,92,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P68_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930507,pre,Non_Responder,Dallas,United States,Frankel_2017,80,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P66_Frankel,"Lung, Nodes",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930508,pre,Non_Responder,Dallas,United States,Frankel_2017,79,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P54_Frankel,"Nodes, SQ",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930509,pre,Non_Responder,Dallas,United States,Frankel_2017,74,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P53_Frankel,"Lung, Adrenal",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930510,pre,Non_Responder,Dallas,United States,Frankel_2017,67,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P42_Frankel,SQ,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930513,pre,Responder,Dallas,United States,Frankel_2017,63,female,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P44_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930520,pre,Non_Responder,Dallas,United States,Frankel_2017,66,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P56_Frankel,"Lung, Nodes",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930521,pre,Non_Responder,Dallas,United States,Frankel_2017,54,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P30_Frankel,"Lung, Liver",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930524,post,Responder,Dallas,United States,Frankel_2017,74,female,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P33_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930525,post,Responder,Dallas,United States,Frankel_2017,76,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P23_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930528,pre,Non_Responder,Dallas,United States,Frankel_2017,68,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P28_Frankel,"Lung, Liver",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930529,pre,Responder,Dallas,United States,Frankel_2017,58,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P61_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930535,post,Non_Responder,Dallas,United States,Frankel_2017,79,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P54_Frankel,"Nodes, SQ",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930493,pre,Non_Responder,Dallas,United States,Frankel_2017,64,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P22_Frankel,"Lung, Liver",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930499,pre,Responder,Dallas,United States,Frankel_2017,69,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P14_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930504,pre,Responder,Dallas,United States,Frankel_2017,55,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P69_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930511,pre,Responder,Dallas,United States,Frankel_2017,48,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P39_Frankel,"Nodes, SQ",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930512,pre,Responder,Dallas,United States,Frankel_2017,43,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P45_Frankel,"Lung, Nodes, SQ",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930516,pre,Responder,Dallas,United States,Frankel_2017,41,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P52_Frankel,Bone,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930517,pre,Non_Responder,Dallas,United States,Frankel_2017,84,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P49_Frankel,"Lung, Liver, Nodes",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930519,pre,Non_Responder,Dallas,United States,Frankel_2017,69,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P65_Frankel,Liver,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930527,pre,Responder,Dallas,United States,Frankel_2017,60,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P25_Frankel,SQ,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930532,pre,Responder,Dallas,United States,Frankel_2017,78,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P59_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930536,pre,Responder,Dallas,United States,Frankel_2017,37,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P55_Frankel,"SQ, Adrenal",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930497,pre,Responder,Dallas,United States,Frankel_2017,70,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P8_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930502,pre,Responder,Dallas,United States,Frankel_2017,68,male,NA,NA,NA,PD-1,nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P17_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930503,pre,Responder,Dallas,United States,Frankel_2017,70,male,NA,NA,NA,CTLA-4,ipilimumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P57_Frankel,Liver,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930506,pre,Responder,Dallas,United States,Frankel_2017,83,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P67_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930514,pre,Responder,Dallas,United States,Frankel_2017,86,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P48_Frankel,Lung,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930515,pre,Non_Responder,Dallas,United States,Frankel_2017,68,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P46_Frankel,"SQ, Adrenal",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930518,pre,Non_Responder,Dallas,United States,Frankel_2017,77,female,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P64_Frankel,"Lung, Liver, Bone",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930522,pre,Non_Responder,Dallas,United States,Frankel_2017,57,female,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P32_Frankel,"Nodes, Bone",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930523,pre,Responder,Dallas,United States,Frankel_2017,74,female,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P33_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930526,pre,Non_Responder,Dallas,United States,Frankel_2017,44,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P24_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930530,pre,Responder,Dallas,United States,Frankel_2017,63,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P63_Frankel,"Nodes, SQ",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930531,pre,Responder,Dallas,United States,Frankel_2017,52,male,NA,NA,NA,PD-1,pembrolizumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P58_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930533,pre,Responder,Dallas,United States,Frankel_2017,57,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P34_Frankel,Liver,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR5930534,pre,Responder,Dallas,United States,Frankel_2017,63,male,NA,NA,NA,CTLA-4 + PD-1,ipilimumab plus nivolumab,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,P35_Frankel,Nodes,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+SRR9033758,post,Non_Responder,New York City,United States,Peters_2019,53,male,22.11,NA,NA,CLTA-4 + PD-1,NA,1,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,NA,0,Week 6,0.6896552,11.565408,1,10.180624,0,0,Superficial Spreading,None,6
+SRR9033757,post,Non_Responder,New York City,United States,Peters_2019,70,male,26.58,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,African American,Jamaican,0,Week 12,2.5615764,17.443897,1,NA,0,0,Acral lentiginous,None,1
+SRR9033756,post,Non_Responder,New York City,United States,Peters_2019,70,male,26.58,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,African American,Jamaican,0,Week 6,2.5615764,17.443897,1,NA,0,0,Acral lentiginous,None,1
+SRR9033755,post,Non_Responder,New York City,United States,Peters_2019,71,male,30.42,NA,NA,PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Week 12,2.6272578,17.312534,1,NA,0,0,Desmoplastic,None,3
+SRR9033734,post,Non_Responder,New York City,United States,Peters_2019,71,male,30.42,NA,NA,PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Week 6,2.6272578,17.312534,1,NA,0,0,Desmoplastic,None,3
+SRR9033724,pre,Non_Responder,New York City,United States,Peters_2019,84,male,26.27,NA,NA,PD-1,NA,1,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Irish,0,Baseline,2.2003284,18.856048,1,2.200328,0,0,Missing,None,4
+SRR9033725,pre,Non_Responder,New York City,United States,Peters_2019,72,male,38.78,NA,NA,PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Baseline,19.2118227,23.388068,1,NA,1,0,Nodular,None,2
+SRR9033722,pre,Responder,New York City,United States,Peters_2019,63,female,26.24,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,Irish,0,Baseline,NA,16.852764,0,NA,0,0,Missing,None,2
+SRR9033723,pre,Non_Responder,New York City,United States,Peters_2019,70,male,26.58,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,African American,Jamaican,0,Baseline,2.5615764,17.443897,1,NA,0,0,Acral lentiginous,None,1
+SRR9033715,pre,Non_Responder,New York City,United States,Peters_2019,71,male,30.42,NA,NA,PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Baseline,2.6272578,17.312534,1,NA,0,0,Desmoplastic,None,3
+SRR9033716,pre,Non_Responder,New York City,United States,Peters_2019,70,male,28.85,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,1,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,1,Baseline,4.7947455,16.097427,1,NA,1,0,Missing,BRAF,0
+SRR9033718,pre,Responder,New York City,United States,Peters_2019,47,male,27.47,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,Ukranian/ Polish/ Bolgarian,0,Baseline,NA,12.681992,0,NA,0,0,Missing,BRAF,4
+SRR9033754,pre,Responder,New York City,United States,Peters_2019,61,male,37.92,NA,NA,CLTA-4 + PD-1,NA,0,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,Italian,1,Baseline,NA,11.729611,0,NA,1,1,Missing,BRAF,0
+SRR9033753,pre,Non_Responder,New York City,United States,Peters_2019,76,female,18.29,NA,NA,PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,White,Irish/ Ukranian,1,Baseline,3.316913,10.645868,1,NA,1,1,Missing,None,0
+SRR9033750,pre,Responder,New York City,United States,Peters_2019,79,female,25.55,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,NA,1,Baseline,NA,9.85769,0,NA,1,0,Missing,NRAS,0
+SRR9033749,pre,Responder,New York City,United States,Peters_2019,47,male,31.06,NA,NA,PD-1,NA,0,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,Hungarian,1,Baseline,NA,9.890531,0,NA,1,0,Missing,None,0
+SRR9033752,pre,Responder,New York City,United States,Peters_2019,85,female,33.31,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Baseline,NA,14.685276,0,NA,0,0,Missing,None,1
+SRR9033751,pre,Responder,New York City,United States,Peters_2019,71,male,33.62,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Irish,0,Baseline,NA,11.795293,0,NA,1,0,Nodular,None,1
+SRR9033746,pre,Non_Responder,New York City,United States,Peters_2019,69,male,28.19,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,1,0,NA,NA,NA,NA,NA,NA,NA,White,Irish/ Polish,0,Baseline,5.5172414,11.959496,1,NA,0,0,Missing,NRAS,6
+SRR9033745,pre,Responder,New York City,United States,Peters_2019,84,male,22.89,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,Irish,1,Baseline,NA,12.189381,0,NA,1,1,Missing,None,0
+SRR9033748,pre,Non_Responder,New York City,United States,Peters_2019,53,male,22.11,NA,NA,CLTA-4 + PD-1,NA,1,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,NA,0,Baseline,0.6896552,11.565408,1,10.180624,0,0,Superficial Spreading,None,6
+SRR9033747,pre,Responder,New York City,United States,Peters_2019,80,female,25.15,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German,0,Baseline,NA,12.386426,0,NA,1,0,Missing,BRAF,1
+SRR9033720,pre,Responder,New York City,United States,Peters_2019,54,male,27.96,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,NA,1,Baseline,NA,13.076081,0,NA,1,0,Missing,NRAS,0
+SRR9033721,pre,Responder,New York City,United States,Peters_2019,66,male,27.83,NA,NA,PD-1,NA,0,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,1,Baseline,NA,15.604817,0,NA,1,1,Missing,None,0
+SRR9033730,post,Non_Responder,New York City,United States,Peters_2019,84,male,25.24,NA,NA,PD-1,NA,0,NA,III,1,0,NA,NA,NA,NA,NA,NA,NA,White,Greek,0,Week 12,2.7586207,14.915161,1,NA,1,0,Nodular,BRAF,1
+SRR9033731,post,Non_Responder,New York City,United States,Peters_2019,84,male,25.24,NA,NA,PD-1,NA,0,NA,III,1,0,NA,NA,NA,NA,NA,NA,NA,White,Greek,0,Week 6,2.7586207,14.915161,1,NA,1,0,Nodular,BRAF,1
+SRR9033732,pre,Non_Responder,New York City,United States,Peters_2019,84,male,25.24,NA,NA,PD-1,NA,0,NA,III,1,0,NA,NA,NA,NA,NA,NA,NA,White,Greek,0,Baseline,2.7586207,14.915161,1,NA,1,0,Nodular,BRAF,1
+SRR9033733,post,Responder,New York City,United States,Peters_2019,68,male,28.8,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Polish,0,Week 12,NA,12.649152,0,NA,0,0,Missing,None,3
+SRR9033726,post,Responder,New York City,United States,Peters_2019,68,male,28.8,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Polish,0,Week 6,NA,12.649152,0,NA,0,0,Missing,None,3
+SRR9033727,pre,Responder,New York City,United States,Peters_2019,68,male,28.8,NA,NA,PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Polish,0,Baseline,NA,12.649152,0,NA,0,0,Missing,None,3
+SRR9033728,post,Responder,New York City,United States,Peters_2019,73,male,28.47,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,American/ lithuanian,1,Week 12,NA,13.798577,0,NA,0,0,Missing,None,0
+SRR9033729,post,Responder,New York City,United States,Peters_2019,73,male,28.47,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,American/ lithuanian,1,Week 6,NA,13.798577,0,NA,0,0,Missing,None,0
+SRR9033743,pre,Responder,New York City,United States,Peters_2019,73,male,28.47,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,American/ lithuanian,1,Baseline,NA,13.798577,0,NA,0,0,Missing,None,0
+SRR9033744,post,Responder,New York City,United States,Peters_2019,54,male,28.26,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Irish/ Scottish,0,Week 12,NA,13.338807,0,NA,0,0,Missing,BRAF,1
+SRR9033741,post,Responder,New York City,United States,Peters_2019,54,male,28.26,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Irish/ Scottish,0,Week 6,NA,13.338807,0,NA,0,0,Missing,BRAF,1
+SRR9033742,pre,Responder,New York City,United States,Peters_2019,54,male,28.26,NA,NA,CLTA-4 + PD-1,NA,0,NA,IV,0,0,NA,NA,NA,NA,NA,NA,NA,White,German/ Irish/ Scottish,0,Baseline,NA,13.338807,0,NA,0,0,Missing,BRAF,1
+SRR9033739,post,Non_Responder,New York City,United States,Peters_2019,90,male,20.44,NA,NA,PD-1,NA,0,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Week 12,16.7159278,23.749316,1,18.686371,1,0,Missing,NRAS,3
+SRR9033740,post,Non_Responder,New York City,United States,Peters_2019,90,male,20.44,NA,NA,PD-1,NA,0,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Week 6,16.7159278,23.749316,1,18.686371,1,0,Missing,NRAS,3
+SRR9033737,pre,Non_Responder,New York City,United States,Peters_2019,90,male,20.44,NA,NA,PD-1,NA,0,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,0,Baseline,16.7159278,23.749316,1,18.686371,1,0,Missing,NRAS,3
+SRR9033762,post,Responder,New York City,United States,Peters_2019,54,male,27.96,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,NA,1,Week 12,NA,13.076081,0,NA,1,0,Missing,NRAS,0
+SRR9033761,post,Responder,New York City,United States,Peters_2019,54,male,27.96,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,NA,1,Week 6,NA,13.076081,0,NA,1,0,Missing,NRAS,0
+SRR9033760,pre,Non_Responder,New York City,United States,Peters_2019,73,female,28.24,NA,NA,CTLA-4,NA,0,NA,III,1,0,NA,NA,NA,NA,NA,NA,NA,White,Ashkenazi Jewish,1,Baseline,14.1543514,23.847838,1,NA,1,1,Nodular,None,0
+SRR9033759,post,Non_Responder,New York City,United States,Peters_2019,79,male,24.6,NA,NA,PD-1,NA,0,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Italian,0,Week 12,5.681445,24.767378,1,17.832512,0,0,Nodular,NRAS,1
+SRR9033717,post,Non_Responder,New York City,United States,Peters_2019,79,male,24.6,NA,NA,PD-1,NA,0,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Italian,0,Week 6,5.681445,24.767378,1,17.832512,0,0,Nodular,NRAS,1
+SRR9033719,pre,Non_Responder,New York City,United States,Peters_2019,79,male,24.6,NA,NA,PD-1,NA,0,NA,IV,1,1,NA,NA,NA,NA,NA,NA,NA,White,Italian,0,Baseline,5.681445,24.767378,1,17.832512,0,0,Nodular,NRAS,1
+SRR9033735,post,Responder,New York City,United States,Peters_2019,60,male,20.75,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,English/ Sweedish,1,Week 12,NA,13.568692,0,NA,1,0,Missing,BRAF,0
+SRR9033736,post,Responder,New York City,United States,Peters_2019,60,male,20.75,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,English/ Sweedish,1,Week 6,NA,13.568692,0,NA,1,0,Missing,BRAF,0
+SRR9033738,pre,Responder,New York City,United States,Peters_2019,60,male,20.75,NA,NA,CLTA-4 + PD-1,NA,NA,NA,III,0,0,NA,NA,NA,NA,NA,NA,NA,White,English/ Sweedish,1,Baseline,NA,13.568692,0,NA,1,0,Missing,BRAF,0
