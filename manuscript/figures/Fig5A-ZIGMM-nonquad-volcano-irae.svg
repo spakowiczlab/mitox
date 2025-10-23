@@ -69,28 +69,25 @@
 <circle cx='148.41' cy='163.05' r='1.60' style='stroke-width: 0.58; stroke: #008B8B; fill: #008B8B;' />
 <circle cx='148.41' cy='163.05' r='1.60' style='stroke-width: 0.58; stroke: #008B8B; fill: #008B8B;' />
 <circle cx='148.41' cy='163.05' r='1.60' style='stroke-width: 0.58; stroke: #008B8B; fill: #008B8B;' />
-<line x1='340.51' y1='186.34' x2='326.22' y2='182.54' style='stroke-width: 1.07;' />
-<line x1='331.41' y1='165.21' x2='325.18' y2='181.55' style='stroke-width: 1.07;' />
-<line x1='168.58' y1='146.05' x2='149.10' y2='162.47' style='stroke-width: 1.07;' />
-<line x1='126.82' y1='179.84' x2='147.68' y2='163.62' style='stroke-width: 1.07;' />
-<line x1='116.11' y1='191.25' x2='147.74' y2='163.64' style='stroke-width: 1.07;' />
-<text x='280.05' y='208.34' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='63.45px' lengthAdjust='spacingAndGlyphs'>s__Firmicutes_bacterium</text>
-<text x='71.12' y='213.55' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='55.89px' lengthAdjust='spacingAndGlyphs'>s__Phocaeicola_dorei</text>
-<text x='474.15' y='24.55' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='101.03px' lengthAdjust='spacingAndGlyphs'>s__Bifidobacterium_pseudocatenulatum</text>
-<text x='339.16' y='177.77' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='37.58px' lengthAdjust='spacingAndGlyphs'>c__CFGB2831</text>
-<text x='316.10' y='191.97' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='38.20px' lengthAdjust='spacingAndGlyphs'>o__OFGB2831</text>
-<text x='358.42' y='189.07' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='32.20px' lengthAdjust='spacingAndGlyphs'>f__FGB2831</text>
-<text x='295.82' y='180.66' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='34.73px' lengthAdjust='spacingAndGlyphs'>g__GGB9049</text>
-<text x='100.56' y='143.39' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='41.98px' lengthAdjust='spacingAndGlyphs'>g__Muribaculum</text>
-<text x='365.90' y='166.45' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='65.38px' lengthAdjust='spacingAndGlyphs'>s__GGB9049_SGB13954</text>
-<text x='269.84' y='151.05' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='67.56px' lengthAdjust='spacingAndGlyphs'>s__Bacteroides_rodentium</text>
-<text x='609.46' y='53.49' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='34.31px' lengthAdjust='spacingAndGlyphs'>g__GGB1153</text>
-<text x='588.12' y='66.17' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='61.80px' lengthAdjust='spacingAndGlyphs'>s__GGB1153_SGB1481</text>
-<text x='163.17' y='158.63' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='37.58px' lengthAdjust='spacingAndGlyphs'>c__CFGB2984</text>
-<text x='189.49' y='147.43' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='38.20px' lengthAdjust='spacingAndGlyphs'>o__OFGB2984</text>
-<text x='133.22' y='171.43' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='32.20px' lengthAdjust='spacingAndGlyphs'>f__FGB2984</text>
-<text x='107.65' y='182.52' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='34.73px' lengthAdjust='spacingAndGlyphs'>g__GGB9347</text>
-<text x='81.62' y='193.70' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='65.38px' lengthAdjust='spacingAndGlyphs'>s__GGB9347_SGB14313</text>
+<line x1='344.79' y1='165.22' x2='325.61' y2='181.61' style='stroke-width: 1.07;' />
+<line x1='155.02' y1='146.14' x2='148.66' y2='162.41' style='stroke-width: 1.07;' />
+<text x='309.48' y='208.37' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='63.45px' lengthAdjust='spacingAndGlyphs'>s__Firmicutes_bacterium</text>
+<text x='71.15' y='213.54' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='55.89px' lengthAdjust='spacingAndGlyphs'>s__Phocaeicola_dorei</text>
+<text x='544.18' y='12.16' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='101.03px' lengthAdjust='spacingAndGlyphs'>s__Bifidobacterium_pseudocatenulatum</text>
+<text x='339.33' y='177.86' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='37.58px' lengthAdjust='spacingAndGlyphs'>c__CFGB2831</text>
+<text x='365.69' y='166.60' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='38.20px' lengthAdjust='spacingAndGlyphs'>o__OFGB2831</text>
+<text x='306.94' y='190.68' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='32.20px' lengthAdjust='spacingAndGlyphs'>f__FGB2831</text>
+<text x='347.57' y='189.19' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='34.73px' lengthAdjust='spacingAndGlyphs'>g__GGB9049</text>
+<text x='130.07' y='130.75' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='41.98px' lengthAdjust='spacingAndGlyphs'>g__Muribaculum</text>
+<text x='280.58' y='179.39' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='65.38px' lengthAdjust='spacingAndGlyphs'>s__GGB9049_SGB13954</text>
+<text x='269.87' y='151.04' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='67.56px' lengthAdjust='spacingAndGlyphs'>s__Bacteroides_rodentium</text>
+<text x='609.43' y='66.22' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='34.31px' lengthAdjust='spacingAndGlyphs'>g__GGB1153</text>
+<text x='588.01' y='53.54' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='61.80px' lengthAdjust='spacingAndGlyphs'>s__GGB1153_SGB1481</text>
+<text x='118.22' y='161.08' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='37.58px' lengthAdjust='spacingAndGlyphs'>c__CFGB2984</text>
+<text x='163.33' y='158.60' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='38.20px' lengthAdjust='spacingAndGlyphs'>o__OFGB2984</text>
+<text x='131.32' y='172.40' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='32.20px' lengthAdjust='spacingAndGlyphs'>f__FGB2984</text>
+<text x='171.97' y='170.03' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='34.73px' lengthAdjust='spacingAndGlyphs'>g__GGB9347</text>
+<text x='189.51' y='147.37' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='65.38px' lengthAdjust='spacingAndGlyphs'>s__GGB9347_SGB14313</text>
 <rect x='29.09' y='4.48' width='601.17' height='257.77' style='stroke-width: 0.87; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHwyODguMDA=)'>
