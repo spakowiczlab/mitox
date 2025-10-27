@@ -55,7 +55,7 @@ gmm.out %>%
   ylab("log10(p-value)") +
   guides(color = guide_legend(na.translate = FALSE))
 
-ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.svg", height = 4, width = 7, dpi = 300)
+ggsave("../../figures/Fig5A-ZIGMM-nonquad-volcano-irae.svg", height = 4, width = 10, dpi = 300)
 ```
 
 Figure 5B - line plot ?
@@ -153,7 +153,7 @@ ggplot(irae.time, aes(x = Days, y = est.reads, group = Patient_Id, color = irAE)
   theme_minimal()
 
 
-ggsave("../../figures/Fig5C-lineplot.svg", height = 4.5, width = 5, dpi = 300)
+ggsave("../../figures/Fig5C-lineplot.svg", height = 4, width = 5, dpi = 300)
 ```
 
 # Figure 5C - Venn Diagram(s)
