@@ -15,7 +15,7 @@ library(ROCR)
 library(caTools)
 library(openxlsx)
 library(respondersig) 
-
+library(PRROC)
 
 ```
 
@@ -36,18 +36,14 @@ load("../manuscript/data/struct0_response.rds")
 load("../manuscript/data/struct0_irae.rds")
 load("../manuscript/data/ANCOM-BC2_response_baseline.Rdata")
 load("../manuscript/data/ANCOM-BC2_irae_baseline.RData")
+load("../manuscript/data/core-score-min3.rds")
 
-
-```
-
-
-
-
-
-
-```{r}
 seed_list <- c(12345:12369)
+# Response_aucprs <- Response_aucprs[-c(69), ]
 ```
+
+
+
 
 
 
@@ -109,7 +105,7 @@ irAE_q_zero <- irAE_q %>%
 response_q <- res.recist %>%
   left_join(phyl_labels) %>%
   select(microbe, q_ResponseResponder)  %>%
-  filter(q_ResponseResponder < 0.01) %>%
+  filter(q_ResponseResponder < 0.005) %>%
   replace_na(list( microbe = "k__Archaea"))
 
 #structural 0 for response
@@ -152,13 +148,30 @@ Making responsesig objects for response
 ```{r}
 #try splitting the dataset
 utils::data("met4ra", package = "respondersig")
-utils::data("metadata", package = "respondersig")
+# utils::data("metadata", package = "respondersig")
 
 met4ra$clade_name <- gsub(".*\\|", "", met4ra$clade_name)
 
+#metadata object for bmi and age models
+
+metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv") %>%
+  drop_na(response, age, bmi) %>%
+  filter(timepoint == "pre") %>%
+  select(sample, timepoint, response, dataset)
+
+metadata <- metadata %>%
+  subset(metadata$sample %in% met4ra$sample)
+
+sig_clinical <- read.csv(file = "../data/cleaned-metadata-expanded.csv") %>%
+  drop_na(response, age, bmi) %>%
+  filter(timepoint == "pre") %>%
+  select(sample, age, bmi)
+
+#metadata object for microbe only models
+
 metadata <- metadata %>%
   filter(timepoint == "pre") %>%
-  subset(metadata$sample %in% met4ra$sample) 
+  subset(metadata$sample %in% met4ra$sample)
 
  metadata$response <- gsub("_", "-", metadata$response)
 
@@ -168,6 +181,7 @@ met4ra <- met4ra %>%
   select(clade_name, relative_abundance, sample) %>%
   pivot_wider(names_from = clade_name, values_from = relative_abundance) %>% 
   replace(is.na(.), 0)
+
 
 set.seed(42301)
 
@@ -255,6 +269,37 @@ train.seq <- arrange(train.seq, desc(sample))
 test.seq <- filter(met4ralim,
                     (sample %in% test.outcomes$sample))
 test.seq <- arrange(test.seq, desc(sample))
+
+
+#adding age and bmi
+met_Datasheet <- readWorkbook(adjing.data, sheet = "Met Datasheet", startRow = 2)
+met_Datasheet <- subset(met_Datasheet, Cohort != "Excluded") %>%
+  select(`Coded.Sample.#`, `BMI.(kg/m2)`, `Relative.lymphocyte.count.(%)`, `LDH.(U/L)`)
+met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\) *", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\)*", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <-gsub("- ", "-", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <-gsub("^\\s+|\\s+$", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet <- met_Datasheet %>% rename(`MDSC #` = `Coded.Sample.#`)
+
+
+clinical <- full_join(met_Datasheet, demographics)
+
+add.data <- clinical %>%
+  subset(`Patient Id` %in% blood$`Patient Id`) %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  select(`Patient Id`, Age, `BMI.(kg/m2)`)
+
+names(add.data)[names(add.data) == 'Patient Id'] <- 'sample'
+names(add.data)[names(add.data) == 'Age'] <- 'age'
+names(add.data)[names(add.data) == 'BMI.(kg/m2)'] <- 'bmi'
+
+
+train.seq <- full_join(train.seq, add.data) %>%
+  subset(sample %in% train.outcomes$sample)
+
+test.seq <- left_join(test.seq, sig_clinical)
+
+
 ```
 
 
@@ -265,26 +310,27 @@ rf_responce <- kTest(seed_list, "Non-Responder", "Responder", "response", 2000)
 
 aucprs <- grabVals(aucprs, rf_responce, seed_list)
 
-micro_only_respondersigPeters_2000_qzerofivestruct0 <- mean(aucprs$AUCPR)
+micro_only_respondersigPeters_2000_clinical_qzerofivestruct0 <- mean(aucprs$AUCPR)
 
-micro_only_respondersigPeters_2000_qzerofivestruct0 <- as.data.frame(micro_only_respondersigPeters_2000_qzerofivestruct0) %>%
-  rename(AUCPR = micro_only_respondersigPeters_2000_qzerofivestruct0) %>%
-  add_column("name" = "micro_only_respondersigPeters_2000_qzerofivestruct0", .before = "AUCPR")
+micro_only_respondersigPeters_2000_clinical_qzerofivestruct0 <- as.data.frame(micro_only_respondersigPeters_2000_clinical_qzerofivestruct0) %>%
+  rename(AUCPR = micro_only_respondersigPeters_2000_clinical_qzerofivestruct0) %>%
+  add_column("name" = "micro_only_respondersigPeters_2000_clinical_qzerofivestruct0", .before = "AUCPR")
 
 Response_aucprs <- Response_aucprs  %>%
-  add_row(micro_only_respondersigPeters_2000_qzerofivestruct0)
+  add_row(micro_only_respondersigPeters_2000_clinical_qzerofivestruct0)
 
-aucprdf$micro_only_respondersigPeters_2000_qzerofivestruct0 <- aucprs$AUCPR
+aucprdf$micro_only_respondersigPeters_2000_clinical_qzerofivestruct0 <- aucprs$AUCPR
 
-remove(micro_only_respondersigPeters_2000_qzerofivestruct0)
+remove(micro_only_respondersigPeters_2000_clinical_qzerofivestruct0)
 
+saveRDS(Response_aucprs, file = "../data/rf_mitox_Response_aucpr.RData")
 
 ```
 
 Response sig plot
 ```{r}
 
-response_for_plot  <- Response_aucprs[c(28, 36, 47:56), ]
+response_for_plot  <- Response_aucprs[c(28, 36, 47:73), ]
 
 response_plot <-ggplot(data = response_for_plot,
                        mapping=aes(x = reorder(name, AUCPR),
@@ -303,32 +349,36 @@ print(response_plot)
 
 
 
-
-
-
 Making responsesig objects for irAE
 ```{r}
 #try splitting the dataset
 utils::data("met4ra", package = "respondersig")
 irAE_respondsig <- read.csv(file = "../data/cleaned-metadata-expanded.csv") %>%
-  drop_na(irAE) %>%
+  drop_na(irAE, age, bmi) %>%
   filter(timepoint == "pre") %>%
-  select(sample, irAE)
+  select(sample, irAE) 
 
-
+  
 met4ra$clade_name <- gsub(".*\\|", "", met4ra$clade_name)
-
-irAE_respondsig <- irAE_respondsig %>%
-  subset(irAE_respondsig$sample %in% met4ra$sample) 
-
-
-
 
 met4ra <- met4ra %>%
   subset(met4ra$sample %in% irAE_respondsig$sample) %>%
   select(clade_name, relative_abundance, sample) %>%
   pivot_wider(names_from = clade_name, values_from = relative_abundance) %>% 
   replace(is.na(.), 0)
+
+irAE_respondsig <- irAE_respondsig %>%
+  subset(irAE_respondsig$sample %in% met4ra$sample) 
+
+
+
+sig_clinical <- read.csv(file = "../data/cleaned-metadata-expanded.csv") %>%
+  drop_na(response, age, bmi) %>%
+  filter(timepoint == "pre") %>%
+  select(sample, age, bmi)
+
+
+
 
 set.seed(42301)
 
@@ -415,6 +465,33 @@ test.seq <- filter(met4ralim,
                     (sample %in% test.outcomes$sample))
 test.seq <- arrange(test.seq, desc(sample))
 
+#adding age and bmi
+met_Datasheet <- readWorkbook(adjing.data, sheet = "Met Datasheet", startRow = 2)
+met_Datasheet <- subset(met_Datasheet, Cohort != "Excluded") %>%
+  select(`Coded.Sample.#`, `BMI.(kg/m2)`, `Relative.lymphocyte.count.(%)`, `LDH.(U/L)`)
+met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\) *", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\)*", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <-gsub("- ", "-", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <-gsub("^\\s+|\\s+$", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet <- met_Datasheet %>% rename(`MDSC #` = `Coded.Sample.#`)
+
+
+clinical <- full_join(met_Datasheet, demographics)
+
+add.data <- clinical %>%
+  subset(`Patient Id` %in% blood$`Patient Id`) %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  select(`Patient Id`, Age, `BMI.(kg/m2)`)
+
+names(add.data)[names(add.data) == 'Patient Id'] <- 'sample'
+names(add.data)[names(add.data) == 'Age'] <- 'age'
+names(add.data)[names(add.data) == 'BMI.(kg/m2)'] <- 'bmi'
+
+
+train.seq <- full_join(train.seq, add.data) %>%
+  subset(sample %in% train.outcomes$sample)
+
+test.seq <- left_join(test.seq, sig_clinical)
 
 ```
 
@@ -425,25 +502,28 @@ rf_irAE <- kTest(seed_list, "No", "Yes", "irAE", 500)
 
 aucprs <- grabVals(aucprs, rf_irAE, seed_list)
 
-micro_only_irAEsig_500_qonestruct0 <- mean(aucprs$AUCPR)
+micro_only_irAEsig_500_clinical_qonestruct0 <- mean(aucprs$AUCPR)
 
-micro_only_irAEsig_500_qonestruct0 <- as.data.frame(micro_only_irAEsig_500_qonestruct0) %>%
-  rename(AUCPR = micro_only_irAEsig_500_qonestruct0) %>%
-  add_column("name" = "micro_only_irAEsig_500_qonestruct0", .before = "AUCPR")
+micro_only_irAEsig_500_clinical_qonestruct0 <- as.data.frame(micro_only_irAEsig_500_clinical_qonestruct0) %>%
+  rename(AUCPR = micro_only_irAEsig_500_clinical_qonestruct0) %>%
+  add_column("name" = "micro_only_irAEsig_500_clinical_qonestruct0", .before = "AUCPR")
 
 irAE_aucprs <- irAE_aucprs  %>%
-  add_row(micro_only_irAEsig_500_qonestruct0)
+  add_row(micro_only_irAEsig_500_clinical_qonestruct0)
 
-aucprdf$micro_only_irAEsig_500_qonestruct0 <- aucprs$AUCPR
+aucprdf$micro_only_irAEsig_500_clinical_qonestruct0 <- aucprs$AUCPR
 
-remove(micro_only_irAEsig_500_qonestruct0)
+remove(micro_only_irAEsig_500_clinical_qonestruct0)
+
+# saveRDS(irAE_aucprs, file = "../data/rf_mitox_irAE_aucpr.RData")
+
 
 
 ```
 
 irAE plot
 ```{r}
-irAE_for_plot  <- irAE_aucprs[c(5, 23, 31, 35, 36), ]
+irAE_for_plot  <- irAE_aucprs[c(5, 23, 31, 35, 36:47), ]
 
 irAE_plot <-ggplot(data = irAE_for_plot,
                    mapping=aes(x = reorder(name, AUCPR),
@@ -533,6 +613,102 @@ test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
 ```
 
 
+Making q value and struct 0 objects for response
+```{r}
+
+struct0.recist.rotate  <- struct0.recist.ft %>% 
+  pivot_wider(names_from = microbe, values_from = `structural_zero (Response = Non-Responder)`) 
+colnames(struct0.recist.rotate)[1] <- 'sample'
+
+#combining structural zero and response, 
+responsecombinedlist <- c(response_list, struct0.recist.list)
+
+
+
+response_list[[1]] <- "Patient Id"
+struct0.recist.list[[1]] <- "Patient Id"
+responsecombinedlist[[1]] <- "Patient Id"
+
+
+# coi <- response_list
+# coi <- struct0.recist.list
+coi <- responsecombinedlist
+
+
+microlim <- baseline %>%
+  select(sample, `Patient Id`) %>%
+  full_join(base.micro, baseline, by = "sample") %>%
+  select(-sample)
+
+
+microlim <- microlim %>%
+  select((coi))
+
+
+
+train.seq <- filter(microlim,
+                    (`Patient Id` %in% train.outcomes$`Patient Id`)) 
+
+
+train.seq <- arrange(train.seq, desc(`Patient Id`))
+
+
+
+test.seq <- filter(microlim,
+                    (`Patient Id` %in% test.outcomes$`Patient Id`))
+test.seq <- arrange(test.seq, desc(`Patient Id`))
+```
+
+
+
+Making q value and struct 0 objects for irAE
+```{r}
+
+struct0.irae.rotate  <- struct0.irae.ft %>% 
+  pivot_wider(names_from = microbe, values_from = `structural_zero (irAE = No)`) 
+colnames(struct0.irae.rotate)[1] <- 'sample'
+
+#combining structural zero and response, 
+irAEcombinedlist <- c(irAE_list, struct0.irae.list)
+
+
+
+irAE_list[[1]] <- "Patient Id"
+struct0.irae.list[[1]] <- "Patient Id"
+irAEcombinedlist[[1]] <- "Patient Id"
+
+
+coi <- irAE_list
+# coi <- struct0.irae.list
+# coi <- irAEcombinedlist
+
+
+microlim <- baseline %>%
+  select(sample, `Patient Id`) %>%
+  full_join(base.micro, baseline, by = "sample") %>%
+  select(-sample)
+
+
+microlim <- microlim %>%
+  select((coi))
+
+
+
+train.seq <- filter(microlim,
+                    (`Patient Id` %in% train.outcomes$`Patient Id`)) 
+
+
+train.seq <- arrange(train.seq, desc(`Patient Id`))
+
+
+
+test.seq <- filter(microlim,
+                    (`Patient Id` %in% test.outcomes$`Patient Id`))
+test.seq <- arrange(test.seq, desc(`Patient Id`))
+```
+
+
+
 Data for when using microbiome
 ```{r}
 #Making data objects for microbe only model
@@ -567,6 +743,8 @@ test.seq <- arrange(test.seq, desc(`Patient Id`))
 
 Data for when using blood
 ```{r}
+
+
 #Making data objects for blood only model
 train.seq <- filter(base.gene,
                     (`Patient Id` %in% train.outcomes$`Patient Id`))
@@ -576,6 +754,36 @@ train.seq <- arrange(train.seq, desc(`Patient Id`))
 test.seq <- filter(base.gene,
                     (`Patient Id` %in% test.outcomes$`Patient Id`))
 test.seq <- arrange(test.seq, desc(`Patient Id`))
+```
+
+
+Data for clinical model
+```{r}
+#Making data objects for blood only model
+
+met_Datasheet <- readWorkbook(adjing.data, sheet = "Met Datasheet", startRow = 2)
+met_Datasheet <- subset(met_Datasheet, Cohort != "Excluded") %>%
+  select(`Coded.Sample.#`, `BMI.(kg/m2)`, `Relative.lymphocyte.count.(%)`, `LDH.(U/L)`)
+met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\) *", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\)*", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <-gsub("- ", "-", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet$`Coded.Sample.#` <-gsub("^\\s+|\\s+$", "", met_Datasheet$`Coded.Sample.#`)
+met_Datasheet <- met_Datasheet %>% rename(`MDSC #` = `Coded.Sample.#`)
+
+
+clinical <- full_join(met_Datasheet, demographics)
+
+add.data <- clinical %>%
+  subset(`Patient Id` %in% blood$`Patient Id`) %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  select(`Patient Id`, Age, `BMI.(kg/m2)`, `Relative.lymphocyte.count.(%)`, `LDH.(U/L)`) 
+
+
+train.seq <- add.data %>%
+  subset(`Patient Id` %in% train$`Patient Id`)
+
+test.seq <- add.data %>%
+  subset(`Patient Id` %in% test$`Patient Id`)
 ```
 
 
@@ -590,11 +798,11 @@ micro <- baseline %>%
 micro <- micro %>%
   # select(all_of(biome_list))
   # select(all_of(irAE_list))
-  select(all_of(response_list))
+  # select(all_of(response_list))
   # select(all_of(struct0.recist.list))
   # select(all_of(struct0.irae.list))
   # select(all_of(irAEcombinedlist))
-  # select(all_of(responsecombinedlist))
+  select(all_of(responsecombinedlist))
 
 blood.and.biome <-  full_join(micro, base.gene, by = "Patient Id") %>%
   subset(`Patient Id` %in% baseline$`Patient Id`)
@@ -611,27 +819,27 @@ test.seq <- arrange(test.seq, desc(`Patient Id`))
 ```
 
 
-for adding BMI and age to data
+for adding clinical to data
 ```{r}
-
 
 
 #selecting sheet with progressed/treatment completed
 met_Datasheet <- readWorkbook(adjing.data, sheet = "Met Datasheet", startRow = 2)
 met_Datasheet <- subset(met_Datasheet, Cohort != "Excluded") %>%
-  select(`Coded.Sample.#`, `BMI.(kg/m2)`)
+  select(`Coded.Sample.#`, `BMI.(kg/m2)`, `Relative.lymphocyte.count.(%)`, `LDH.(U/L)`)
 met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\) *", "", met_Datasheet$`Coded.Sample.#`)
 met_Datasheet$`Coded.Sample.#` <- gsub( " *\\(.*?\\)*", "", met_Datasheet$`Coded.Sample.#`)
 met_Datasheet$`Coded.Sample.#` <-gsub("- ", "-", met_Datasheet$`Coded.Sample.#`)
 met_Datasheet$`Coded.Sample.#` <-gsub("^\\s+|\\s+$", "", met_Datasheet$`Coded.Sample.#`)
 met_Datasheet <- met_Datasheet %>% rename(`MDSC #` = `Coded.Sample.#`)
 
-demographics <- full_join(met_Datasheet, demographics)
 
-add.data <- demographics %>%
+clinical <- full_join(met_Datasheet, demographics)
+
+add.data <- clinical %>%
   subset(`Patient Id` %in% blood$`Patient Id`) %>%
   subset(`Patient Id` %in% baseline$`Patient Id`) %>%
-  select(`Patient Id`, Age, `BMI.(kg/m2)`) 
+  select(`Patient Id`, Age, `BMI.(kg/m2)`, `Relative.lymphocyte.count.(%)`, `LDH.(U/L)`) 
 
 
 train.seq <- full_join(train.seq, add.data) %>%
@@ -647,76 +855,129 @@ test.seq <- full_join(test.seq, add.data) %>%
 
 microbiome only model
 ```{r}
-source("../mitox_functions.R")
+source("../scripts/mitox_functions.R")
 
-#irAE
-# rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
-# 
-# aucprs <- grabVals(aucprs, rf_responce, seed_list)
-# 
-# micro_only_irAE_500_qzerofive_strzero <- mean(aucprs$AUCPR)
-# 
-# micro_only_irAE_500_qzerofive_strzero <- as.data.frame(micro_only_irAE_500_qzerofive_strzero) %>%
-#   rename(AUCPR = micro_only_irAE_500_qzerofive_strzero) %>%
-#   add_column("name" = "micro_only_irAE_500_qzerofive_strzero", .before = "AUCPR")
-# 
-# irAE_aucprs <- irAE_aucprs  %>%
-#   add_row(micro_only_irAE_500_qzerofive_strzero)
+# irAE
+rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
+
+aucprs <- grabVals(aucprs, rf_responce, seed_list)
+
+micro_only_irAE_500_clinical_qone_strzero <- mean(aucprs$AUCPR)
+
+micro_only_irAE_500_clinical_qone_strzero <- as.data.frame(micro_only_irAE_500_clinical_qone_strzero) %>%
+  rename(AUCPR = micro_only_irAE_500_clinical_qone_strzero) %>%
+  add_column("name" = "micro_only_irAE_500_clinical_qone_strzero", .before = "AUCPR")
+
+irAE_aucprs <- irAE_aucprs  %>%
+  add_row(micro_only_irAE_500_clinical_qone_strzero)
 
 #Response
 rf_responce <- kTest(seed_list, "Non-Responder", "Responder", "Response", 2000)
 
 aucprs <- grabVals(aucprs, rf_responce, seed_list)
 
-micro_only_Response_2000_qzerofive_strzero <- mean(aucprs$AUCPR)
+micro_only_Response_2000_clinical_qzerofivestruct0 <- mean(aucprs$AUCPR)
 
-micro_only_Response_2000_qzerofive_strzero <- as.data.frame(micro_only_Response_2000_qzerofive_strzero) %>%
-  rename(AUCPR = micro_only_Response_2000_qzerofive_strzero) %>%
-  add_column("name" = "micro_only_Response_2000_qzerofive_strzero", .before = "AUCPR")
+micro_only_Response_2000_clinical_qzerofivestruct0 <- as.data.frame(micro_only_Response_2000_clinical_qzerofivestruct0) %>%
+  rename(AUCPR = micro_only_Response_2000_clinical_qzerofivestruct0) %>%
+  add_column("name" = "micro_only_Response_2000_clinical_qzerofivestruct0", .before = "AUCPR")
 
 Response_aucprs <- Response_aucprs  %>%
-  add_row(micro_only_Response_2000_qzerofive_strzero)
+  add_row(micro_only_Response_2000_clinical_qzerofivestruct0)
 
 ```
 
 blood/naonstring only model
 ```{r}
-source("../mitox_functions.R")
+source("../scripts/mitox_functions.R")
 
 #irAE
 rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
 
 aucprs <- grabVals(aucprs, rf_responce, seed_list)
 
-blood_only_irAE_500 <- mean(aucprs$AUCPR)
+blood_only_irAE_500_clinical <- mean(aucprs$AUCPR)
+
+blood_only_irAE_500_clinical <- as.data.frame(blood_only_irAE_500_clinical) %>%
+  rename(AUCPR = blood_only_irAE_500_clinical) %>%
+  add_column("name" = "blood_only_irAE_500_clinical", .before = "AUCPR")
+
+irAE_aucprs <- irAE_aucprs  %>%
+  add_row(blood_only_irAE_500_clinical)
+
 
 #Response
 rf_responce <- kTest(seed_list, "Non-Responder", "Responder", "Response", 2000)
 
 aucprs <- grabVals(aucprs, rf_responce, seed_list)
 
-blood_only_Response_2000 <- mean(aucprs$AUCPR)
+blood_only_Response_2000_clinical <- mean(aucprs$AUCPR)
+
+blood_only_Response_2000_clinical <- as.data.frame(blood_only_Response_2000_clinical) %>%
+  rename(AUCPR = blood_only_Response_2000_clinical) %>%
+  add_column("name" = "blood_only_Response_2000_clinical", .before = "AUCPR")
+
+Response_aucprs <- Response_aucprs  %>%
+  add_row(blood_only_Response_2000_clinical)
+
+```
+
+clinical only
+```{r}
+source("../scripts/mitox_functions.R")
+
+#irAE
+rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
+
+aucprs <- grabVals(aucprs, rf_responce, seed_list)
+
+clinical_only_irAE_500 <- mean(aucprs$AUCPR)
+
+clinical_only_irAE_500 <- as.data.frame(clinical_only_irAE_500) %>%
+  rename(AUCPR = clinical_only_irAE_500) %>%
+  add_column("name" = "clinical_only_irAE_500", .before = "AUCPR")
+
+irAE_aucprs <- irAE_aucprs  %>%
+  add_row(clinical_only_irAE_500)
+
+remove(clinical_only_irAE_500)
+
+#Response
+rf_responce <- kTest(seed_list, "Non-Responder", "Responder", "Response", 2000)
+
+aucprs <- grabVals(aucprs, rf_responce, seed_list)
+
+clinical_only_Response_2000 <- mean(aucprs$AUCPR)
+
+clinical_only_Response_2000 <- as.data.frame(clinical_only_Response_2000) %>%
+  rename(AUCPR = clinical_only_Response_2000) %>%
+  add_column("name" = "clinical_only_Response_2000", .before = "AUCPR")
+
+Response_aucprs <- Response_aucprs  %>%
+  add_row(clinical_only_Response_2000)
+
+remove(clinical_only_Response_2000)
 
 ```
 
 
 microbiome+blood/naonstring model
 ```{r}
-source("../mitox_functions.R")
+source("../scripts/mitox_functions.R")
 
 #irAE
-# rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
-# 
-# aucprs <- grabVals(aucprs, rf_responce, seed_list)
-# 
-# micro_and_blood_irAE_500_qzerofive_strzero <- mean(aucprs$AUCPR)
-# 
-# micro_and_blood_irAE_500_qzerofive_strzero <- as.data.frame(micro_and_blood_irAE_500_qzerofive_strzero) %>%
-#   rename(AUCPR = micro_and_blood_irAE_500_qzerofive_strzero) %>%
-#   add_column("name" = "micro_and_blood_irAE_500_qzerofive_strzero", .before = "AUCPR")
-# 
-# irAE_aucprs <- irAE_aucprs  %>%
-#   add_row(micro_and_blood_irAE_500_qzerofive_strzero)
+rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
+
+aucprs <- grabVals(aucprs, rf_responce, seed_list)
+
+micro_and_blood_irAE_500_clinical_qone_strzero <- mean(aucprs$AUCPR)
+
+micro_and_blood_irAE_500_clinical_qone_strzero <- as.data.frame(micro_and_blood_irAE_500_clinical_qone_strzero) %>%
+  rename(AUCPR = micro_and_blood_irAE_500_clinical_qone_strzero) %>%
+  add_column("name" = "micro_and_blood_irAE_500_clinical_qone_strzero", .before = "AUCPR")
+
+irAE_aucprs <- irAE_aucprs  %>%
+  add_row(micro_and_blood_irAE_500_clinical_qone_strzero)
 
 
 #Response
@@ -724,14 +985,14 @@ rf_responce <- kTest(seed_list, "Non-Responder", "Responder", "Response", 2000)
 
 aucprs <- grabVals(aucprs, rf_responce, seed_list)
 
-micro_and_blood_Response_2000_qzerofive_strzero <- mean(aucprs$AUCPR)
+micro_and_blood_Response_2000_clinical_qzerofivestruct0 <- mean(aucprs$AUCPR)
 
-micro_and_blood_Response_2000_qzerofive_strzero <- as.data.frame(micro_and_blood_Response_2000_qzerofive_strzero) %>%
-  rename(AUCPR = micro_and_blood_Response_2000_qzerofive_strzero) %>%
-  add_column("name" = "micro_and_blood_Response_2000_qzerofive_strzero", .before = "AUCPR")
+micro_and_blood_Response_2000_clinical_qzerofivestruct0 <- as.data.frame(micro_and_blood_Response_2000_clinical_qzerofivestruct0) %>%
+  rename(AUCPR = micro_and_blood_Response_2000_clinical_qzerofivestruct0) %>%
+  add_column("name" = "micro_and_blood_Response_2000_clinical_qzerofivestruct0", .before = "AUCPR")
 
 Response_aucprs <- Response_aucprs  %>%
-  add_row(micro_and_blood_Response_2000_qzerofive_strzero)
+  add_row(micro_and_blood_Response_2000_clinical_qzerofivestruct0)
 
 
 ```
@@ -751,6 +1012,96 @@ Response_aucprs <- readRDS("../data/rf_mitox_Response_aucpr.RData")
 # micro_only_Response_2000_factor <- pull(Response_aucprs[19,2])
 ```
 
+
+```{r}
+devtools::install_github("spakowiczlab/respondersig", auth_token = "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")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+Core RF model objects
+```{r}
+
+
+set.seed(42301)
+
+#splitting data into train and test
+split <- sample.split(core_df$`Patient Id`, SplitRatio = 0.7)
+
+train  <- subset(core_df, split == TRUE) 
+
+test   <- subset(core_df, split == FALSE) 
+
+train.outcomes <- core_df %>%
+  select(`Patient Id`, irAE, Response) %>%
+  subset(`Patient Id` %in% train$`Patient Id`)
+
+train.outcomes <- arrange(train.outcomes, desc(`Patient Id`))
+
+
+test.outcomes <- core_df %>%
+  select(`Patient Id`, irAE, Response) %>%
+  subset(`Patient Id` %in% test$`Patient Id`)
+
+test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
+
+
+
+outcomes <- core_df %>%
+  select(`Patient Id`, core.fraction)
+
+train.seq <- filter(outcomes,
+                    (`Patient Id` %in% train.outcomes$`Patient Id`))
+
+test.seq <- filter(outcomes,
+                    (`Patient Id` %in% test.outcomes$`Patient Id`))
+
+
+```
+
+
+core RF model
+```{r}
+source("../scripts/mitox_functions.R")
+
+# irAE
+rf_responce <- kTest(seed_list, "No", "Yes", "irAE", 500)
+
+aucprs <- grabVals(aucprs, rf_responce, seed_list)
+
+core_irAE_500 <- mean(aucprs$AUCPR)
+
+core_irAE_500 <- as.data.frame(core_irAE_500) %>%
+  rename(AUCPR = core_irAE_500) %>%
+  add_column("name" = "core_irAE_500", .before = "AUCPR")
+
+irAE_aucprs <- irAE_aucprs  %>%
+  add_row(core_irAE_500)
+
+#Response
+rf_responce <- kTest(seed_list, "Non-Responder", "Responder", "Response", 2000)
+
+aucprs <- grabVals(aucprs, rf_responce, seed_list)
+
+core_Response_2000 <- mean(aucprs$AUCPR)
+
+core_Response_2000 <- as.data.frame(core_Response_2000) %>%
+  rename(AUCPR = core_Response_2000) %>%
+  add_column("name" = "core_Response_2000", .before = "AUCPR")
+
+Response_aucprs <- Response_aucprs  %>%
+  add_row(core_Response_2000)
+
+```
 
 
 
