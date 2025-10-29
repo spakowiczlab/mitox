@@ -12,39 +12,41 @@ library(tidyverse)
 ```
 
 ## get sample names
+n = 141
+88 of which are met (included in mitox paper)
+53 are adjuvant 
 ```{r cars}
-fastq.dir <- "/fs/ess/PAS1695/projects/bewell/data/fastqs/fastqs"
+fastq.dir1 <- "/fs/ess/PAS1695/projects/mitox/data/2022-01-31_fastqs"
+fastq.dir2 <- "/fs/ess/PAS1695/projects/mitox/data/2022-08-08_fastqs"
 
-all.files <- list.files(fastq.dir)
+all.files1 <- list.files(fastq.dir1, full.names = T)
+all.files2 <- list.files(fastq.dir2, full.names = T)
+all.files <- c(all.files1, all.files2)
 
-snames <- gsub(".fastq.gz", "", all.files)
+snames <- gsub(".fastq.gz", "", c(list.files(fastq.dir1), list.files(fastq.dir2)))
 ```
 
 qsub -t 0-{x} fastp.pbs
 ```{r}
-
-fileOut<-file(paste0("/fs/ess/PAS1695/projects/bewell/scripts/pbs/bewell-fastp.pbs"))
-  
-fastq <- paste0(fastq.dir, "/${snames[$PBS_ARRAY_INDEX]}.fastq.gz")
+fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/fastp.sh"))
  
-writeLines(c(paste0("#PBS -N bewell-fastp"),
-               "#PBS -l walltime=1:00:00",
-               "#PBS -l nodes=1:ppn=28",
-               "#PBS -j oe",
-               "#PBS -m ae",
-               "#PBS -A PAS1695",
+writeLines(c("#!/bin/bash",
+               "#SBATCH --job-name=mitox-uf-fastp",
+               "#SBATCH --account=PAS1695",
+               "#SBATCH --time=1:00:00",
+               '#SBATCH --ntasks-per-node=28', 
                "",
                
-               #List sample naames in a way that can be indexed
+               #List sample names in a way that can be indexed
                paste0("snames=('", paste(snames, collapse = "' '"), "')"),
-               
+               paste0("fastq_paths=('", paste(all.files, collapse = "' '"), "')"),
+             
                "",
-               "cd /fs/ess/PAS1695/projects/bewell/data/fastqs/fastqs",
                "source activate fastp",
                "",
           
-               paste0("fastp -i ", fastq, 
-                      " -o /fs/ess/PAS1695/projects/bewell/data/fastqs/fastp/${snames[$PBS_ARRAY_INDEX]}.fastq 2> /fs/ess/PAS1695/projects/bewell/scripts/logs/fastp-${snames[$PBS_ARRAY_INDEX]}.log")
+               paste0("fastp -i ${fastq_paths[$SLURM_ARRAY_TASK_ID]} ", 
+                      " -o /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/fastp/${snames[$SLURM_ARRAY_TASK_ID]}.fastq 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/fastp-${snames[$SLURM_ARRAY_TASK_ID]}.log")
                
   ),
   
