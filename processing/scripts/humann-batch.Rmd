@@ -1,0 +1,50 @@
+---
+title: "humann take two"
+author: "Caroline Dravillas"
+date: "2025-06-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+files<- list.files("/fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_bowties", pattern = ".fastq.gz.bowtie2out.txt")
+samps <- sub(".fastq.gz.bowtie2out.txt", "", files)
+```
+
+## Humann
+
+```{r cars}
+fileOut <- "/fs/ess/PAS1695/projects/mitox/scripts/batch/humann.sh"
+writeLines(c("#!/bin/bash",
+             "#SBATCH --job-name=mitox_humann",
+             "#SBATCH --account=PAS1695",
+             "#SBATCH --time=3:00:00",
+             '#SBATCH --ntasks-per-node=28', 
+             
+             "",
+    
+    #List sample names in a way that can be indexed
+    paste0("snames=('", paste(samps, collapse = "' '"), "')"),
+    "",
+    
+    "cd /fs/ess/PAS1695/projects/mitox/data/2024-08-30-all-fastqs_bowties",
+    "module load miniconda3/24.1.2-py310",
+    "source activate humann3",
+    "",
+    paste0("humann -i ${snames[$SLURM_ARRAY_TASK_ID]}.fastq.gz.bowtie2out.txt -o ../2024-08-30-all-fastqs_humann3/${snames[$SLURM_ARRAY_TASK_ID]}",
+                      " --threads 28 --input-format bowtie2out",
+                      " --nucleotide-database /fs/ess/PAS1695/db/chocophlan_2023.12/chocophlan",
+                      " --protein-database /fs/ess/PAS1695/db/chocophlan_2023.12/uniref"
+                      ),
+               "",
+    
+    "conda deactivate",
+    ""
+  ),
+  fileOut
+)
+```
+
