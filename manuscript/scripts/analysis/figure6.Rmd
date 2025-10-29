@@ -7,4 +7,161 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(broom)
+library(dplyr)
+library(purrr)
 ```
+
+# Load data 
+```{r}
+load("../../data/clinical.rds")
+```
+
+# Prepare data
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+# drops one person who does not have a baseline sample
+demo.filt <- demographics %>%
+  filter(`Patient Id` %in% baseline$`Patient Id`) %>%
+  mutate(Response = factor(Response, levels = c("Non-Responder", "Responder")), 
+         irAE = factor(irAE,     levels = c("No", "Yes"))) %>%
+    rename(
+    BMI = `BMI.(kg/m2)`,
+    Absolute_lymphocytes = `Absolute.lymphocytes.(K/µL)`,
+    LDH = `LDH.(U/L)`
+  )
+```
+
+# Figure 6A - Forest plots of clinical variables 
+
+## Check for complete separation 
+```{r}
+cont_vars <- c("Age", "BMI", "Absolute_lymphocytes", "LDH")
+
+cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics",
+               "Corticosteroids", "Smoker")
+
+check_separation <- function(data, outcome, cat_vars) {
+  sapply(cat_vars, function(var) {
+    tbl <- table(data[[var]], data[[outcome]])
+    any(rowSums(tbl == 0) > 0)  # TRUE if any level has only 0s for an outcome
+  })
+}
+
+check_separation(demo.filt, "irAE", cat_vars)
+check_separation(demo.filt, "Response", cat_vars)
+```
+
+## Prepare
+```{r}
+# remove smoker var
+cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics", "Corticosteroids")
+
+# demo.filt <- demo.filt %>%
+#   mutate(across(all_of(cat_vars), as.factor))
+
+run_univariate <- function(outcome, data, cont_vars, cat_vars) {
+  
+  # continuous predictors
+  cont_results <- map_dfr(cont_vars, ~ {
+    formula <- as.formula(paste(outcome, "~", .x))
+    tidy(glm(formula, data = data, family = binomial), conf.int = TRUE, exponentiate = TRUE) %>%
+      filter(term != "(Intercept)") %>%
+      mutate(Variable = .x)
+  })
+  
+  # categorical predictors (each level vs reference)
+  cat_results <- map_dfr(cat_vars, ~ {
+    formula <- as.formula(paste(outcome, "~", .x))
+    tidy(glm(formula, data = data, family = binomial), conf.int = TRUE, exponentiate = TRUE) %>%
+      filter(term != "(Intercept)") %>%
+      mutate(Variable = .x)
+  })
+  
+  bind_rows(cont_results, cat_results) %>%
+    rename(OR = estimate, CI_low = conf.low, CI_high = conf.high)
+}
+
+results_response <- run_univariate("Response", demo.filt, cont_vars, cat_vars)
+results_irae     <- run_univariate("irAE",     demo.filt, cont_vars, cat_vars)
+```
+
+## Create Labels
+```{r}
+results_response <- results_response %>%
+  mutate(Label = case_when(
+    term == "Age" ~ "Age (years)",
+    term == "BMI" ~ "BMI (kg/m2)",
+    term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
+    term == "LDH" ~ "LDH",
+    term == "SexMale" ~ "Male vs Female",
+    term == "TreatmentNIVO" ~ "NIVO vs IPI/NIVO",
+    term == "TreatmentPEMBRO" ~ "PEMBRO vs IPI/NIVO",
+    term == "StageStage IV" ~ "Stage IV vs III",
+    term == "PPIYes" ~ "PPI Yes vs No",
+    term == "AntibioticsYes" ~ "Antibiotics Yes vs No",
+    term == "CorticosteroidsYes" ~ "Corticosteroids Yes vs No",
+    TRUE ~ term
+  )) %>%
+  mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
+
+results_irae <- results_irae %>%
+  mutate(Label = case_when(
+    term == "Age" ~ "Age (years)",
+    term == "BMI" ~ "BMI (kg/m2)",
+    term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
+    term == "LDH" ~ "LDH",
+    term == "SexMale" ~ "Male vs Female",
+    term == "TreatmentNIVO" ~ "NIVO vs IPI/NIVO",
+    term == "TreatmentPEMBRO" ~ "PEMBRO vs IPI/NIVO",
+    term == "StageStage IV" ~ "Stage IV vs III",
+    term == "PPIYes" ~ "PPI Yes vs No",
+    term == "AntibioticsYes" ~ "Antibiotics Yes vs No",
+    term == "CorticosteroidsYes" ~ "Corticosteroids Yes vs No",
+    TRUE ~ term
+  )) %>%
+  mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
+```
+
+
+## Plot
+
+### Univariate Clinical Predictors of Response
+```{r}
+ggplot(results_response, aes(x = OR, y = reorder(Label, OR))) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red3") +
+  theme_bw() +
+  labs(
+    title = "Response",
+    x = "Odds Ratio (95% CI)",
+    y = NULL,
+  ) +
+  theme(text = element_text(size = 14))
+```
+
+### Univariate Clinical Predictors of irAE
+```{r}
+ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red3") +
+  theme_bw() +
+  labs(
+    title = "irAE",
+    x = "Odds Ratio (95% CI)",
+    y = NULL
+  ) +
+  theme(text = element_text(size = 14))
+```
+
