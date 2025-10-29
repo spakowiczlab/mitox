@@ -1,0 +1,53 @@
+---
+title: "ultra-filtering step 1 - fastp"
+author: "Caroline Dravillas"
+date: "2025-10-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+## get sample names
+```{r cars}
+fastq.dir <- "/fs/ess/PAS1695/projects/bewell/data/fastqs/fastqs"
+
+all.files <- list.files(fastq.dir)
+
+snames <- gsub(".fastq.gz", "", all.files)
+```
+
+qsub -t 0-{x} fastp.pbs
+```{r}
+
+fileOut<-file(paste0("/fs/ess/PAS1695/projects/bewell/scripts/pbs/bewell-fastp.pbs"))
+  
+fastq <- paste0(fastq.dir, "/${snames[$PBS_ARRAY_INDEX]}.fastq.gz")
+ 
+writeLines(c(paste0("#PBS -N bewell-fastp"),
+               "#PBS -l walltime=1:00:00",
+               "#PBS -l nodes=1:ppn=28",
+               "#PBS -j oe",
+               "#PBS -m ae",
+               "#PBS -A PAS1695",
+               "",
+               
+               #List sample naames in a way that can be indexed
+               paste0("snames=('", paste(snames, collapse = "' '"), "')"),
+               
+               "",
+               "cd /fs/ess/PAS1695/projects/bewell/data/fastqs/fastqs",
+               "source activate fastp",
+               "",
+          
+               paste0("fastp -i ", fastq, 
+                      " -o /fs/ess/PAS1695/projects/bewell/data/fastqs/fastp/${snames[$PBS_ARRAY_INDEX]}.fastq 2> /fs/ess/PAS1695/projects/bewell/scripts/logs/fastp-${snames[$PBS_ARRAY_INDEX]}.log")
+               
+  ),
+  
+  fileOut
+  )
+```
