@@ -15,7 +15,7 @@ library(tidyverse)
 ```{r cars}
 fastq.dir <- "/fs/ess/PAS1695/projects/mitox/ultra-filtering/data/bowties/"
 all.files <- list.files(fastq.dir)
-snames <- gsub(".fastq", "", all.files)
+snames <- gsub(".sam", "", all.files)
 ```
 
 submit test with sbatch --array=0 samtools.sh
