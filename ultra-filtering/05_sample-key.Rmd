@@ -1,0 +1,26 @@
+---
+title: "sample key for idi-gems"
+author: "Caroline Dravillas"
+date: "2025-10-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+key <- read.csv("../exploratory/data/mitox_sample_matching.csv")
+```
+
+```{r}
+key <- key |>
+  select(sample, record_id) |>
+  dplyr::rename(pt_id = record_id)
+
+write.csv(key, "/fs/ess/PAS1695/projects/mitox/ultra-filtering/data/ultra-filtered/sample-key.csv", row.names = F)
+```
+
+

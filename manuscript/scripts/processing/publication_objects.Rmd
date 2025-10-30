@@ -104,7 +104,7 @@ demographics <- demo.dat %>%
 
 # get irAE, symptoms, response, pfs, microbiome sample presence
 recist.mic <- recist.scan %>%
-  select(`Patient ID`, RECIST, Category, Samples) %>%
+  select(`Patient ID`, RECIST, Category, Samples, Location) %>%
   rename("Patient Id" = `Patient ID`,
          "Mic.Samp" = Samples) %>%
   filter(!is.na(`Patient Id`))
@@ -138,11 +138,34 @@ meds.clean <- meds %>%
   # drop mispelled cortico
   select(-Corticosteriods)
 
+# Patient data 
+pt_blood.met <- blood.met %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9),
+         Smoker = `Smoker.(current/former/non/secondhand)`, 
+         Mel.type = `Primary.Melanoma.Type.(cutaneous/mucosal/uveal/acral/unknown)`) %>%
+  select(`MDSC #`, Smoker, Mel.type, `Total.WBC.(K/µL)`, "Absolute.lymphocytes.(K/µL)", 
+         "Relative.lymphocyte.count.(%)", "Relative.eosinophil.count.(%)", "LDH.(U/L)",
+         "Patient.Height.(m)", "Patient.Weight.(kg)", "BMI.(kg/m2)")
+
+pt_blood.metj <- blood.metj %>%
+  subset(., select = which(!duplicated(names(.)))) %>%
+  mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9),
+         Smoker = `Smoker.(current/former/non/secondhand)`,
+         Mel.type = `Primary.Melanoma.Type.(cutaneous/mucosal/uveal/acral/unknown)`) %>%
+  select(`MDSC #`, Smoker, Mel.type, `Total.WBC.(K/µL)`, "Absolute.lymphocytes.(K/µL)", 
+         "Relative.lymphocyte.count.(%)", "Relative.eosinophil.count.(%)", "LDH.(U/L)",
+         "Patient.Height.(m)", "Patient.Weight.(kg)", "BMI.(kg/m2)")
+
+pt_blood <- rbind(pt_blood.met, pt_blood.metj) %>%
+   mutate(across(4:11, as.double))
+
 # join 
 demographics <- merge(demographics, recist.mic, all=T)
 demographics <- merge(demographics, pfs.filt, all=T)
 demographics <- merge(demographics, irae, all=T)
 demographics <- merge(demographics, meds.clean, all=T)
+demographics <- merge(demographics, pt_blood, all=T)
 
 # slight mutation to irae and MDSC
 # create response value 

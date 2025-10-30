@@ -1,0 +1,54 @@
+---
+title: "ultra-filtering step 2 - sra scrub"
+author: "Caroline Dravillas"
+date: "2025-10-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+## get sample names
+```{r cars}
+fastq.dir <- "/fs/ess/PAS1695/projects/mitox/ultra-filtering/data/fastp/"
+
+all.files <- list.files(fastq.dir)
+
+snames <- gsub(".fastq", "", all.files)
+```
+
+submit test with sbatch --array=0 srascrub.sh
+submit with sbatch --array=1-140%30 srascrub.sh to run the rest of the samples, 30 at a time 
+
+```{r}
+fileOut <- file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/srascrub.sh"))
+  
+fastq <- paste0(fastq.dir, "${snames[$SLURM_ARRAY_TASK_ID]}.fastq")
+ 
+writeLines(c("#!/bin/bash",
+               "#SBATCH --job-name=mitox-uf-srascrub",
+               "#SBATCH --account=PAS1695",
+               "#SBATCH --time=1:00:00",
+               '#SBATCH --ntasks-per-node=28', 
+               "",
+               
+               #List sample names in a way that can be indexed
+               paste0("snames=('", paste(snames, collapse = "' '"), "')"),
+               
+               "",
+               "cd /users/PAS1695/whee57/Github/sra-human-scrubber",
+               "",
+          
+               paste0("./scripts/scrub.sh -i ", fastq, 
+                      " -o /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/sra-scrubbed/${snames[$SLURM_ARRAY_TASK_ID]}.fastq",
+                      " -p 8",
+                      " 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/srasrub-${snames[$SLURM_ARRAY_TASK_ID]}.log")
+
+  ),
+  
+  fileOut
+  )
+```

@@ -1,0 +1,59 @@
+---
+title: "ultra-filtering step 1 - fastp"
+author: "Caroline Dravillas"
+date: "2025-10-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+## get sample names
+n = 141
+88 of which are met (included in mitox paper)
+53 are adjuvant 
+```{r cars}
+fastq.dir1 <- "/fs/ess/PAS1695/projects/mitox/data/2022-01-31_fastqs"
+fastq.dir2 <- "/fs/ess/PAS1695/projects/mitox/data/2022-08-08_fastqs"
+
+all.files1 <- list.files(fastq.dir1, full.names = T)
+all.files2 <- list.files(fastq.dir2, full.names = T)
+all.files <- c(all.files1, all.files2)
+
+snames <- gsub(".fastq.gz", "", c(list.files(fastq.dir1), list.files(fastq.dir2)))
+```
+
+submit test with sbatch --array=0 fastp.sh
+submit with sbatch --array=1-140%30 fastp.sh to run the rest of the samples, 30 at a time 
+
+```{r}
+fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/fastp.sh"))
+ 
+writeLines(c("#!/bin/bash",
+               "#SBATCH --job-name=mitox-uf-fastp",
+               "#SBATCH --account=PAS1695",
+               "#SBATCH --time=1:00:00",
+               '#SBATCH --ntasks-per-node=28', 
+               "",
+               
+               #List sample names in a way that can be indexed
+               paste0("snames=('", paste(snames, collapse = "' '"), "')"),
+               paste0("fastq_paths=('", paste(all.files, collapse = "' '"), "')"),
+             
+               "",
+               "module load miniconda3/24.1.2-py310",
+               "source activate fastp",
+               "",
+          
+               paste0("fastp -i ${fastq_paths[$SLURM_ARRAY_TASK_ID]} ", 
+                      " -o /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/fastp/${snames[$SLURM_ARRAY_TASK_ID]}.fastq 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/fastp-${snames[$SLURM_ARRAY_TASK_ID]}.log"),
+             "conda deactivate"
+               
+  ),
+  
+  fileOut
+  )
+```

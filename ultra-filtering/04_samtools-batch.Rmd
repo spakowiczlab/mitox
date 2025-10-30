@@ -1,0 +1,48 @@
+---
+title: "ultra-filtering step 4 - samtools"
+author: "Caroline Dravillas"
+date: "2025-10-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+## get sample names
+```{r cars}
+fastq.dir <- "/fs/ess/PAS1695/projects/mitox/ultra-filtering/data/bowties/"
+all.files <- list.files(fastq.dir)
+snames <- gsub(".sam", "", all.files)
+```
+
+submit test with sbatch --array=0 samtools.sh
+submit with sbatch --array=1-140%30 samtools.sh to run the rest of the samples, 30 at a time 
+
+```{r}
+fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/samtools.sh"))
+ 
+writeLines(c("#!/bin/bash",
+               "#SBATCH --job-name=mitox-uf-samtools",
+               "#SBATCH --account=PAS1695",
+               "#SBATCH --time=24:00:00",
+               '#SBATCH --ntasks-per-node=28', 
+               "",
+               
+               #List sample names in a way that can be indexed
+               paste0("snames=('", paste(snames, collapse = "' '"), "')"),
+             
+               "",
+               "module load samtools/1.21",
+               "",
+          
+               "samtools fastq -f 4 /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/bowties/${snames[$SLURM_ARRAY_TASK_ID]}.sam > /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/ultra-filtered/${snames[$SLURM_ARRAY_TASK_ID]}.fastq 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/samtools-sam2fastq-${snames[$SLURM_ARRAY_TASK_ID]}.log"
+               
+  ),
+  
+  fileOut
+  )
+```
+
