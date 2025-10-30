@@ -42,11 +42,13 @@ writeLines(c("#!/bin/bash",
                paste0("fastq_paths=('", paste(all.files, collapse = "' '"), "')"),
              
                "",
+               "module load miniconda3/24.1.2-py310",
                "source activate fastp",
                "",
           
                paste0("fastp -i ${fastq_paths[$SLURM_ARRAY_TASK_ID]} ", 
-                      " -o /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/fastp/${snames[$SLURM_ARRAY_TASK_ID]}.fastq 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/fastp-${snames[$SLURM_ARRAY_TASK_ID]}.log")
+                      " -o /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/fastp/${snames[$SLURM_ARRAY_TASK_ID]}.fastq 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/fastp-${snames[$SLURM_ARRAY_TASK_ID]}.log"),
+             "conda deactivate"
                
   ),
   
