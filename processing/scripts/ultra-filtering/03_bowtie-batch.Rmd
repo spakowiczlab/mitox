@@ -14,11 +14,12 @@ library(tidyverse)
 ## get sample names
 ```{r cars}
 fastq.dir <- "/fs/ess/PAS1695/projects/mitox/ultra-filtering/data/sra-scrubbed/"
-
 all.files <- list.files(fastq.dir)
-
 snames <- gsub(".fastq", "", all.files)
 ```
+
+submit test with sbatch --array=0 bowtie2.sh
+submit with sbatch --array=1-140%30 bowtie2.sh to run the rest of the samples, 30 at a time 
 
 ```{r}
 fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/bowtie2.sh"))
