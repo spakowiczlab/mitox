@@ -68,8 +68,8 @@ getROC <- function(train.seq, train.outcomes, test.seq, test.outcomes, neg.outco
                     scores.class1=scores[scores$score=="1",]$`prediction_for_roc_curve...2.`,
                     curve=T)
 
-  y <- as.data.frame(aucpr$curve)
-  print(ggplot(y, aes(V1, V2))+geom_path()+ylim(0,1))
+  aucpr.plot <- as.data.frame(aucpr$curve)
+  print(ggplot(aucpr.plot, aes(V1, V2))+geom_path()+ylim(0,1))
 
   perf <- performance(pred, "tpr", "fpr")
 
@@ -81,7 +81,7 @@ getROC <- function(train.seq, train.outcomes, test.seq, test.outcomes, neg.outco
   df <- data.frame(FalsePositive=c(perf@x.values[[1]]),
                    TruePositive=c(perf@y.values[[1]]))
   varimp <- model.training$importance
-  out <- list(AUCPR, df, pred_cm, varimp)
+  out <- list(AUCPR, df, pred_cm, varimp, aucpr.plot)
 
   return(out)
 }

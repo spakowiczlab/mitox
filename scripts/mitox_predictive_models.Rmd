@@ -720,11 +720,11 @@ micro <- baseline %>%
 micro <- micro %>%
   # select(all_of(biome_list))
   # select(all_of(irAE_list))
-  # select(all_of(response_list))
+  select(all_of(response_list))
   # select(all_of(struct0.recist.list))
   # select(all_of(struct0.irae.list))
   # select(all_of(irAEcombinedlist))
-  select(all_of(responsecombinedlist))
+  # select(all_of(responsecombinedlist))
 
 train.seq <- filter(micro,
                     (`Patient Id` %in% train.outcomes$`Patient Id`)) 
