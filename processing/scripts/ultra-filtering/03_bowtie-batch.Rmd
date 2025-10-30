@@ -7,4 +7,42 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
 ```
+
+## get sample names
+```{r cars}
+fastq.dir <- "/fs/ess/PAS1695/projects/mitox/ultra-filtering/data/sra-scrubbed/"
+
+all.files <- list.files(fastq.dir)
+
+snames <- gsub(".fastq", "", all.files)
+```
+
+```{r}
+fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/bowtie2.sh"))
+  
+fastq <- paste0(fastq.dir, "${snames[$SLURM_ARRAY_TASK_ID]}.fastq")
+ 
+writeLines(c("#!/bin/bash",
+               "#SBATCH --job-name=mitox-uf-bowtie2",
+               "#SBATCH --account=PAS1695",
+               "#SBATCH --time=10:00:00",
+               '#SBATCH --ntasks-per-node=28', 
+               "",
+               
+               #List sample names in a way that can be indexed
+               paste0("snames=('", paste(snames, collapse = "' '"), "')"),
+             
+               "module load bowtie2/2.5.1",
+               "",
+          
+               "bowtie2 -x /fs/ess/PAS1695/db/bowtie2-ultrafiltering/merged_ref -U /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/sra-scrubbed/${snames[$SLURM_ARRAY_TASK_ID]}.fastq -S /fs/ess/PAS1695/projects/mitox/ultra-filtering/data/bowties/${snames[$SLURM_ARRAY_TASK_ID]}.sam -p 8 2> /fs/ess/PAS1695/projects/mitox/ultra-filtering/logs/bowtie2-${snames[$SLURM_ARRAY_TASK_ID]}.log"
+               
+  ),
+  
+  fileOut
+  )
+```
+
