@@ -26,7 +26,9 @@ all.files <- c(all.files1, all.files2)
 snames <- gsub(".fastq.gz", "", c(list.files(fastq.dir1), list.files(fastq.dir2)))
 ```
 
-qsub -t 0-{x} fastp.pbs
+submit test with sbatch --array=0 fastp.sh
+submit with sbatch --array=1-140%30 fastp.sh to run the rest of the samples, 30 at a time 
+
 ```{r}
 fileOut<-file(paste0("/fs/ess/PAS1695/projects/mitox/ultra-filtering/batch/fastp.sh"))
  
