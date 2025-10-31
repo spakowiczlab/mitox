@@ -152,6 +152,7 @@ test.seq <- arrange(test.seq, desc(`Patient Id`))
 
 microbiome only model
 ```{r}
+load("../data/iraeAUCPRavgs.RData")
 source("../scripts/mitox_functions.R")
 
 # irAE

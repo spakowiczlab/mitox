@@ -67,18 +67,18 @@ base.micro <- ra.l %>%
 
 #note it is dropping bacteria and archaea becaise it isn't in phyl_labels
 #making object for irAE where q < 0.01
-irAE_q <- res.irae %>%
+Response_q <- res.recist %>%
   left_join(phyl_labels) %>%
-  select(microbe, q_irAEYes)  %>%
-  filter(q_irAEYes < 0.01) %>%
+  select(microbe, q_ResponseResponder)  %>%
+  filter(q_ResponseResponder < 0.01) %>%
   replace_na(list( microbe = "k__Archaea"))
 
 
 
-irAE_list <- irAE_q$microbe %>%
+Response_list <- Response_q$microbe %>%
   append("Patient Id", after = 0)
 
-irAE_list[[1]] <- "Patient Id"
+Response_list[[1]] <- "Patient Id"
 
 
 ```
@@ -120,7 +120,7 @@ test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
 
 
 
-Making q value and struct 0 objects for irAE
+Making q value and struct 0 objects for Response
 ```{r}
 microlim <- baseline %>%
   select(sample, `Patient Id`) %>%
@@ -129,7 +129,7 @@ microlim <- baseline %>%
 
 
 microlim <- microlim %>%
-  select((irAE_list))
+  select((Response_list))
 
 
 
@@ -155,7 +155,7 @@ microbiome only model
 source("../scripts/mitox_functions.R")
 
 # irAE
-rf_test <- kTest(seed_list, "No", "Yes", "irAE", 500)
+rf_test <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
 
 aucprs <- grabVals(aucprs, rf_test, seed_list)
 
