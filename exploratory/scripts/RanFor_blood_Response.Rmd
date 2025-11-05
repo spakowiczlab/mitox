@@ -45,7 +45,7 @@ seed_list <- c(12345:12369)
 ```
 
 
-Making objects for q value models
+Making objects for gene models
 ```{r}
 
 #Object to limit microbiome sample to one ones taken within 10 days of treatment
@@ -57,28 +57,10 @@ baseline <- mic.meta %>%
   filter(abs(Days) <= 10) %>%
   subset(`Patient Id` %in% blood$`Patient Id`)
 
-phyl_labels <- phyl_labels %>%
-  mutate(taxon = substr(microbe, 4, nchar(microbe)))
-
-#creating object for use in biome model
-base.micro <- ra.l %>%
-  pivot_wider(names_from = microbe, values_from = RelAbun) %>%
-  subset(sample %in% baseline$sample)
-
-#note it is dropping bacteria and archaea becaise it isn't in phyl_labels
-#making object for irAE where q < 0.01
-irAE_q <- res.irae %>%
-  left_join(phyl_labels) %>%
-  select(microbe, q_irAEYes)  %>%
-  filter(q_irAEYes < 0.05) %>%
-  replace_na(list( microbe = "k__Archaea"))
-
-
-
-irAE_list <- irAE_q$microbe %>%
-  append("Patient Id", after = 0)
-
-irAE_list[[1]] <- "Patient Id"
+#limiting blood samples to ones also with microbiome sample and creating object
+base.gene <- blood %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  select(`Patient Id`:YWHAZ)
 
 
 ```
@@ -89,7 +71,7 @@ Splitting the data into training and testing for mitox models
 set.seed(42301)
 
 #splitting data into train and test
-split <- sample.split(demographics$irAE, SplitRatio = 0.5)
+split <- sample.split(demographics$Response, SplitRatio = 0.5)
 
 train  <- subset(demographics, split == TRUE) %>%
   subset(`Patient Id` %in% blood$`Patient Id`) %>%
@@ -120,45 +102,34 @@ test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
 
 
 
-Making q value and struct 0 objects for irAE
+Data for when using blood
 ```{r}
-microlim <- baseline %>%
-  select(sample, `Patient Id`) %>%
-  full_join(base.micro, baseline, by = "sample") %>%
-  select(-sample)
 
 
-microlim <- microlim %>%
-  select((irAE_list))
-
-
-
-train.seq <- filter(microlim,
-                    (`Patient Id` %in% train.outcomes$`Patient Id`)) 
-
-
+#Making data objects for blood only model
+train.seq <- filter(base.gene,
+                    (`Patient Id` %in% train.outcomes$`Patient Id`))
 train.seq <- arrange(train.seq, desc(`Patient Id`))
 
 
-
-test.seq <- filter(microlim,
+test.seq <- filter(base.gene,
                     (`Patient Id` %in% test.outcomes$`Patient Id`))
 test.seq <- arrange(test.seq, desc(`Patient Id`))
 ```
 
 
 
-microbiome only model
+blood only model
 ```{r}
 load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
 
-# irAE
-rf_fullbiome <- kTest(seed_list, "No", "Yes", "irAE", 500)
+# Response
+rf_blood <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
 
-aucprs <- grabVals(aucprs, rf_fullbiome, seed_list)
+aucprs <- grabVals(aucprs, rf_blood, seed_list)
 
-irAE_q05 <- mean(aucprs$AUCPR)
+Response_blood <- mean(aucprs$AUCPR)
 
 
 ```

@@ -33,15 +33,7 @@ load("../../manuscript/data/ANCOM-BC2_response_baseline.Rdata")
 load("../../manuscript/data/ANCOM-BC2_irae_baseline.RData")
 load("../../manuscript/data/core-score-min3.rds")
 
-# iraeAUCPRavgs <- data.frame(name = NA, AUCPR = NA)
-```
-
-
-
-
-
-```{r}
-seed_list <- c(12345:12369)
+# responseAUCPRavgs <- data.frame(name = NA, AUCPR = NA)
 ```
 
 
@@ -57,6 +49,14 @@ baseline <- mic.meta %>%
   filter(abs(Days) <= 10) %>%
   subset(`Patient Id` %in% blood$`Patient Id`)
 
+
+#limiting blood samples to ones also with microbiome sample and creating object
+base.gene <- blood %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  select(`Patient Id`:YWHAZ)
+
+
+
 phyl_labels <- phyl_labels %>%
   mutate(taxon = substr(microbe, 4, nchar(microbe)))
 
@@ -67,18 +67,18 @@ base.micro <- ra.l %>%
 
 #note it is dropping bacteria and archaea becaise it isn't in phyl_labels
 #making object for irAE where q < 0.01
-irAE_q <- res.irae %>%
+Response_q <- res.recist %>%
   left_join(phyl_labels) %>%
-  select(microbe, q_irAEYes)  %>%
-  filter(q_irAEYes < 0.05) %>%
+  select(microbe, q_ResponseResponder)  %>%
+  filter(q_ResponseResponder < 0.005) %>%
   replace_na(list( microbe = "k__Archaea"))
 
 
 
-irAE_list <- irAE_q$microbe %>%
+Response_list <- Response_q$microbe %>%
   append("Patient Id", after = 0)
 
-irAE_list[[1]] <- "Patient Id"
+Response_list[[1]] <- "Patient Id"
 
 
 ```
@@ -89,7 +89,7 @@ Splitting the data into training and testing for mitox models
 set.seed(42301)
 
 #splitting data into train and test
-split <- sample.split(demographics$irAE, SplitRatio = 0.5)
+split <- sample.split(demographics$Response, SplitRatio = 0.5)
 
 train  <- subset(demographics, split == TRUE) %>%
   subset(`Patient Id` %in% blood$`Patient Id`) %>%
@@ -120,7 +120,7 @@ test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
 
 
 
-Making q value and struct 0 objects for irAE
+Making q value and struct 0 objects for Response
 ```{r}
 microlim <- baseline %>%
   select(sample, `Patient Id`) %>%
@@ -129,11 +129,15 @@ microlim <- baseline %>%
 
 
 microlim <- microlim %>%
-  select((irAE_list))
+  select((Response_list))
 
 
 
-train.seq <- filter(microlim,
+blood.and.biome <-  full_join(microlim, base.gene, by = "Patient Id") %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`)
+
+
+train.seq <- filter(blood.and.biome,
                     (`Patient Id` %in% train.outcomes$`Patient Id`)) 
 
 
@@ -141,32 +145,41 @@ train.seq <- arrange(train.seq, desc(`Patient Id`))
 
 
 
-test.seq <- filter(microlim,
+test.seq <- filter(blood.and.biome,
                     (`Patient Id` %in% test.outcomes$`Patient Id`))
 test.seq <- arrange(test.seq, desc(`Patient Id`))
 ```
 
 
 
+
+
 microbiome only model
 ```{r}
-load("../data/rf_irAE_list.RData")
-source("../scripts/mitox_functions.R")
-
-# irAE
-rf_fullbiome <- kTest(seed_list, "No", "Yes", "irAE", 500)
-
-aucprs <- grabVals(aucprs, rf_fullbiome, seed_list)
-
-irAE_q05 <- mean(aucprs$AUCPR)
+load("../data/responseAUCPRavgs.RData")
+seed_list <- c(12345:12369)
 
 
+# Response
+rf_q005wBlood <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
+
+aucprs <- grabVals(aucprs, rf_q005wBlood, seed_list)
+
+response_q005wBlood <- mean(aucprs$AUCPR)
+
+response_q005wBlood <- as.data.frame(response_q005wBlood) %>%
+  rename(AUCPR = response_q005wBlood) %>%
+  add_column("name" = "response_q005wBlood", .before = "AUCPR")
+
+responseAUCPRavgs <- responseAUCPRavgs  %>%
+  add_row(response_q005wBlood)
+# responseAUCPRavgs <- responseAUCPRavgs[-c(1),]
 ```
 
 
 ```{r}
-save(rf_irAE_list, file = "../data/rf_irAE_list.RData")
-load("../data/rf_irAE_list.RData")
+save(responseAUCPRavgs, file = "../data/responseAUCPRavgs.RData")
+load("../data/responseAUCPRavgs.RData")
 
 ```
 

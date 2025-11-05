@@ -57,6 +57,12 @@ baseline <- mic.meta %>%
   filter(abs(Days) <= 10) %>%
   subset(`Patient Id` %in% blood$`Patient Id`)
 
+#limiting blood samples to ones also with microbiome sample and creating object
+base.gene <- blood %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  select(`Patient Id`:YWHAZ)
+
+
 phyl_labels <- phyl_labels %>%
   mutate(taxon = substr(microbe, 4, nchar(microbe)))
 
@@ -66,7 +72,7 @@ base.micro <- ra.l %>%
   subset(sample %in% baseline$sample)
 
 #note it is dropping bacteria and archaea becaise it isn't in phyl_labels
-#making object for irAE where q < 0.01
+#making object for irAE where q < 0.05
 irAE_q <- res.irae %>%
   left_join(phyl_labels) %>%
   select(microbe, q_irAEYes)  %>%
@@ -131,9 +137,19 @@ microlim <- baseline %>%
 microlim <- microlim %>%
   select((irAE_list))
 
+treatment <- demographics %>%
+  select(`Patient Id`, Treatment)
+
+treatment$Treatment <- as.factor(treatment$Treatment)
 
 
-train.seq <- filter(microlim,
+blood.and.biome <-  full_join(microlim, base.gene, by = "Patient Id") %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`)
+
+blood_biome_treatment <-  full_join(treatment, blood.and.biome, by = "Patient Id") %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`)
+
+train.seq <- filter(blood_biome_treatment,
                     (`Patient Id` %in% train.outcomes$`Patient Id`)) 
 
 
@@ -141,7 +157,7 @@ train.seq <- arrange(train.seq, desc(`Patient Id`))
 
 
 
-test.seq <- filter(microlim,
+test.seq <- filter(blood_biome_treatment,
                     (`Patient Id` %in% test.outcomes$`Patient Id`))
 test.seq <- arrange(test.seq, desc(`Patient Id`))
 ```
@@ -154,11 +170,11 @@ load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
 
 # irAE
-rf_fullbiome <- kTest(seed_list, "No", "Yes", "irAE", 500)
+rf_q05wBloodwTreatment <- kTest(seed_list, "No", "Yes", "irAE", 500)
 
-aucprs <- grabVals(aucprs, rf_fullbiome, seed_list)
+aucprs <- grabVals(aucprs, rf_q05wBloodwTreatment, seed_list)
 
-irAE_q05 <- mean(aucprs$AUCPR)
+irAE_q05wBloodwTreatment <- mean(aucprs$AUCPR)
 
 
 ```
