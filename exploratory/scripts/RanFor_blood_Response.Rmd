@@ -125,9 +125,9 @@ load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
 
 # Response
-rf_blood <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
+rf_blood_Response_list <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
 
-aucprs <- grabVals(aucprs, rf_blood, seed_list)
+aucprs <- grabVals(aucprs, rf_blood_Response_list, seed_list)
 
 Response_blood <- mean(aucprs$AUCPR)
 
@@ -136,8 +136,7 @@ Response_blood <- mean(aucprs$AUCPR)
 
 
 ```{r}
-save(rf_irAE_list, file = "../data/rf_irAE_list.RData")
-load("../data/rf_irAE_list.RData")
+save(rf_blood_Response_list, file = "../data/rf_blood_Response_list.RData")
 
 ```
 

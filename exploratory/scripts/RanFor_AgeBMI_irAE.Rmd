@@ -119,19 +119,17 @@ load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
 
 # irAE
-rf_AgeBMI <- kTest(seed_list, "No", "Yes", "irAE", 500)
+rf_AgeBMI_irAE_list <- kTest(seed_list, "No", "Yes", "irAE", 500)
 
-aucprs <- grabVals(aucprs, rf_AgeBMI, seed_list)
+aucprs <- grabVals(aucprs, rf_AgeBMI_irAE_list, seed_list)
 
 irAE_clinical <- mean(aucprs$AUCPR)
 
-# iraeAUCPRavgs <- iraeAUCPRavgs[-c(1),]
-rf_irAE_list <- list(rf_AgeBMI = rf_AgeBMI)
 ```
 
 
 ```{r}
-save(rf_irAE_list, file = "../data/rf_irAE_list.RData")
+save(rf_AgeBMI_irAE_list, file = "../data/rf_AgeBMI_irAE_list.RData")
 load("../data/rf_irAE_list.RData")
 
 ```

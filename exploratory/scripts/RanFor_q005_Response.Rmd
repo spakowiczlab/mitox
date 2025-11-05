@@ -149,24 +149,17 @@ seed_list <- c(12345:12369)
 
 
 # Response
-rf_test <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
+rf_q005_Response_list <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
 
-aucprs <- grabVals(aucprs, rf_test, seed_list)
+aucprs <- grabVals(aucprs, rf_q005_Response_list, seed_list)
 
 response_q005 <- mean(aucprs$AUCPR)
 
-response_q005 <- as.data.frame(response_q005) %>%
-  rename(AUCPR = response_q005) %>%
-  add_column("name" = "response_q005", .before = "AUCPR")
-
-responseAUCPRavgs <- responseAUCPRavgs  %>%
-  add_row(response_q005)
-# responseAUCPRavgs <- responseAUCPRavgs[-c(1),]
 ```
 
 
 ```{r}
-save(responseAUCPRavgs, file = "../data/responseAUCPRavgs.RData")
+save(rf_q005_Response_list, file = "../data/rf_q005_Response_list.RData")
 load("../data/responseAUCPRavgs.RData")
 
 ```

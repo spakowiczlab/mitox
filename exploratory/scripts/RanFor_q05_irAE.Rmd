@@ -154,9 +154,9 @@ load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
 
 # irAE
-rf_fullbiome <- kTest(seed_list, "No", "Yes", "irAE", 500)
+rf_q05_irAE_list <- kTest(seed_list, "No", "Yes", "irAE", 500)
 
-aucprs <- grabVals(aucprs, rf_fullbiome, seed_list)
+aucprs <- grabVals(aucprs, rf_q05_irAE_list, seed_list)
 
 irAE_q05 <- mean(aucprs$AUCPR)
 
@@ -165,7 +165,7 @@ irAE_q05 <- mean(aucprs$AUCPR)
 
 
 ```{r}
-save(rf_irAE_list, file = "../data/rf_irAE_list.RData")
+save(rf_q05_irAE_list, file = "../data/rf_q05_irAE_list.RData")
 load("../data/rf_irAE_list.RData")
 
 ```

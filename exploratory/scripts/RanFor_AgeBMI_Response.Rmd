@@ -119,9 +119,9 @@ load("../data/responseAUCPRavgs.RData")
 source("../scripts/mitox_functions.R")
 
 # Response
-rf_test <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
+rf_AgeBMI_Response_list <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
 
-aucprs <- grabVals(aucprs, rf_test, seed_list)
+aucprs <- grabVals(aucprs, rf_AgeBMI_Response_list, seed_list)
 
 Response_clinical <- mean(aucprs$AUCPR)
 
@@ -136,6 +136,7 @@ responseAUCPRavgs <- responseAUCPRavgs  %>%
 
 
 ```{r}
+save(rf_AgeBMI_Response_list, file = "../data/rf_AgeBMI_Response_list.RData")
 save(responseAUCPRavgs, file = "../data/responseAUCPRavgs.RData")
 load("../data/responseAUCPRavgs.RData")
 

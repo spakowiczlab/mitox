@@ -161,24 +161,17 @@ seed_list <- c(12345:12369)
 
 
 # Response
-rf_q005wBlood <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
+rf_q005wBlood_Response_list <- kTest(seed_list, "Non-Responder", "Responder", "Response", 500)
 
-aucprs <- grabVals(aucprs, rf_q005wBlood, seed_list)
+aucprs <- grabVals(aucprs, rf_q005wBlood_Response_list, seed_list)
 
 response_q005wBlood <- mean(aucprs$AUCPR)
 
-response_q005wBlood <- as.data.frame(response_q005wBlood) %>%
-  rename(AUCPR = response_q005wBlood) %>%
-  add_column("name" = "response_q005wBlood", .before = "AUCPR")
-
-responseAUCPRavgs <- responseAUCPRavgs  %>%
-  add_row(response_q005wBlood)
-# responseAUCPRavgs <- responseAUCPRavgs[-c(1),]
 ```
 
 
 ```{r}
-save(responseAUCPRavgs, file = "../data/responseAUCPRavgs.RData")
+save(rf_q005wBlood_Response_list, file = "../data/rf_q005wBlood_Response_list.RData")
 load("../data/responseAUCPRavgs.RData")
 
 ```

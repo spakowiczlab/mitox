@@ -164,9 +164,9 @@ load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
 
 # irAE
-rf_q05wBlood <- kTest(seed_list, "No", "Yes", "irAE", 500)
+rf_q05wBlood_irAE_list <- kTest(seed_list, "No", "Yes", "irAE", 500)
 
-aucprs <- grabVals(aucprs, rf_q05wBlood, seed_list)
+aucprs <- grabVals(aucprs, rf_q05wBlood_irAE_list, seed_list)
 
 irAE_q05wBlood <- mean(aucprs$AUCPR)
 
@@ -175,7 +175,7 @@ irAE_q05wBlood <- mean(aucprs$AUCPR)
 
 
 ```{r}
-save(rf_irAE_list, file = "../data/rf_irAE_list.RData")
+save(rf_q05wBlood_irAE_list, file = "../data/rf_q05wBlood_irAE_list.RData")
 load("../data/rf_irAE_list.RData")
 
 ```
