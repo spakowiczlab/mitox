@@ -17,6 +17,9 @@ library(openxlsx)
 library(respondersig) 
 library(PRROC)
 
+#add detailed description of each script for future reference. Cursor AI may be useful for commenting documentation 
+#models we want-clinical(everything), biome alone, blood alone, 
+
 ```
 
 Loading file
@@ -117,6 +120,8 @@ microbiome only model
 ```{r}
 load("../data/rf_irAE_list.RData")
 source("../scripts/mitox_functions.R")
+
+
 
 # irAE
 rf_AgeBMI_irAE_list <- kTest(seed_list, "No", "Yes", "irAE", 500)

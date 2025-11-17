@@ -1,25 +1,13 @@
 
-sorting <- function(data, cohort, outcome1, outcome2){
-  filter(data,
-         Cohort == cohort,
-         Reason.for.discontinuation == outcome1 |
-           Reason.for.discontinuation == outcome2)
-}
-
-met_sorting <- function(data, outcome1, outcome2){
-  filter(data,
-         Reason.for.discontinuation == outcome1 |
-           Reason.for.discontinuation == outcome2)
-}
 
 
-k_validate <- function(seed, neg.outcome, pos.outcome, outcome, tree){
+k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
   set.seed(seed)
 
 
   out <- list()
 
-  out[[1]] <- getROC(train.seq, train.outcomes, test.seq, test.outcomes, neg.outcome, pos.outcome, outcome, tree)
+  out[[1]] <- getROC(seed, neg.outcome, pos.outcome, outcome, factors_list, tree)
 
 
   avg_AUCPR <- lapply(out, function(x){ x[[1]]})
@@ -29,7 +17,59 @@ k_validate <- function(seed, neg.outcome, pos.outcome, outcome, tree){
 
 
 # Function create and test RF model #
-getROC <- function(train.seq, train.outcomes, test.seq, test.outcomes, neg.outcome, pos.outcome, outcome, tree){
+getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
+
+  set.seed(seed)
+
+  #splitting data into train and test
+  split <- sample.split(demographics[[outcome]], SplitRatio = 0.5)
+
+  train  <- subset(demographics, split == TRUE) %>%
+    subset(`Patient Id` %in% blood$`Patient Id`) %>%
+    subset(`Patient Id` %in% baseline$`Patient Id`)
+
+  test   <- subset(demographics, split == FALSE) %>%
+    subset(`Patient Id` %in% blood$`Patient Id`) %>%
+    subset(`Patient Id` %in% baseline$`Patient Id`)
+
+  train.outcomes <- demographics %>%
+    select(`Patient Id`, irAE, Response) %>%
+    subset(`Patient Id` %in% train$`Patient Id`) %>%
+    subset(`Patient Id` %in% blood$`Patient Id`) %>%
+    subset(`Patient Id` %in% baseline$`Patient Id`)
+
+  train.outcomes <- arrange(train.outcomes, desc(`Patient Id`))
+
+
+  test.outcomes <- demographics %>%
+    select(`Patient Id`, irAE, Response) %>%
+    subset(`Patient Id` %in% test$`Patient Id`) %>%
+    subset(`Patient Id` %in% blood$`Patient Id`) %>%
+    subset(`Patient Id` %in% baseline$`Patient Id`)
+
+  test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
+
+
+  #creating objects for the model to be trained and tested on
+  factors <- all_factors %>%
+    select((factors_list))
+
+
+
+  train.seq <- filter(factors,
+                      (`Patient Id` %in% train.outcomes$`Patient Id`))
+
+
+  train.seq <- arrange(train.seq, desc(`Patient Id`))
+
+
+
+  test.seq <- filter(factors,
+                     (`Patient Id` %in% test.outcomes$`Patient Id`))
+  test.seq <- arrange(test.seq, desc(`Patient Id`))
+
+
+
   if(all(train.outcomes$`Patient Id` == train.outcomes$`Patient Id`) == FALSE){
     stop("Training Sample_IDs do not match")
   }
@@ -114,83 +154,16 @@ grabImp <- function(output, input, seed_list){
 
 
 # Main function call to generate RF models using 25 seeds #
-kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, tree){
+kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, tree){
   out <- list()
   for(i in 1:length(seed_list)){
-    out[[i]] <- k_validate(seed = seed_list[i], neg.outcome, pos.outcome, outcome, tree)
+    out[[i]] <- k_validate(seed = seed_list[i], neg.outcome, pos.outcome, outcome, factors_list, tree)
   }
   # out <- grabVals(out)
   # CW edit to function
   # out <- do.call(rbind.data.frame, out)
   # colnames(out) <- c("AUCPR")
   out
-}
-
-
-fishing <- function(output, data, seed_list){
-  output <- list()
-  for (i in 1:length(seed_list)) {
-    output[[i]] <- fisher.test(data[[i]][[1]][[3]])
-    output[[i]] <- output[[i]][[1]][[1]]
-  }
-  output <- do.call(rbind.data.frame, output)
-  colnames(output) <- c("p.value")
-  output
-
-}
-
-
-p.calc <- function(data, random){
-  avg <- (data)
-  p <- ecdf(random)
-  p(avg)
-
-}
-
-
-
-
-add.metrics <- function(dataobject, output, pos.outcome){
-  test_conmat2 <- data.frame(run = 1:25000,
-                             Accuracy = NA,
-                             Specificity = NA,
-                             Precision = NA,
-                             Recall = NA,
-                             F1 = NA)
-
-  for (i in 1:25000) {
-    test_conmat <- confusionMatrix(dataobject[[i]][[1]][[3]],
-                                   positive = pos.outcome)
-
-    test_conmat2$Accuracy[i] <- test_conmat[[3]][1]
-    test_conmat2$Specificity[i] <- test_conmat[[4]][2]
-    test_conmat2$Precision[i] <- test_conmat[[4]][5]
-    test_conmat2$Recall[i] <- test_conmat[[4]][6]
-    test_conmat2$F1[i] <- test_conmat[[4]][7]
-
-
-  }
-  test_conmat2[is.na(test_conmat2)] <- 0
-  x = 1
-  output <- data.frame(run = 1:1000,
-                       Avg.Accuracy = NA,
-                       Avg.Specificity = NA,
-                       Avg.Precision = NA,
-                       Avg.Recall = NA,
-                       Avg.F1 = NA)
-
-  for (i in 1:1000) {
-    y = x+24
-
-    output$Avg.Accuracy[i] <- mean(test_conmat2$Accuracy[x:y])
-    output$Avg.Specificity[i] <- mean(test_conmat2$Specificity[x:y])
-    output$Avg.Precision[i] <- mean(test_conmat2$Precision[x:y])
-    output$Avg.Recall[i] <- mean(test_conmat2$Recall[x:y])
-    output$Avg.F1[i] <- mean(test_conmat2$F1[x:y])
-
-    x = x+25
-  }
-  output
 }
 
 
