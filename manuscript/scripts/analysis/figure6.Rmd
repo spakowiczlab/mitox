@@ -13,11 +13,16 @@ library(ggplot2)
 library(broom)
 library(dplyr)
 library(purrr)
+library(forcats)
+library(ggpubr)
 ```
 
 # Load data 
 ```{r}
 load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../../exploratory/data/randomforest-irae.rds")
+# load("../../../exploratory/data/randomforest-response.rds")
 ```
 
 # Prepare data
@@ -164,4 +169,80 @@ ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
   ) +
   theme(text = element_text(size = 14))
 ```
+
+### upset plot style fig? or maybe just boxplots
+```{r}
+df <- irae.rf %>%
+  select(Predictors, seed, AUCPR) %>%
+  distinct()
+
+# Reorder predictors by mean AUCPR (highest to lowest)
+mean_order <- df %>%
+  group_by(Predictors) %>%
+  summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE)) %>%
+  arrange(desc(mean_aucpr)) %>%
+  pull(Predictors)
+
+pairwise_results <- compare_means(
+  AUCPR ~ Predictors,
+  data = df,
+  method = "wilcox.test",   # non-parametric
+  p.adjust.method = "BH"    # multiple comparison adjustment
+)
+
+# Keep only significant comparisons (adjusted p < 0.05)
+significant_comparisons <- pairwise_results %>%
+  filter(p.adj < 0.05) %>%
+  select(group1, group2)
+
+# Convert to list format for ggpubr
+sig_list <- split(significant_comparisons[, c("group1","group2")],
+                  seq(nrow(significant_comparisons))) %>%
+  lapply(function(x) as.character(unlist(x)))
+
+Means <- df %>%
+  group_by(Predictors) %>%
+  summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE))
+
+
+Model_Comparison_Plot <- df %>%
+  ggplot(aes(
+    x = fct_relevel(Predictors, mean_order),
+    y = AUCPR,
+    color = Predictors  # color controls box outline AND median line
+  )) +
+  geom_boxplot(outlier.colour = NA, fatten = 1) +  # median line inherits box color
+  geom_jitter(width = 0.1, alpha = 0.6) +         # jitter points
+  ggpubr::stat_compare_means(
+    comparisons = sig_list,
+    label = "p.signif",
+    label.y = seq(0.95, by = 0.1, length.out = length(sig_list))
+  ) +
+  labs(y = "AUCPR", x = NULL, title = NULL) +
+  scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
+  theme(
+    axis.title = element_text(face = 'bold', size = 16),
+    axis.text.x = element_text(size = 10, face = 'bold'),
+    plot.title = element_text(face = 'bold', hjust = 0.5, size = 14),
+    axis.title.y = element_text(hjust = 0.45),
+    legend.position = "bottom",
+    axis.line = element_line(color = 'black', linewidth = 0.5),
+    panel.background = element_rect(fill = 'white')
+  ) +
+  scale_y_continuous(limits = c(0, 1.1), breaks = seq(0, 1, 0.1)) +
+  # annotate mean values below boxes
+  annotate(
+    geom = "text",
+    x = seq_along(mean_order),
+    y = 0.03,
+    label = round(Means$mean_aucpr, 3),
+    color = "black",
+    size = 4
+  )
+
+Model_Comparison_Plot
+
+ggsave("../../figures/Fig5E-AUCPR-boxplots.png", height = 5, width = 10)
+```
+
 
