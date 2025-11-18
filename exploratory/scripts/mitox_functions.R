@@ -128,16 +128,37 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
 
 
 # Grabbing AUROC values from input models #
-grabVals <- function(output, input, seed_list){
-  output <- list()
+# grabVals <- function(output, input, seed_list){
+#   output <- list()
+#
+#   for(i in 1:length(seed_list)){
+#     output <- append(output, input[[i]][[1]][[1]])
+#   }
+#
+#   output <- do.call(rbind.data.frame, output)
+#   colnames(output) <- c("AUCPR")
+#   output
+# }
+grabVals <- function(input, seed_list){
 
-  for(i in 1:length(seed_list)){
-    output <- append(output, input[[i]][[1]][[1]])
+  out <- list()
+
+  for (i in seq_along(seed_list)) {
+
+    # Extract getROC() output for this seed
+    res <- input[[i]][[1]]
+
+    AUCPR <- res[[1]]    # AUPCR value
+    rocdf <- res[[2]]    # ROC curve dataframe
+
+    rocdf$seed  <- seed_list[i]
+    rocdf$AUCPR <- AUCPR
+
+    out[[i]] <- rocdf
   }
 
-  output <- do.call(rbind.data.frame, output)
-  colnames(output) <- c("AUCPR")
-  output
+  # bind into one big data frame
+  dplyr::bind_rows(out)
 }
 
 grabImp <- function(output, input, seed_list){
