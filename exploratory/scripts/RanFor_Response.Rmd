@@ -68,20 +68,22 @@ base.micro <- ra.l %>%
 full_micro_list <- colnames(base.micro)
 full_micro_list[[1]] <- "Patient Id"
 
+
+
 #note it is dropping bacteria and archaea becaise it isn't in phyl_labels
-#making object for irAE where q < 0.01
-irAE_q <- res.irae %>%
+#making object for Response where q < 0.01
+Response_q <- res.recist %>%
   left_join(phyl_labels) %>%
-  select(microbe, q_irAEYes)  %>%
-  filter(q_irAEYes < 0.01) %>%
+  select(microbe, q_ResponseResponder)  %>%
+  filter(q_ResponseResponder < 0.01) %>%
   replace_na(list( microbe = "k__Archaea"))
 
 
 
-irae_list <- irAE_q$microbe %>%
+response_list <- Response_q$microbe %>%
   append("Patient Id", after = 0)
 
-irae_list[[1]] <- "Patient Id"
+response_list[[1]] <- "Patient Id"
 
 
 ```
@@ -94,7 +96,7 @@ base.gene <- blood %>%
   select(`Patient Id`:YWHAZ)
 
 blood_list <- colnames(base.gene)
-biome_blood_list <- c(irae_list, blood_list)
+biome_blood_list <- c(response_list, blood_list)
 ```
 
 
@@ -148,7 +150,7 @@ base.clinical <- demographics %>%
 
 base.clinical <- base.clinical %>% 
   mutate_at(c("Sex",
-              "Treatment", 
+              "Treatment",
               "Stage"), as.factor)
 
 clinical_list <- colnames(base.clinical)
@@ -169,7 +171,7 @@ all_factors <- baseline %>%
 # 
 # 
 # microlim <- microlim %>%
-#   select((irAE_list))
+#   select((response_list))
 
 
 
@@ -190,107 +192,101 @@ all_factors <- baseline %>%
 
 Running the model
 ```{r}
+
 # Clinical model
-rf_clinical_irAE_list <- kTest(seed_list,
-                               "No",
-                               "Yes",
-                               "irAE",
-                               clinical_list,
-                               500)
+rf_clinical_response_list <- kTest(seed_list,
+                                "Non-Responder",
+                                "Responder",
+                                "Response",
+                                clinical_list,
+                                500)
 
 clinical_aucprs <- grabVals(clinical_aucprs,
-                            rf_clinical_irAE_list,
+                            rf_clinical_response_list,
                             seed_list)
 
-irAE_clinical <- mean(clinical_aucprs$AUCPR)
+Response_clinical <- mean(clinical_aucprs$AUCPR)
 
 
-
-# Limited biome model
-rf_fullbiome_irAE_list <- kTest(seed_list,
-                          "No",
-                          "Yes",
-                          "irAE",
-                          full_micro_list,
-                          500)
+# Full biome model
+rf_fullbiome_response_list <- kTest(seed_list,
+                                "Non-Responder",
+                                "Responder",
+                                "Response",
+                                full_micro_list,
+                                500)
 
 fullbiome_aucprs <- grabVals(fullbiome_aucprs,
-                              rf_fullbiome_irAE_list,
+                              rf_fullbiome_response_list,
                               seed_list)
 
-irAE_fullbiome <- mean(fullbiome_aucprs$AUCPR)
-
-
-
+Response_fullbiome <- mean(fullbiome_aucprs$AUCPR)
 
 
 # Limited biome model
-rf_q01_irAE_list <- kTest(seed_list,
-                          "No",
-                          "Yes",
-                          "irAE",
-                          irae_list,
-                          500)
+rf_q01_response_list <- kTest(seed_list,
+                              "Non-Responder",
+                              "Responder",
+                              "Response",
+                              response_list,
+                              500)
 
 biome_aucprs <- grabVals(biome_aucprs,
-                         rf_q01_irAE_list,
+                         rf_q01_response_list,
                          seed_list)
 
-irAE_q01 <- mean(biome_aucprs$AUCPR)
-
+Response_q01 <- mean(biome_aucprs$AUCPR)
 
 
 
 
 # Just blood model
-rf_blood_irAE_list <- kTest(seed_list,
-                            "No",
-                            "Yes",
-                            "irAE",
-                            blood_list,
-                            500)
+rf_blood_response_list <- kTest(seed_list,
+                                "Non-Responder",
+                                "Responder",
+                                "Response",
+                                blood_list,
+                                500)
 
 blood_aucprs <- grabVals(blood_aucprs,
-                         rf_blood_irAE_list,
+                         rf_blood_response_list,
                          seed_list)
 
-irAE_blood <- mean(blood_aucprs$AUCPR)
-
+Response_blood <- mean(blood_aucprs$AUCPR)
 
 
 
 
 # Biome and blood model
-rf_biome_blood_irAE_list <- kTest(seed_list,
-                                  "No",
-                                  "Yes",
-                                  "irAE",
+rf_biome_blood_response_list <- kTest(seed_list,
+                                  "Non-Responder",
+                                  "Responder",
+                                  "Response",
                                   biome_blood_list,
                                   500)
 
 biome_and_blood_aucprs <- grabVals(biome_and_blood_aucprs,
-                                   rf_biome_blood_irAE_list,
+                                   rf_biome_blood_response_list,
                                    seed_list)
 
-irAE_biome_and_blood <- mean(biome_and_blood_aucprs$AUCPR)
-
+Response_biome_and_blood <- mean(biome_and_blood_aucprs$AUCPR)
 
 
 
 
 # Biome blood clinical model
-rf_biome_blood_clinical_irAE_list <- kTest(seed_list,
-                                           "No",
-                                           "Yes",
-                                           "irAE",
-                                           biome_blood_clinical_list,
-                                           500)
+rf_biome_blood_clinical_response_list <- kTest(seed_list,
+                                          "Non-Responder",
+                                          "Responder",
+                                          "Response",
+                                          biome_blood_clinical_list,
+                                          500)
 
-biome_blood_clinical_aucprs <- grabVals(biome_blood_clinical_aucprs,
-                                        rf_biome_blood_clinical_irAE_list,
-                                        seed_list)
+biome_blood_clinical_aucprs <- grabVals(biome_and_blood_aucprs,
+                                   rf_biome_blood_clinical_response_list,
+                                   seed_list)
 
-irAE_biome_blood_clinical <- mean(biome_blood_clinical_aucprs$AUCPR)
+Response_biome_blood_clinical <- mean(biome_blood_clinical_aucprs$AUCPR)
 ```
 
 

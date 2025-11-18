@@ -11,7 +11,7 @@ k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tr
 
 
   avg_AUCPR <- lapply(out, function(x){ x[[1]]})
-  message("\nAccuracy average: ", (rowMeans(as.data.frame(avg_AUCPR))))
+  message("\nAUCPR average: ", (rowMeans(as.data.frame(avg_AUCPR))))
   return(out)
 }
 
