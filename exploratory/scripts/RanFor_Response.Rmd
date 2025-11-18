@@ -201,9 +201,9 @@ rf_clinical_response_list <- kTest(seed_list,
                                 clinical_list,
                                 500)
 
-clinical_aucprs <- grabVals(clinical_aucprs,
-                            rf_clinical_response_list,
+clinical_aucprs <- grabVals(rf_clinical_response_list,
                             seed_list)
+clinical_aucprs$Predictors <- "Clinical"
 
 Response_clinical <- mean(clinical_aucprs$AUCPR)
 
@@ -216,9 +216,9 @@ rf_fullbiome_response_list <- kTest(seed_list,
                                 full_micro_list,
                                 500)
 
-fullbiome_aucprs <- grabVals(fullbiome_aucprs,
-                              rf_fullbiome_response_list,
+fullbiome_aucprs <- grabVals(rf_fullbiome_response_list,
                               seed_list)
+fullbiome_aucprs$Predictors <- "Full Microbiome"
 
 Response_fullbiome <- mean(fullbiome_aucprs$AUCPR)
 
@@ -231,12 +231,11 @@ rf_q01_response_list <- kTest(seed_list,
                               response_list,
                               500)
 
-biome_aucprs <- grabVals(biome_aucprs,
-                         rf_q01_response_list,
+biome_aucprs <- grabVals(rf_q01_response_list,
                          seed_list)
+biome_aucprs$Predictors <- "Microbiome"
 
 Response_q01 <- mean(biome_aucprs$AUCPR)
-
 
 
 
@@ -248,9 +247,9 @@ rf_blood_response_list <- kTest(seed_list,
                                 blood_list,
                                 500)
 
-blood_aucprs <- grabVals(blood_aucprs,
-                         rf_blood_response_list,
+blood_aucprs <- grabVals(rf_blood_response_list,
                          seed_list)
+blood_aucprs$Predictors <- "Blood"
 
 Response_blood <- mean(blood_aucprs$AUCPR)
 
@@ -265,9 +264,9 @@ rf_biome_blood_response_list <- kTest(seed_list,
                                   biome_blood_list,
                                   500)
 
-biome_and_blood_aucprs <- grabVals(biome_and_blood_aucprs,
-                                   rf_biome_blood_response_list,
+biome_and_blood_aucprs <- grabVals(rf_biome_blood_response_list,
                                    seed_list)
+biome_and_blood_aucprs$Predictors <- "Blood + Microbiome"
 
 Response_biome_and_blood <- mean(biome_and_blood_aucprs$AUCPR)
 
@@ -282,12 +281,20 @@ rf_biome_blood_clinical_response_list <- kTest(seed_list,
                                           biome_blood_clinical_list,
                                           500)
 
-biome_blood_clinical_aucprs <- grabVals(biome_and_blood_aucprs,
-                                   rf_biome_blood_clinical_response_list,
+biome_blood_clinical_aucprs <- grabVals(rf_biome_blood_clinical_response_list,
                                    seed_list)
+biome_blood_clinical_aucprs$Predictors <- "Blood + Clinical + Microbiome"
 
 Response_biome_blood_clinical <- mean(biome_blood_clinical_aucprs$AUCPR)
 ```
+
+# Combine and save as one df
+```{r}
+response.rf <- rbind(clinical_aucprs, blood_aucprs, biome_aucprs, fullbiome_aucprs, biome_and_blood_aucprs, biome_blood_clinical_aucprs)
+
+save(response.rf, file = "../data/randomforest-response.rds")
+```
+
 
 
 ```{r}
