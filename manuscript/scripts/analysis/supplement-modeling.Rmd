@@ -19,6 +19,8 @@ library(Metrics)
 library(glmmTMB)
 library(ggplot2)
 library(ggnewscale)
+library(forcats)
+library(ggbeeswarm)
 ```
 
 # Load data
@@ -84,9 +86,22 @@ microbes.ra <- microbes.ra[grepl("__", microbes.ra)]
 # Define test set 
 
 ```{r}
+microbes_zeros <- model.in %>%
+  dplyr::select(all_of(microbes)) %>%
+  summarise(across(everything(), ~ sum(.x == 0))) %>%   # count zeros per column
+  pivot_longer(everything(), names_to = "Microbe", values_to = "ZeroCount") %>%
+  filter(ZeroCount >= 20) %>%   # keep only microbes with ≥10 zeros
+  pull(Microbe)
+
+microbes_zeros.ra <- model.in.ra %>%
+  dplyr::select(all_of(microbes.ra)) %>%
+  summarise(across(everything(), ~ sum(.x == 0))) %>%   # count zeros per column
+  pivot_longer(everything(), names_to = "Microbe", values_to = "ZeroCount") %>%
+  filter(ZeroCount >= 20) %>%   # keep only microbes with ≥10 zeros
+  pull(Microbe)
 # truly random selection
-overlap <- intersect(microbes, microbes.ra)
-random.test.mics <- sample(overlap, min(10, length(filtered_mics)))
+overlap <- intersect(microbes_zeros, microbes_zeros.ra)
+test.mics <- sample(overlap, 10)
 
 # selected microbes for testing 
 test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27BH", "s__Intestinimonas_massiliensis","f__Barnesiellaceae", "s__Phascolarctobacterium_faecium", "g__Dialister", "s__Bifidobacterium_longum")
@@ -98,7 +113,7 @@ test.mics <- c("s__Alistipes_finegoldii",  "s__Lachnospiraceae_bacterium_AM48_27
 # Function to fit models
 fit_models <- function(x, model.in, model.in.ra) {
   model_formula_off <- as.formula(paste0(x, " ~ Response*Days + offset(log(library.size))"))
-  model_formula <- as.formula(paste0(x, " ~ Response*Days"))
+  model_formula <- as.formula(paste0(x, " ~ Response*Days "))
 
   models <- list(
     # FZINBMM (Counts)
@@ -182,7 +197,7 @@ print(final_results)
 # Save model metrics 
 
 ```{r}
-write.csv(final_results, file = "../../data/model-metrics.csv", row.names = F)
+#write.csv(final_results, file = "../../data/model-metrics.csv", row.names = F)
 final_results <- read.csv("../../data/model-metrics.csv")
 ```
 
@@ -192,39 +207,121 @@ heatmap.in <- final_results %>%
   dplyr::select(Model, Microbe, MSE, AIC) %>%
   pivot_longer(!c(Model, Microbe), names_to = "Metric", values_to = "Score") %>%
   mutate(Microbe = substr(Microbe, 4, nchar(Microbe)),
-         Microbe = gsub("_", " ", Microbe))
+         Microbe = gsub("_", " ", Microbe),
+         Model_Family = case_when(
+    grepl("NB", Model, ignore.case = TRUE) ~ "NBMM",
+    grepl("G", Model, ignore.case = TRUE) ~ "GMM",
+    TRUE ~ "Other"
+  ))
+
+heatmap_scaled <- heatmap.in %>%
+  group_by(Microbe, Metric) %>%
+  mutate(Score_scaled = scales::rescale(Score, to = c(0, 1)))
+
+perf.centered <- heatmap.in %>%
+  group_by(Microbe, Metric) %>%   # group per microbe (and per metric/family)
+  mutate(Score_centered = Score - mean(Score)) %>%  # subtract mean per group
+  ungroup()
 ```
 
-Heatmap doesn't look that great, scales are too different per microbe 
 ```{r}
-ggplot() +
-  geom_tile(
-    data = filter(heatmap.in, Metric == "MSE"),
-    aes(x = Microbe, y = Model, fill = Score)
-  ) +
-  scale_fill_gradient(low = "darkred", high = "steelblue", name = "MSE") +
-  new_scale_fill() +
-  geom_tile(
-    data = filter(heatmap.in, Metric == "AIC"),
-    aes(x = Microbe, y = Model, fill = Score)
-  ) +
-  scale_fill_gradient(low = "darkred", high = "steelblue", name = "AIC") +
-  facet_wrap(~ Metric, scales = "free_x") +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    strip.background = element_rect(fill = "gray90", color = NA)
-  )
+perf_aic <- perf.centered %>% filter(Metric == "AIC")
 
-# ggsave("../../figures/supplemental-model-metrics.png", height = 6, width = 8)
+perf_aic <- perf_aic %>%
+  mutate(is_zigmm = ifelse(Model == "ZIGMM", "ZIGMM", "Other"))
+
+model_means <- perf_aic %>%
+  group_by(Model) %>%
+  summarise(mean_score = mean(Score_centered)) %>%
+  mutate(is_zigmm = ifelse(Model == "ZIGMM", "ZIGMM", "Other"))
+
+mean_order <- model_means %>%
+  arrange(mean_score) %>%
+  pull(Model)
+
+ggplot(perf_aic,
+       aes(x = forcats::fct_relevel(Model, mean_order),
+           y = Score_centered,
+           color = is_zigmm)) +
+
+  geom_boxplot(outlier.colour = NA, fatten = NULL, alpha = 0.3,
+               size = 0.6, show.legend = FALSE) +
+
+  geom_quasirandom(width = 0.3, size = 1.5, alpha = 0.8, show.legend = FALSE) +
+
+  # Mean line colored by is_zigmm
+  geom_segment(data = model_means,
+               aes(x = as.numeric(forcats::fct_relevel(Model, mean_order)) - 0.4,
+                   xend = as.numeric(forcats::fct_relevel(Model, mean_order)) + 0.4,
+                   y = mean_score,
+                   yend = mean_score,
+                   color = is_zigmm),   # ← color mapped here
+               inherit.aes = FALSE,
+               linewidth = 0.7,
+               show.legend = FALSE) +
+
+  scale_color_manual(values = c("ZIGMM" = "red3", "Other" = "gray40")) +
+
+  coord_flip() +
+  theme_bw() +
+  labs(y = "", x = "")
+
+ggsave("../../figures/supplemental-AIC-boxplot.png", height = 5, width = 10)
 ```
+```{r}
+perf_mse <- perf.centered %>%
+  filter(Metric == "MSE") %>%
+  mutate(is_zigmm = ifelse(Model == "ZIGMM", "ZIGMM", "Other"))
+
+# Compute model-wise mean centered scores
+model_means_mse <- perf_mse %>%
+  group_by(Model) %>%
+  summarise(mean_score = mean(Score_centered)) %>%
+  mutate(is_zigmm = ifelse(Model == "ZIGMM", "ZIGMM", "Other"))
+
+# Order models by mean value (lowest at the top after flip)
+mean_order_mse <- model_means_mse %>%
+  arrange(mean_score) %>%
+  pull(Model)
+
+# Plot
+ggplot(perf_mse,
+       aes(x = forcats::fct_relevel(Model, mean_order_mse),
+           y = Score_centered,
+           color = is_zigmm)) +
+
+  geom_boxplot(outlier.colour = NA, fatten = NULL, alpha = 0.3,
+               size = 0.6, show.legend = FALSE) +
+
+  geom_quasirandom(width = 0.3, size = 1.5, alpha = 0.8, show.legend = FALSE) +
+
+  # Mean line
+  geom_segment(
+    data = model_means_mse,
+    aes(x = as.numeric(forcats::fct_relevel(Model, mean_order_mse)) - 0.4,
+        xend = as.numeric(forcats::fct_relevel(Model, mean_order_mse)) + 0.4,
+        y = mean_score, yend = mean_score,
+        color = is_zigmm),
+    inherit.aes = FALSE,
+    linewidth = 1.3,
+    show.legend = FALSE
+  ) +
+
+  scale_color_manual(values = c("ZIGMM" = "#D95F02", "Other" = "gray40")) +
+
+  coord_flip() +
+  theme_bw() +
+  labs(y = "Centered MSE Score", x = "Model")
+```
+
+
 
 ```{r}
 ggplot() +
   # MSE tile
   geom_tile(
-    data = filter(heatmap.in, Metric == "MSE"),
-    aes(x = Microbe, y = Model, fill = Score)
+    data = filter(perf.centered, Metric == "MSE"),
+    aes(x = Microbe, y = Model, fill = Score_centered)
   ) +
   scale_fill_gradient(
     low = "cadetblue3", high = "red3", name = "MSE"
@@ -233,8 +330,8 @@ ggplot() +
   
   # AIC tile
   geom_tile(
-    data = filter(heatmap.in, Metric == "AIC"),
-    aes(x = Microbe, y = Model, fill = Score)
+    data = filter(perf.centered, Metric == "AIC"),
+    aes(x = Microbe, y = Model, fill = Score_centered)
   ) +
   scale_fill_gradient(
     low = "cadetblue3", high = "red3", name = "AIC"
@@ -257,47 +354,41 @@ ggplot() +
   ) +
   labs(x = NULL, y = NULL)
 
-ggsave("../../figures/supplemental-model-metrics.png", height = 6, width = 8)
+#ggsave("../../figures/supplemental-model-metrics.png", height = 6, width = 8)
 ```
-# just GMM
+
+
 ```{r}
-heatmap.in <- final_results %>%
-  dplyr::select(Model, Microbe, MSE, AIC) %>%
-  pivot_longer(!c(Model, Microbe), names_to = "Metric", values_to = "Score") %>%
-  mutate(Microbe = substr(Microbe, 4, nchar(Microbe)),
-         Microbe = gsub("_", " ", Microbe)) %>%
-  filter(grepl("GMM", Model))
+heatmap.scaled <- heatmap.in %>%
+  group_by(Microbe, Metric) %>%
+  mutate(Score_scaled = (Score - min(Score)) / (max(Score) - min(Score))) %>%
+  ungroup()
+
+library(ggnewscale)   # for multiple scales
 
 ggplot() +
   # MSE tile
   geom_tile(
-    data = filter(heatmap.in, Metric == "MSE"),
-    aes(x = Microbe, y = Model, fill = Score)
+    data = filter(heatmap.scaled, Metric == "MSE"),
+    aes(x = Microbe, y = Model, fill = Score_scaled)
   ) +
-  scale_fill_gradient(
-    low = "cadetblue3", high = "red3", name = "MSE"
-  ) +
+  scale_fill_gradient(low = "cadetblue3", high = "red3", name = "MSE (scaled)") +
   new_scale_fill() +
-  
+
   # AIC tile
   geom_tile(
-    data = filter(heatmap.in, Metric == "AIC"),
-    aes(x = Microbe, y = Model, fill = Score)
+    data = filter(heatmap.scaled, Metric == "AIC"),
+    aes(x = Microbe, y = Model, fill = Score_scaled)
   ) +
-  scale_fill_gradient(
-    low = "cadetblue3", high = "red3", name = "AIC"
-  ) +
-  
+  scale_fill_gradient(low = "cadetblue3", high = "red3", name = "AIC (scaled)") +
+
   # Facet by metric
   facet_wrap(~ Metric, scales = "free_x") +
-  
+
   # Clean theme
   theme_minimal(base_size = 13) +
   theme(
-    axis.text.x = element_text(
-      angle = 45, hjust = 1, face = "italic"  # italic x labels
-    ),
-    axis.text.y = element_text(),
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "italic"),
     strip.background = element_rect(fill = "gray90", color = NA),
     strip.text = element_text(),
     panel.grid = element_blank(),
@@ -305,8 +396,4 @@ ggplot() +
   ) +
   labs(x = NULL, y = NULL)
 ```
-
-
-
-
 
