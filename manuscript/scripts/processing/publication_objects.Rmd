@@ -183,7 +183,8 @@ demographics <- demographics %>%
             Stage == 2 ~ "Stage II",
             Stage == 3 ~ "Stage III", 
             Stage == 4 ~ "Stage IV",
-            TRUE ~ NA)
+            TRUE ~ NA),
+         Treatment.bin = ifelse(Treatment == "IPI/NIVO", "Anti-CTLA-4", "Anti-PD-1")
          )
 
 # filter to MET only
