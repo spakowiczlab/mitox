@@ -22,7 +22,7 @@ library(ggpubr)
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 load("../../../exploratory/data/randomforest-irae.rds")
-# load("../../../exploratory/data/randomforest-response.rds")
+load("../../../exploratory/data/randomforest-response.rds")
 ```
 
 # Prepare data
@@ -172,7 +172,9 @@ ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
 
 ### upset plot style fig? or maybe just boxplots
 ```{r}
-df <- irae.rf %>%
+# function to plot AUCPR boxplots 
+aucpr_box <- function(input){
+  df <- input %>%
   select(Predictors, seed, AUCPR) %>%
   distinct()
 
@@ -180,7 +182,7 @@ df <- irae.rf %>%
 mean_order <- df %>%
   group_by(Predictors) %>%
   summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE)) %>%
-  arrange(desc(mean_aucpr)) %>%
+  arrange(mean_aucpr) %>%
   pull(Predictors)
 
 pairwise_results <- compare_means(
@@ -204,7 +206,6 @@ Means <- df %>%
   group_by(Predictors) %>%
   summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE))
 
-
 Model_Comparison_Plot <- df %>%
   ggplot(aes(
     x = fct_relevel(Predictors, mean_order),
@@ -221,11 +222,8 @@ Model_Comparison_Plot <- df %>%
   labs(y = "AUCPR", x = NULL, title = NULL) +
   scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
   theme(
-    axis.title = element_text(face = 'bold', size = 16),
-    axis.text.x = element_text(size = 10, face = 'bold'),
-    plot.title = element_text(face = 'bold', hjust = 0.5, size = 14),
-    axis.title.y = element_text(hjust = 0.45),
-    legend.position = "bottom",
+    axis.title = element_text(size = 16),
+    legend.position = "none",
     axis.line = element_line(color = 'black', linewidth = 0.5),
     panel.background = element_rect(fill = 'white')
   ) +
@@ -240,9 +238,22 @@ Model_Comparison_Plot <- df %>%
     size = 4
   )
 
-Model_Comparison_Plot
-
-ggsave("../../figures/Fig5E-AUCPR-boxplots.png", height = 5, width = 10)
+  return(Model_Comparison_Plot)
+}
 ```
+
+```{r}
+aucpr_box(irae.rf)
+# ggsave("../../figures/Fig5E-AUCPR-boxplots-irae.png", height = 5, width = 10)
+```
+
+```{r}
+aucpr_box(response.rf)
+# ggsave("../../figures/Fig5E-AUCPR-boxplots-response.png", height = 5, width = 10)
+```
+
+
+
+
 
 
