@@ -69,6 +69,8 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
   test.seq <- arrange(test.seq, desc(`Patient Id`))
 
 
+  #Add lasso for selection to the model
+
 
   if(all(train.outcomes$`Patient Id` == train.outcomes$`Patient Id`) == FALSE){
     stop("Training Sample_IDs do not match")
