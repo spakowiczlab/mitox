@@ -1,5 +1,10 @@
 
-
+################################################################################
+# Functions for running RF
+#
+# to run call kTest followed by grabVals to get AUCPR and values for ROC curves
+#
+################################################################################
 
 k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
   set.seed(seed)
@@ -49,28 +54,56 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
 
   test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
 
-
   #creating objects for the model to be trained and tested on
   factors <- all_factors %>%
     select((factors_list))
 
-
-
   train.seq <- filter(factors,
                       (`Patient Id` %in% train.outcomes$`Patient Id`))
 
-
   train.seq <- arrange(train.seq, desc(`Patient Id`))
-
-
 
   test.seq <- filter(factors,
                      (`Patient Id` %in% test.outcomes$`Patient Id`))
   test.seq <- arrange(test.seq, desc(`Patient Id`))
 
 
-  #Add lasso for selection to the model
-
+#################### Add lasso for selection to the model ######################
+  # Design matrix for LASSO (drop Patient Id)
+#   x_train <- as.matrix(train.seq[ , -1, drop = FALSE ])
+#   y_train <- as.factor(train.outcomes[[outcome]])
+#
+#   # glmnet requires numeric 0/1
+#   y_numeric <- ifelse(y_train == pos.outcome, 1, 0)
+#
+#   # Fit cross-validated LASSO
+#   lasso_fit <- cv.glmnet(
+#     x_train,
+#     y_numeric,
+#     family = "binomial",
+#     alpha = 1
+#   )
+#
+# # Warning in lognet(x, is.sparse, y, weights, offset, alpha, nobs, nvars,  :
+# #  one multinomial or binomial class has fewer than 8  observations; dangerous ground
+#
+# # This is due to class imbalance and is concerning
+#
+#   # Extract variables with non-zero coefficients
+#   coef_mat <- coef(lasso_fit, s = "lambda.min")
+#   selected_vars <- rownames(coef_mat)[coef_mat[,1] != 0]
+#   selected_vars <- selected_vars[selected_vars != "(Intercept)"]
+#
+#   if (length(selected_vars) == 0) {
+#     stop("LASSO selected zero variables — cannot run Random Forest.")
+#   }
+#
+#   message("\nLASSO selected ", length(selected_vars), " variables.")
+#
+#   # Restrict train/test to selected predictors only
+#   train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
+#   test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
+################################################################################
 
   if(all(train.outcomes$`Patient Id` == train.outcomes$`Patient Id`) == FALSE){
     stop("Training Sample_IDs do not match")
@@ -89,7 +122,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
                    predicted = test.preds)
 
   print(pred_cm)
-
 
   prediction_for_roc_curve <- predict(model.training,
                                       test.seq[,-1, drop=FALSE],
@@ -128,19 +160,20 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
   return(out)
 }
 
-
-# Grabbing AUROC values from input models #
-# grabVals <- function(output, input, seed_list){
-#   output <- list()
+# Currently unused but var importance
+# grabImp <- function(output, input, seed_list){
+#   datalist <- list()
 #
 #   for(i in 1:length(seed_list)){
-#     output <- append(output, input[[i]][[1]][[1]])
+#     tempdata <- data.frame(as.list(input[[i]][[1]][[4]][,4]))
+#     datalist[[i]] <- tempdata
 #   }
+#   output <- do.call(rbind, datalist)
 #
-#   output <- do.call(rbind.data.frame, output)
-#   colnames(output) <- c("AUCPR")
 #   output
 # }
+
+# Grabbing AUROC values from input models #
 grabVals <- function(input, seed_list){
 
   out <- list()
@@ -163,19 +196,6 @@ grabVals <- function(input, seed_list){
   dplyr::bind_rows(out)
 }
 
-grabImp <- function(output, input, seed_list){
-  datalist <- list()
-
-  for(i in 1:length(seed_list)){
-    tempdata <- data.frame(as.list(input[[i]][[1]][[4]][,4]))
-    datalist[[i]] <- tempdata
-  }
-  output <- do.call(rbind, datalist)
-
-  output
-}
-
-
 # Main function call to generate RF models using 25 seeds #
 kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, tree){
   out <- list()
@@ -188,5 +208,3 @@ kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, tr
   # colnames(out) <- c("AUCPR")
   out
 }
-
-
