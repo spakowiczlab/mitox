@@ -16,10 +16,10 @@ library(caTools)
 library(openxlsx)
 library(respondersig) 
 library(PRROC)
-
+library(glmnet)
 ```
 
-Loading file
+Loading data
 ```{r}
 source("../scripts/mitox_functions.R")
 # irAE_aucprs <- readRDS("../data/rf_mitox_irAE_aucpr.RData")
@@ -36,18 +36,12 @@ load("../../manuscript/data/core-score-min3.rds")
 # iraeAUCPRavgs <- data.frame(name = NA, AUCPR = NA)
 ```
 
-
-
-
-
 ```{r}
 seed_list <- c(12345:12369)
 ```
 
-
 # Making objects for q value models
 ```{r}
-
 #Object to limit microbiome sample to one ones taken within 10 days of treatment
 baseline <- mic.meta %>%
   group_by(`Patient Id`) %>%
@@ -76,8 +70,6 @@ irAE_q <- res.irae %>%
   filter(q_irAEYes < 0.01) %>%
   replace_na(list( microbe = "k__Archaea"))
 
-
-
 irae_list <- irAE_q$microbe %>%
   append("Patient Id", after = 0)
 
@@ -96,8 +88,6 @@ response_list <- Response_q$microbe %>%
   append("Patient Id", after = 0)
 
 response_list[[1]] <- "Patient Id"
-
-
 ```
 
 # Making object for blood genes
@@ -111,8 +101,6 @@ blood_list <- colnames(base.gene)
 irae_blood_list <- c(irae_list, blood_list)
 response_blood_list <- c(response_list, blood_list)
 ```
-
-
 
 # clinical objects
 ```{r}
@@ -146,7 +134,6 @@ irae_blood_clinical_list <- c(irae_blood_list, clinical_list)
 response_blood_clinical_list <- c(response_blood_list, clinical_list)
 ```
 
-
 # Making object with all factors
 ```{r}
 all_factors <- baseline %>%
@@ -155,12 +142,11 @@ all_factors <- baseline %>%
   full_join(base.gene, baseline, by = "Patient Id") %>%
   left_join(base.clinical, baseline, by = "Patient Id") %>%
   select(-sample)
-
 ```
 
 
+### irAE 
 
-#irAE
 # Clinical model
 ```{r}
 rf_clinical_irAE_list <- kTest(seed_list,
@@ -176,8 +162,6 @@ clinical_irae_aucprs$Predictors <- "Clinical"
 
 irAE_clinical <- mean(clinical_irae_aucprs$AUCPR)
 ```
-
-
 
 # Full biome model
 ```{r}
@@ -195,9 +179,6 @@ fullbiome_irae_aucprs$Predictors <- "Full Microbiome"
 irAE_fullbiome <- mean(fullbiome_irae_aucprs$AUCPR)
 ```
 
-
-
-
 # Limited biome model
 ```{r}
 rf_q01_irAE_list <- kTest(seed_list,
@@ -213,9 +194,6 @@ biome_irae_aucprs$Predictors <- "Microbiome"
 
 irAE_q01 <- mean(biome_irae_aucprs$AUCPR)
 ```
-
-
-
 
 # Just blood model
 ```{r}
@@ -233,9 +211,6 @@ blood_irae_aucprs$Predictors <- "Blood"
 irAE_blood <- mean(blood_irae_aucprs$AUCPR)
 ```
 
-
-
-
 # Biome and blood model
 ```{r}
 rf_biome_blood_irAE_list <- kTest(seed_list,
@@ -251,7 +226,6 @@ biome_and_blood_irae_aucprs$Predictors <- "Blood + Microbiome"
 
 irAE_biome_and_blood <- mean(biome_and_blood_irae_aucprs$AUCPR)
 ```
-
 
 # Blood and clinical model
 ```{r}
@@ -269,7 +243,6 @@ blood_and_clinical_irae_aucprs$Predictors <- "Clinical + Blood"
 irAE_blood_and_clinical <- mean(blood_and_clinical_irae_aucprs$AUCPR)
 ```
 
-
 # Biome and clinical model
 ```{r}
 rf_biome_clinical_irAE_list <- kTest(seed_list,
@@ -286,9 +259,6 @@ biome_and_clinical_irae_aucprs$Predictors <- "Clinical + Microbiome"
 irAE_biome_and_clinical <- mean(biome_and_clinical_irae_aucprs$AUCPR)
 ```
 
-
-
-
 # Biome blood clinical model
 ```{r}
 rf_biome_blood_clinical_irAE_list <- kTest(seed_list,
@@ -304,7 +274,9 @@ biome_blood_clinical_irae_aucprs$Predictors <- "Clinical + Blood + Microbiome"
 
 irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 ```
-# Combine and save as one df for irAE
+
+
+## Combine and save as one df for irAE
 ```{r}
 irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, fullbiome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, blood_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
@@ -312,18 +284,8 @@ save(irae.rf, file = "../data/randomforest-irae.rds")
 ```
 
 
+### Response
 
-
-
-
-
-
-
-
-
-
-
-#Response
 # Clinical model
 ```{r}
 
@@ -341,8 +303,6 @@ clinical_response_aucprs$Predictors <- "Clinical"
 Response_clinical <- mean(clinical_response_aucprs$AUCPR)
 ```
 
-
-
 # Full biome model
 ```{r}
 rf_fullbiome_response_list <- kTest(seed_list,
@@ -358,8 +318,6 @@ fullbiome_response_aucprs$Predictors <- "Full Microbiome"
 
 Response_fullbiome <- mean(fullbiome_response_aucprs$AUCPR)
 ```
-
-
 
 # Limited biome model
 ```{r}
@@ -377,7 +335,6 @@ biome_response_aucprs$Predictors <- "Microbiome"
 Response_q01 <- mean(biome_response_aucprs$AUCPR)
 ```
 
-
 # Just blood model
 ```{r}
 rf_blood_response_list <- kTest(seed_list,
@@ -393,8 +350,6 @@ blood_response_aucprs$Predictors <- "Blood"
 
 Response_blood <- mean(blood_response_aucprs$AUCPR)
 ```
-
-
 
 # Biome and blood model
 ```{r}
@@ -412,9 +367,6 @@ biome_and_blood_response_aucprs$Predictors <- "Blood + Microbiome"
 Response_biome_and_blood <- mean(biome_and_blood_response_aucprs$AUCPR)
 ```
 
-
-
-
 # Biome clinical model
 ```{r}
 rf_biome_clinical_response_list <- kTest(seed_list,
@@ -430,8 +382,6 @@ biome_clinical_response_aucprs$Predictors <- "Clinical + Microbiome"
 
 Response_biome_blood_clinical <- mean(biome_clinical_response_aucprs$AUCPR)
 ```
-
-
 
 # Blood clinical model
 ```{r}
@@ -449,7 +399,6 @@ blood_clinical_response_aucprs$Predictors <- "Clinical + Blood"
 Response_biome_blood_clinical <- mean(blood_clinical_response_aucprs$AUCPR)
 ```
 
-
 # Biome blood clinical model
 ```{r}
 rf_biome_blood_clinical_response_list <- kTest(seed_list,
@@ -466,7 +415,8 @@ biome_blood_clinical_response_aucprs$Predictors <- "Clinical + Blood + Microbiom
 Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR)
 ```
 
-# Combine and save as one df for Response
+
+## Combine and save as one df for Response
 ```{r}
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, fullbiome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
 
