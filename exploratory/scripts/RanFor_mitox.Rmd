@@ -120,7 +120,7 @@ base.clinical <- demographics %>%
   select(`Patient Id`, 
          Sex,
          Age,
-         Treatment,
+         Treatment.bin,
          Stage,
          `Total.WBC.(K/µL)`,
          `Relative.lymphocyte.count.(%)`, 
@@ -130,7 +130,7 @@ base.clinical <- demographics %>%
 
 base.clinical <- base.clinical %>% 
   mutate_at(c("Sex",
-              "Treatment", 
+              "Treatment.bin", 
               "Stage"), as.factor)
 
 clinical_list <- colnames(base.clinical)
