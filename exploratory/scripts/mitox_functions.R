@@ -38,7 +38,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
     subset(`Patient Id` %in% baseline$`Patient Id`)
 
   train.outcomes <- demographics %>%
-    select(`Patient Id`, irAE, Response) %>%
+    dplyr::select(`Patient Id`, irAE, Response) %>%
     subset(`Patient Id` %in% train$`Patient Id`) %>%
     subset(`Patient Id` %in% blood$`Patient Id`) %>%
     subset(`Patient Id` %in% baseline$`Patient Id`)
@@ -47,7 +47,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
 
 
   test.outcomes <- demographics %>%
-    select(`Patient Id`, irAE, Response) %>%
+    dplyr::select(`Patient Id`, irAE, Response) %>%
     subset(`Patient Id` %in% test$`Patient Id`) %>%
     subset(`Patient Id` %in% blood$`Patient Id`) %>%
     subset(`Patient Id` %in% baseline$`Patient Id`)
@@ -56,7 +56,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
 
   #creating objects for the model to be trained and tested on
   factors <- all_factors %>%
-    select((factors_list))
+    dplyr::select((factors_list))
 
   train.seq <- filter(factors,
                       (`Patient Id` %in% train.outcomes$`Patient Id`))
@@ -67,8 +67,56 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
                      (`Patient Id` %in% test.outcomes$`Patient Id`))
   test.seq <- arrange(test.seq, desc(`Patient Id`))
 
+###################### RF-RFE for selection to the model ######################
 
-#################### Add lasso for selection to the model ######################
+  # Remove Patient Id
+  x_train <- train.seq[ , -1, drop = FALSE ]
+  y_train <- as.factor(train.outcomes[[outcome]])
+
+  # Control settings for RFE
+  ctrl <- rfeControl(
+    functions = rfFuncs,   # random forest functions for ranking
+    # method options: boot, cv, LOOCV or LGOCV
+    # going with CV b/c sample size
+    method = "cv",
+    number = 10,  # 10-fold
+    verbose = FALSE
+  )
+
+  # How many predictors to try?
+  # should automatically drop the ones > # predictors given
+  sizes <- c(5, 10, 20, 30, 40, 50, ncol(x_train))
+
+  set.seed(seed)
+  # essentially fit > rank > subset > refit > evaluate
+  rfe_fit <- rfe(
+    x = x_train,
+    y = y_train,
+    sizes = sizes,
+    rfeControl = ctrl
+  )
+
+  selected_vars <- predictors(rfe_fit)
+
+  if (length(selected_vars) == 0) {
+    stop("RFE selected zero variables — cannot continue.")
+  }
+
+  message("\nRFE selected ", length(selected_vars), " variables.")
+
+  # Restrict to selected features
+  train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
+  test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
+###############################################################################
+
+
+###################### Boruta for selection to the model ######################
+
+
+###############################################################################
+
+
+#################### Add lasso for selection to the model #####################
   # Design matrix for LASSO (drop Patient Id)
 #   x_train <- as.matrix(train.seq[ , -1, drop = FALSE ])
 #   y_train <- as.factor(train.outcomes[[outcome]])
@@ -103,7 +151,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
 #   # Restrict train/test to selected predictors only
 #   train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
 #   test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
-################################################################################
+###############################################################################
 
   if(all(train.outcomes$`Patient Id` == train.outcomes$`Patient Id`) == FALSE){
     stop("Training Sample_IDs do not match")
