@@ -17,6 +17,8 @@ library(openxlsx)
 library(respondersig) 
 library(PRROC)
 library(glmnet)
+library(caret)
+library(Boruta)
 ```
 
 Loading data
@@ -66,7 +68,7 @@ full_micro_list[[1]] <- "Patient Id"
 #making object for irAE where q < 0.01
 irAE_q <- res.irae %>%
   left_join(phyl_labels) %>%
-  select(microbe, q_irAEYes)  %>%
+  dplyr::select(microbe, q_irAEYes)  %>%
   filter(q_irAEYes < 0.01) %>%
   replace_na(list( microbe = "k__Archaea"))
 
@@ -78,7 +80,7 @@ irae_list[[1]] <- "Patient Id"
 #making object for Response where q < 0.01
 Response_q <- res.recist %>%
   left_join(phyl_labels) %>%
-  select(microbe, q_ResponseResponder)  %>%
+  dplyr::select(microbe, q_ResponseResponder)  %>%
   filter(q_ResponseResponder < 0.01) %>%
   replace_na(list( microbe = "k__Archaea"))
 
@@ -95,7 +97,7 @@ response_list[[1]] <- "Patient Id"
 #limiting blood samples to ones also with microbiome sample and creating object
 base.gene <- blood %>%
   subset(`Patient Id` %in% baseline$`Patient Id`) %>%
-  select(`Patient Id`:YWHAZ)
+  dplyr::select(`Patient Id`:YWHAZ)
 
 blood_list <- colnames(base.gene)
 irae_blood_list <- c(irae_list, blood_list)
@@ -105,7 +107,7 @@ response_blood_list <- c(response_list, blood_list)
 # clinical objects
 ```{r}
 base.clinical <- demographics %>%
-  select(`Patient Id`, 
+  dplyr::select(`Patient Id`, 
          Sex,
          Age,
          Treatment.bin,
@@ -137,11 +139,11 @@ response_blood_clinical_list <- c(response_blood_list, clinical_list)
 # Object with all factors
 ```{r}
 all_factors <- baseline %>%
-  select(sample, `Patient Id`) %>%
+  dplyr::select(sample, `Patient Id`) %>%
   full_join(base.micro, baseline, by = "sample") %>%
   full_join(base.gene, baseline, by = "Patient Id") %>%
   left_join(base.clinical, baseline, by = "Patient Id") %>%
-  select(-sample)
+  dplyr::select(-sample)
 ```
 
 
@@ -280,7 +282,7 @@ irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 ```{r}
 irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, fullbiome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, blood_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
-save(irae.rf, file = "../data/randomforest-irae.rds")
+save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
 ```
 
 
@@ -420,7 +422,7 @@ Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR
 ```{r}
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, fullbiome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
 
-save(response.rf, file = "../data/randomforest-response.rds")
+save(response.rf, file = "../data/randomforest-response-boruta.rds")
 ```
 
 
