@@ -280,7 +280,7 @@ irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 ```{r}
 irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, fullbiome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
-save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
+save(irae.rf, file = "../data/randomforest-irae-rfe.rds")
 ```
 
 
@@ -420,7 +420,7 @@ Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR
 ```{r}
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, fullbiome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
 
-save(response.rf, file = "../data/randomforest-response-boruta.rds")
+save(response.rf, file = "../data/randomforest-response-rfe.rds")
 ```
 
 
