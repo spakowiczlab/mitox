@@ -6,13 +6,13 @@
 #
 ################################################################################
 
-k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
+k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
   set.seed(seed)
 
 
   out <- list()
 
-  out[[1]] <- getROC(seed, neg.outcome, pos.outcome, outcome, factors_list, tree)
+  out[[1]] <- getROC(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, tree)
 
 
   avg_AUCPR <- lapply(out, function(x){ x[[1]]})
@@ -22,9 +22,88 @@ k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tr
 
 
 # Function create and test RF model #
-getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
+getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
 
   set.seed(seed)
+
+  if(validation == TRUE) {
+
+    train.outcomes <- demographics %>%
+      dplyr::select(`Patient Id`, irAE, Response) %>%
+      subset(`Patient Id` %in% blood$`Patient Id`) %>%
+      subset(`Patient Id` %in% baseline$`Patient Id`)
+
+
+    met4ra$clade_name <- gsub(".*\\|", "", met4ra$clade_name)
+
+    respondsig_metadata <- respondsig_metadata %>%
+      filter(timepoint == "pre") %>%
+      subset(respondsig_metadata$sample %in% met4ra$sample) %>%
+      mutate(response = str_replace_all(response, "_", "-")) %>%
+      rename(Response = response) %>%
+      drop_na(outcome)
+
+    respondsig_metadata$irAE <- ifelse(
+      respondsig_metadata$irAE == 1,
+
+      "Yes",
+
+      ifelse(
+        respondsig_metadata$irAE == 0,
+        "No",
+
+        respondsig_metadata$irAE
+      ))
+
+
+    met4ra <- met4ra %>%
+      subset(met4ra$sample %in% respondsig_metadata$sample) %>%
+      select(clade_name, relative_abundance, sample) %>%
+      pivot_wider(names_from = clade_name, values_from = relative_abundance) %>%
+      replace(is.na(.), 0)
+
+    test.outcomes <- respondsig_metadata %>%
+      # filter(dataset == "Frankel_2017") %>%
+      # filter(dataset == "Gopalakrishnan_2019") %>%
+      # filter(dataset == "Matson_2019") %>%
+      # filter(dataset == "McCulloch_2022") %>%
+      # filter(dataset == "Peters_2019") %>%
+      select(sample, outcome) %>%
+      subset(sample %in% met4ra$sample) %>%
+      arrange(desc(sample)) %>%
+      rename(`Patient Id` = sample)
+
+
+
+    #creating objects for the model to be trained and tested on
+    factors <- all_factors %>%
+      dplyr::select((factors_list))
+
+    train.seq <- filter(factors,
+                        (`Patient Id` %in% train.outcomes$`Patient Id`))
+
+    train.seq <- arrange(train.seq, desc(`Patient Id`))
+
+
+
+
+    test.seq <- met4ra %>%
+      rename(`Patient Id` = sample) %>%
+      dplyr::select((factors_list))
+
+
+    test.seq <- filter(test.seq,
+                        (`Patient Id` %in% test.outcomes$`Patient Id`))
+
+    test.seq <- arrange(test.seq, desc(`Patient Id`))
+
+
+
+
+
+
+
+  } else {
 
   #splitting data into train and test
   split <- sample.split(demographics[[outcome]], SplitRatio = 0.5)
@@ -66,6 +145,8 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, tree){
   test.seq <- filter(factors,
                      (`Patient Id` %in% test.outcomes$`Patient Id`))
   test.seq <- arrange(test.seq, desc(`Patient Id`))
+
+  }
 
 # ###################### RF-RFE for selection to the model ######################
 #
@@ -289,10 +370,10 @@ grabVals <- function(input, seed_list){
 }
 
 # Main function call to generate RF models using 25 seeds #
-kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, tree){
+kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
   out <- list()
   for(i in 1:length(seed_list)){
-    out[[i]] <- k_validate(seed = seed_list[i], neg.outcome, pos.outcome, outcome, factors_list, tree)
+    out[[i]] <- k_validate(seed = seed_list[i], neg.outcome, pos.outcome, outcome, factors_list, validation, tree)
   }
   # out <- grabVals(out)
   # CW edit to function
