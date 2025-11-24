@@ -40,7 +40,7 @@ load("../../manuscript/data/core-score-min3.rds")
 seed_list <- c(12345:12369)
 ```
 
-# Making objects for q value models
+#q value model objects
 ```{r}
 #Object to limit microbiome sample to one ones taken within 10 days of treatment
 baseline <- mic.meta %>%
@@ -90,7 +90,7 @@ response_list <- Response_q$microbe %>%
 response_list[[1]] <- "Patient Id"
 ```
 
-# Making object for blood genes
+# blood gene objects
 ```{r}
 #limiting blood samples to ones also with microbiome sample and creating object
 base.gene <- blood %>%
@@ -134,7 +134,7 @@ irae_blood_clinical_list <- c(irae_blood_list, clinical_list)
 response_blood_clinical_list <- c(response_blood_list, clinical_list)
 ```
 
-# Making object with all factors
+# Object with all factors
 ```{r}
 all_factors <- baseline %>%
   select(sample, `Patient Id`) %>%
