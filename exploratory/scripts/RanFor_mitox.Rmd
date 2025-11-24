@@ -84,8 +84,6 @@ Response_q <- res.recist %>%
   filter(q_ResponseResponder < 0.01) %>%
   replace_na(list( microbe = "k__Archaea"))
 
-
-
 response_list <- Response_q$microbe %>%
   append("Patient Id", after = 0)
 
@@ -280,7 +278,7 @@ irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 
 ## Combine and save as one df for irAE
 ```{r}
-irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, fullbiome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, blood_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
+irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, fullbiome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
 save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
 ```
