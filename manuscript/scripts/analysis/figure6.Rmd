@@ -21,8 +21,12 @@ library(ggpubr)
 ```{r}
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
-load("../../../exploratory/data/randomforest-irae.rds")
-load("../../../exploratory/data/randomforest-response.rds")
+# load("../../../exploratory/data/randomforest-irae.rds")
+# load("../../../exploratory/data/randomforest-response.rds")
+load("../../../exploratory/data/randomforest-irae-boruta.rds")
+load("../../../exploratory/data/randomforest-response-boruta.rds")
+# load("../../../exploratory/data/randomforest-irae-RFE.rds")
+# load("../../../exploratory/data/randomforest-response-RFE.rds")
 ```
 
 # Prepare data
@@ -42,7 +46,9 @@ demo.filt <- demographics %>%
     rename(
     BMI = `BMI.(kg/m2)`,
     Absolute_lymphocytes = `Absolute.lymphocytes.(K/µL)`,
-    LDH = `LDH.(U/L)`
+    LDH = `LDH.(U/L)`,
+    Treatment.cat = Treatment, 
+    Treatment = Treatment.bin
   )
 ```
 
@@ -109,12 +115,11 @@ results_response <- results_response %>%
     term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
     term == "LDH" ~ "LDH",
     term == "SexMale" ~ "Male vs Female",
-    term == "TreatmentNIVO" ~ "NIVO vs IPI/NIVO",
-    term == "TreatmentPEMBRO" ~ "PEMBRO vs IPI/NIVO",
+    term == "TreatmentAnti-PD-1" ~ "Anti PD-1 vs Anti-CTLA-4",
     term == "StageStage IV" ~ "Stage IV vs III",
-    term == "PPIYes" ~ "PPI Yes vs No",
-    term == "AntibioticsYes" ~ "Antibiotics Yes vs No",
-    term == "CorticosteroidsYes" ~ "Corticosteroids Yes vs No",
+    term == "PPIYes" ~ "PPI (Yes vs No)",
+    term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
+    term == "CorticosteroidsYes" ~ "Corticosteroids (Yes vs No)",
     TRUE ~ term
   )) %>%
   mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
@@ -126,12 +131,11 @@ results_irae <- results_irae %>%
     term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
     term == "LDH" ~ "LDH",
     term == "SexMale" ~ "Male vs Female",
-    term == "TreatmentNIVO" ~ "NIVO vs IPI/NIVO",
-    term == "TreatmentPEMBRO" ~ "PEMBRO vs IPI/NIVO",
+    term == "TreatmentAnti-PD-1" ~ "Anti PD-1 vs Anti-CTLA-4",
     term == "StageStage IV" ~ "Stage IV vs III",
-    term == "PPIYes" ~ "PPI Yes vs No",
-    term == "AntibioticsYes" ~ "Antibiotics Yes vs No",
-    term == "CorticosteroidsYes" ~ "Corticosteroids Yes vs No",
+    term == "PPIYes" ~ "PPI (Yes vs No)",
+    term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
+    term == "CorticosteroidsYes" ~ "Corticosteroids (Yes vs No)",
     TRUE ~ term
   )) %>%
   mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
@@ -145,14 +149,16 @@ results_irae <- results_irae %>%
 ggplot(results_response, aes(x = OR, y = reorder(Label, OR))) +
   geom_point(size = 3) +
   geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "red3") +
-  theme_bw() +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
+  theme_minimal() +
   labs(
     title = "Response",
     x = "Odds Ratio (95% CI)",
     y = NULL,
   ) +
   theme(text = element_text(size = 14))
+
+ggsave("../../figures/Fig6B-Forestplot-irae.svg", height = 2.5, width = 4)
 ```
 
 ### Univariate Clinical Predictors of irAE
@@ -160,14 +166,16 @@ ggplot(results_response, aes(x = OR, y = reorder(Label, OR))) +
 ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
   geom_point(size = 3) +
   geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "red3") +
-  theme_bw() +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
+  theme_minimal() +
   labs(
     title = "irAE",
     x = "Odds Ratio (95% CI)",
     y = NULL
   ) +
   theme(text = element_text(size = 14))
+
+ggsave("../../figures/Fig6A-Forestplot-response.svg", height = 2.5, width = 4)
 ```
 
 ### upset plot style fig? or maybe just boxplots
@@ -204,7 +212,8 @@ sig_list <- split(significant_comparisons[, c("group1","group2")],
 
 Means <- df %>%
   group_by(Predictors) %>%
-  summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE))
+  summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE)) %>%
+  arrange(mean_aucpr)
 
 Model_Comparison_Plot <- df %>%
   ggplot(aes(
@@ -214,15 +223,17 @@ Model_Comparison_Plot <- df %>%
   )) +
   geom_boxplot(outlier.colour = NA, fatten = 1) +  # median line inherits box color
   geom_jitter(width = 0.1, alpha = 0.6) +         # jitter points
-  ggpubr::stat_compare_means(
-    comparisons = sig_list,
-    label = "p.signif",
-    label.y = seq(0.95, by = 0.1, length.out = length(sig_list))
-  ) +
+  # ggpubr::stat_compare_means(
+  #   comparisons = sig_list,
+  #   label = "p.signif",
+  #   label.y = seq(0.95, by = 0.1, length.out = length(sig_list))
+  # ) +
   labs(y = "AUCPR", x = NULL, title = NULL) +
+  scale_color_manual(values = c("firebrick4", "darkgoldenrod2", "cornflowerblue","salmon2","deeppink4", "cyan4","darkgreen")) +
   scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
   theme(
     axis.title = element_text(size = 16),
+    axis.text.x = element_text(angle = 45, hjust=1),
     legend.position = "none",
     axis.line = element_line(color = 'black', linewidth = 0.5),
     panel.background = element_rect(fill = 'white')
@@ -243,17 +254,74 @@ Model_Comparison_Plot <- df %>%
 ```
 
 ```{r}
-aucpr_box(irae.rf)
-# ggsave("../../figures/Fig5E-AUCPR-boxplots-irae.png", height = 5, width = 10)
+aucpr_box(irae.rf %>% filter(Predictors != "Full Microbiome"))
+
+ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 5, width = 5)
 ```
 
 ```{r}
-aucpr_box(response.rf)
-# ggsave("../../figures/Fig5E-AUCPR-boxplots-response.png", height = 5, width = 10)
+aucpr_box(response.rf %>% filter(Predictors != "Full Microbiome"))
+
+ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 5, width = 5)
+```
+
+Figure E and F - ROC curves
+
+```{r}
+response.rf %>% 
+  filter(Predictors == "Microbiome" | Predictors=="Clinical") %>%
+  group_by(Predictors) %>%
+  mutate(max_AUCPR = max(AUCPR)) %>%
+  filter(AUCPR == max_AUCPR) %>%
+  select(-max_AUCPR) %>%
+  ungroup() %>%
+  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors), 
+             colour = Predictors)) +
+  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
+  theme_minimal() +
+  geom_smooth(se = FALSE) +
+  xlab("Specifity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.5, y=0.92, label="AUC = 0.993",
+              color="darkgreen", size=4) +
+  annotate(geom="text", x=0.55, y=0.73, label="AUC = 0.856",
+              color="cornflowerblue", size=4) +
+  theme(legend.position = "none")
+
+ggsave("../../figures/Fig6E-ROC-response.svg", height = 2.5, width = 2.5)
+```
+
+```{r}
+irae.rf %>% 
+  filter(Predictors == "Microbiome" | Predictors=="Clinical") %>%
+  group_by(Predictors) %>%
+  mutate(max_AUCPR = max(AUCPR)) %>%
+  filter(AUCPR == max_AUCPR) %>%
+  select(-max_AUCPR) %>%
+  ungroup() %>%
+  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors), 
+             colour = Predictors)) +
+  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
+  theme_minimal() +
+  geom_smooth(se = FALSE) +
+  xlab("Specifity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.4, y=0.92, label="AUC = 1.0",
+              color="darkgreen", size=4) +
+  annotate(geom="text", x=0.75, y=0.45, label="AUC = 0.670",
+              color="cornflowerblue", size=4) +
+  theme(legend.position = "none")
+
+
+ggsave("../../figures/Fig6F-ROC-irae.svg", height = 2.5, width = 2.5)
 ```
 
 
+Figure G and H - ROC validation 
 
+```{r}
 
+```
 
+Figure I and J - Variable Importance Plots
 
