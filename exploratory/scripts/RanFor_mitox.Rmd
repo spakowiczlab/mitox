@@ -36,8 +36,6 @@ load("../../manuscript/data/ANCOM-BC2_irae_baseline.RData")
 load("../../manuscript/data/core-score-min3.rds")
 utils::data("met4ra", package = "respondersig")
 respondsig_metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv") 
-
-
 ```
 
 ```{r}
@@ -158,6 +156,8 @@ rf_clinical_irAE_list <- kTest(seed_list,
                                clinical_list,
                                FALSE,
                                1000)
+
+clinical_irae_vars <- rf_clinical_irAE_list[[1]][[1]][[4]]
 
 clinical_irae_aucprs <- grabVals(rf_clinical_irAE_list,
                             seed_list)

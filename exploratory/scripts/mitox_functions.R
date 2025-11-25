@@ -9,17 +9,14 @@
 k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
   set.seed(seed)
 
-
   out <- list()
 
   out[[1]] <- getROC(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, tree)
-
 
   avg_AUCPR <- lapply(out, function(x){ x[[1]]})
   message("\nAUCPR average: ", (rowMeans(as.data.frame(avg_AUCPR))))
   return(out)
 }
-
 
 # Function create and test RF model #
 getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
@@ -32,7 +29,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
       dplyr::select(`Patient Id`, irAE, Response) %>%
       subset(`Patient Id` %in% blood$`Patient Id`) %>%
       subset(`Patient Id` %in% baseline$`Patient Id`)
-
 
     met4ra$clade_name <- gsub(".*\\|", "", met4ra$clade_name)
 
@@ -55,7 +51,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
         respondsig_metadata$irAE
       ))
 
-
     met4ra <- met4ra %>%
       subset(met4ra$sample %in% respondsig_metadata$sample) %>%
       select(clade_name, relative_abundance, sample) %>%
@@ -73,8 +68,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
       arrange(desc(sample)) %>%
       rename(`Patient Id` = sample)
 
-
-
     #creating objects for the model to be trained and tested on
     factors <- all_factors %>%
       dplyr::select((factors_list))
@@ -84,24 +77,14 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
     train.seq <- arrange(train.seq, desc(`Patient Id`))
 
-
-
-
     test.seq <- met4ra %>%
       rename(`Patient Id` = sample) %>%
       dplyr::select((factors_list))
-
 
     test.seq <- filter(test.seq,
                        (`Patient Id` %in% test.outcomes$`Patient Id`))
 
     test.seq <- arrange(test.seq, desc(`Patient Id`))
-
-
-
-
-
-
 
   } else {
 
@@ -123,7 +106,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
       subset(`Patient Id` %in% baseline$`Patient Id`)
 
     train.outcomes <- arrange(train.outcomes, desc(`Patient Id`))
-
 
     test.outcomes <- demographics %>%
       dplyr::select(`Patient Id`, irAE, Response) %>%
@@ -148,9 +130,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
   }
 
-
 ###################### RF-RFE for selection to the model ######################
-
   # Remove Patient Id
   x_train <- train.seq[ , -1, drop = FALSE ]
   y_train <- as.factor(train.outcomes[[outcome]])
@@ -167,7 +147,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
   # How many predictors to try?
   # should automatically drop the ones > # predictors given
-  sizes <- c(5, 10, 20, 30, 40, 50, ncol(x_train))
+  sizes <- c(2, 4, 6 ,8, 10, 20, 30, 40, 50, ncol(x_train))
 
   set.seed(seed)
   # essentially fit > rank > subset > refit > evaluate
@@ -190,7 +170,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
   train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
   test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
 ###############################################################################
-
 
 # ###################### Boruta for selection to the model ######################
 #   set.seed(seed)
@@ -240,7 +219,6 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 #   train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
 #   test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
 # ###############################################################################
-
 
 #################### Add lasso for selection to the model #####################
   # Design matrix for LASSO (drop Patient Id)

@@ -158,7 +158,7 @@ ggplot(results_response, aes(x = OR, y = reorder(Label, OR))) +
   ) +
   theme(text = element_text(size = 14))
 
-ggsave("../../figures/Fig6B-Forestplot-irae.png", height = 2.5, width = 4)
+ggsave("../../figures/Fig6B-Forestplot-irae.svg", height = 2.5, width = 4)
 ```
 
 ### Univariate Clinical Predictors of irAE
@@ -175,7 +175,7 @@ ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
   ) +
   theme(text = element_text(size = 14))
 
-ggsave("../../figures/Fig6A-Forestplot-response.png", height = 2.5, width = 4)
+ggsave("../../figures/Fig6A-Forestplot-response.svg", height = 2.5, width = 4)
 ```
 
 ### upset plot style fig? or maybe just boxplots
@@ -229,7 +229,7 @@ Model_Comparison_Plot <- df %>%
   #   label.y = seq(0.95, by = 0.1, length.out = length(sig_list))
   # ) +
   labs(y = "AUCPR", x = NULL, title = NULL) +
-  scale_color_manual(values = c("darkgreen","darkgoldenrod2","cyan4","cornflowerblue", "salmon2", "deeppink4", "firebrick4")) +
+  scale_color_manual(values = c("firebrick4", "darkgoldenrod2", "cornflowerblue","salmon2","deeppink4", "cyan4","darkgreen")) +
   scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
   theme(
     axis.title = element_text(size = 16),
@@ -256,12 +256,13 @@ Model_Comparison_Plot <- df %>%
 ```{r}
 aucpr_box(irae.rf %>% filter(Predictors != "Full Microbiome"))
 
-ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.png", height = 5, width = 5)
+ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 5, width = 5)
 ```
 
 ```{r}
 aucpr_box(response.rf %>% filter(Predictors != "Full Microbiome"))
-ggsave("../../figures/Fig6C-AUCPR-boxplots-response.png", height = 5, width = 5)
+
+ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 5, width = 5)
 ```
 
 Figure E and F - ROC curves
@@ -269,22 +270,50 @@ Figure E and F - ROC curves
 ```{r}
 response.rf %>% 
   filter(Predictors == "Microbiome" | Predictors=="Clinical") %>%
-  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors),
-            alpha = 0.15)) +
-  geom_smooth(se = FALSE)
-  
-
-gen_ra_plot <- ggplot(gen_ra, aes(x=FalsePositive, y=TruePositive)) + 
-  theme_bw() +
-  geom_smooth(se = FALSE, color="darkgreen") +
-    xlab("Specifity") +
+  group_by(Predictors) %>%
+  mutate(max_AUCPR = max(AUCPR)) %>%
+  filter(AUCPR == max_AUCPR) %>%
+  select(-max_AUCPR) %>%
+  ungroup() %>%
+  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors), 
+             colour = Predictors)) +
+  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
+  theme_minimal() +
+  geom_smooth(se = FALSE) +
+  xlab("Specifity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.5, y=0.7, label="AUC = 0.8125",
-              color="darkgreen", size=8) 
+  annotate(geom="text", x=0.5, y=0.92, label="AUC = 0.993",
+              color="darkgreen", size=4) +
+  annotate(geom="text", x=0.55, y=0.73, label="AUC = 0.856",
+              color="cornflowerblue", size=4) +
+  theme(legend.position = "none")
 
+ggsave("../../figures/Fig6E-ROC-response.svg", height = 2.5, width = 2.5)
+```
+
+```{r}
 irae.rf %>% 
-  filter(Predictors == "Clinical|Microbiome") %>%
-  ggplot()
+  filter(Predictors == "Microbiome" | Predictors=="Clinical") %>%
+  group_by(Predictors) %>%
+  mutate(max_AUCPR = max(AUCPR)) %>%
+  filter(AUCPR == max_AUCPR) %>%
+  select(-max_AUCPR) %>%
+  ungroup() %>%
+  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors), 
+             colour = Predictors)) +
+  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
+  theme_minimal() +
+  geom_smooth(se = FALSE) +
+  xlab("Specifity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.4, y=0.92, label="AUC = 1.0",
+              color="darkgreen", size=4) +
+  annotate(geom="text", x=0.75, y=0.45, label="AUC = 0.670",
+              color="cornflowerblue", size=4) +
+  theme(legend.position = "none")
+
+
+ggsave("../../figures/Fig6F-ROC-irae.svg", height = 2.5, width = 2.5)
 ```
 
 
