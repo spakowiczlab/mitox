@@ -348,29 +348,6 @@ grabVals <- function(input, seed_list){
   dplyr::bind_rows(out)
 }
 
-# Grabbing AUROC values from input models #
-grabImp <- function(input, seed_list){
-
-  out <- list()
-
-  for (i in seq_along(seed_list)) {
-
-    # Extract getROC() output for this seed
-    res <- input[[i]][[1]]
-
-    impdf <- res[[4]] %>%   # Variable importance export
-      as.data.frame() %>%
-      rownames_to_column(var = "Factors")  #convert row names to column
-
-    impdf$seed  <- seed_list[i]
-
-    out[[i]] <- impdf
-  }
-
-  # bind into one big data frame
-  dplyr::bind_rows(out)
-}
-
 # Main function call to generate RF models using 25 seeds #
 kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
   out <- list()

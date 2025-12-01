@@ -163,11 +163,6 @@ clinical_irae_aucprs <- grabVals(rf_clinical_irAE_list,
                             seed_list)
 clinical_irae_aucprs$Predictors <- "Clinical"
 
-clinical_irae_Imp <- grabImp(rf_clinical_irAE_list,
-                            seed_list)
-clinical_irae_Imp$Predictors <- "Clinical"
-
-
 irAE_clinical <- mean(clinical_irae_aucprs$AUCPR)
 ```
 
@@ -184,11 +179,6 @@ rf_fullbiome_irAE_list <- kTest(seed_list,
 fullbiome_irae_aucprs <- grabVals(rf_fullbiome_irAE_list,
                               seed_list)
 fullbiome_irae_aucprs$Predictors <- "Full Microbiome"
-
-fullbiome_irae_Imp <- grabImp(rf_fullbiome_irAE_list,
-                              seed_list)
-fullbiome_irae_Imp$Predictors <- "Full Microbiome"
-
 
 irAE_fullbiome <- mean(fullbiome_irae_aucprs$AUCPR)
 ```
@@ -207,11 +197,6 @@ biome_irae_aucprs <- grabVals(rf_q005_irAE_list,
                          seed_list)
 biome_irae_aucprs$Predictors <- "Microbiome"
 
-biome_irae_Imp <- grabImp(rf_q005_irAE_list,
-                         seed_list)
-biome_irae_Imp$Predictors <- "Microbiome"
-
-
 irAE_q005 <- mean(biome_irae_aucprs$AUCPR)
 ```
 
@@ -228,11 +213,6 @@ rf_blood_irAE_list <- kTest(seed_list,
 blood_irae_aucprs <- grabVals(rf_blood_irAE_list,
                          seed_list)
 blood_irae_aucprs$Predictors <- "Blood"
-
-blood_irae_Imp <- grabImp(rf_blood_irAE_list,
-                         seed_list)
-blood_irae_Imp$Predictors <- "Blood"
-
 
 irAE_blood <- mean(blood_irae_aucprs$AUCPR)
 ```
@@ -251,11 +231,6 @@ biome_and_blood_irae_aucprs <- grabVals(rf_biome_blood_irAE_list,
                                    seed_list)
 biome_and_blood_irae_aucprs$Predictors <- "Blood + Microbiome"
 
-biome_and_blood_irae_Imp <- grabImp(rf_biome_blood_irAE_list,
-                                   seed_list)
-biome_and_blood_irae_Imp$Predictors <- "Blood + Microbiome"
-
-
 irAE_biome_and_blood <- mean(biome_and_blood_irae_aucprs$AUCPR)
 ```
 
@@ -272,11 +247,6 @@ rf_blood_clinical_irAE_list <- kTest(seed_list,
 blood_and_clinical_irae_aucprs <- grabVals(rf_blood_clinical_irAE_list,
                                    seed_list)
 blood_and_clinical_irae_aucprs$Predictors <- "Clinical + Blood"
-
-blood_and_clinical_irae_Imp <- grabImp(rf_blood_clinical_irAE_list,
-                                   seed_list)
-blood_and_clinical_irae_Imp$Predictors <- "Clinical + Blood"
-
 
 irAE_blood_and_clinical <- mean(blood_and_clinical_irae_aucprs$AUCPR)
 ```
@@ -295,11 +265,6 @@ biome_and_clinical_irae_aucprs <- grabVals(rf_biome_clinical_irAE_list,
                                    seed_list)
 biome_and_clinical_irae_aucprs$Predictors <- "Clinical + Microbiome"
 
-biome_and_clinical_irae_Imp <- grabImp(rf_biome_clinical_irAE_list,
-                                   seed_list)
-biome_and_clinical_irae_Imp$Predictors <- "Clinical + Microbiome"
-
-
 irAE_biome_and_clinical <- mean(biome_and_clinical_irae_aucprs$AUCPR)
 ```
 
@@ -316,11 +281,6 @@ rf_biome_blood_clinical_irAE_list <- kTest(seed_list,
 biome_blood_clinical_irae_aucprs <- grabVals(rf_biome_blood_clinical_irAE_list,
                                         seed_list)
 biome_blood_clinical_irae_aucprs$Predictors <- "Clinical + Blood + Microbiome"
-
-biome_blood_clinical_irae_Imp <- grabImp(rf_biome_blood_clinical_irAE_list,
-                                        seed_list)
-biome_blood_clinical_irae_Imp$Predictors <- "Clinical + Blood + Microbiome"
-
 
 irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 ```
@@ -341,12 +301,6 @@ validation_biome_irae_aucprs <- grabVals(rf_validation_irAE_list,
 
 validation_biome_irae_aucprs$Predictors <- "Validation Microbiome"
 
-validation_biome_irae_Imp <- grabImp(rf_validation_irAE_list,
-                                        seed_list)
-
-validation_biome_irae_Imp$Predictors <- "Validation Microbiome"
-
-
 validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
 
 ```
@@ -357,11 +311,6 @@ validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
 irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, fullbiome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs, validation_biome_irae_aucprs)
 
 save(irae.rf, file = "../data/randomforest-irae-rfe.rds")
-
-irae.rf.imp <- rbind(clinical_irae_Imp, blood_irae_Imp, biome_irae_Imp, fullbiome_irae_Imp, biome_and_blood_irae_Imp, blood_and_clinical_irae_Imp, biome_and_clinical_irae_Imp, biome_blood_clinical_irae_Imp, validation_biome_irae_Imp)
-
-save(irae.rf.imp, file = "../data/randomforest-irae-rfe.rds")
-
 ```
 
 
@@ -382,11 +331,6 @@ clinical_response_aucprs <- grabVals(rf_clinical_response_list,
                             seed_list)
 clinical_response_aucprs$Predictors <- "Clinical"
 
-clinical_response_Imp <- grabImp(rf_clinical_response_list,
-                            seed_list)
-clinical_response_Imp$Predictors <- "Clinical"
-
-
 Response_clinical <- mean(clinical_response_aucprs$AUCPR)
 ```
 
@@ -403,11 +347,6 @@ rf_fullbiome_response_list <- kTest(seed_list,
 fullbiome_response_aucprs <- grabVals(rf_fullbiome_response_list,
                               seed_list)
 fullbiome_response_aucprs$Predictors <- "Full Microbiome"
-
-fullbiome_response_Imp <- grabImp(rf_fullbiome_response_list,
-                              seed_list)
-fullbiome_response_Imp$Predictors <- "Full Microbiome"
-
 
 Response_fullbiome <- mean(fullbiome_response_aucprs$AUCPR)
 ```
@@ -426,11 +365,6 @@ biome_response_aucprs <- grabVals(rf_q01_response_list,
                          seed_list)
 biome_response_aucprs$Predictors <- "Microbiome"
 
-biome_response_Imp <- grabImp(rf_q01_response_list,
-                         seed_list)
-biome_response_Imp$Predictors <- "Microbiome"
-
-
 Response_q01 <- mean(biome_response_aucprs$AUCPR)
 ```
 
@@ -447,11 +381,6 @@ rf_blood_response_list <- kTest(seed_list,
 blood_response_aucprs <- grabVals(rf_blood_response_list,
                          seed_list)
 blood_response_aucprs$Predictors <- "Blood"
-
-blood_response_Imp <- grabImp(rf_blood_response_list,
-                         seed_list)
-blood_response_Imp$Predictors <- "Blood"
-
 
 Response_blood <- mean(blood_response_aucprs$AUCPR)
 ```
@@ -470,11 +399,6 @@ biome_and_blood_response_aucprs <- grabVals(rf_biome_blood_response_list,
                                    seed_list)
 biome_and_blood_response_aucprs$Predictors <- "Blood + Microbiome"
 
-biome_and_blood_response_Imp <- grabImp(rf_biome_blood_response_list,
-                                   seed_list)
-biome_and_blood_response_Imp$Predictors <- "Blood + Microbiome"
-
-
 Response_biome_and_blood <- mean(biome_and_blood_response_aucprs$AUCPR)
 ```
 
@@ -491,11 +415,6 @@ rf_biome_clinical_response_list <- kTest(seed_list,
 biome_clinical_response_aucprs <- grabVals(rf_biome_clinical_response_list,
                                    seed_list)
 biome_clinical_response_aucprs$Predictors <- "Clinical + Microbiome"
-
-biome_clinical_response_Imp <- grabImp(rf_biome_clinical_response_list,
-                                   seed_list)
-biome_clinical_response_Imp$Predictors <- "Clinical + Microbiome"
-
 
 Response_biome_blood_clinical <- mean(biome_clinical_response_aucprs$AUCPR)
 ```
@@ -514,11 +433,6 @@ blood_clinical_response_aucprs <- grabVals(rf_blood_clinical_response_list,
                                    seed_list)
 blood_clinical_response_aucprs$Predictors <- "Clinical + Blood"
 
-blood_clinical_response_Imp <- grabImp(rf_blood_clinical_response_list,
-                                   seed_list)
-blood_clinical_response_Imp$Predictors <- "Clinical + Blood"
-
-
 Response_biome_blood_clinical <- mean(blood_clinical_response_aucprs$AUCPR)
 ```
 
@@ -535,11 +449,6 @@ rf_biome_blood_clinical_response_list <- kTest(seed_list,
 biome_blood_clinical_response_aucprs <- grabVals(rf_biome_blood_clinical_response_list,
                                    seed_list)
 biome_blood_clinical_response_aucprs$Predictors <- "Clinical + Blood + Microbiome"
-
-biome_blood_clinical_response_Imp <- grabImp(rf_biome_blood_clinical_response_list,
-                                   seed_list)
-biome_blood_clinical_response_Imp$Predictors <- "Clinical + Blood + Microbiome"
-
 
 Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR)
 ```
@@ -559,11 +468,6 @@ validation_biome_response_aucprs <- grabVals(rf_validation_response_list,
                          seed_list)
 validation_biome_response_aucprs$Predictors <- "Validation Microbiome"
 
-validation_biome_response_Imp <- grabImp(rf_validation_response_list,
-                         seed_list)
-validation_biome_response_Imp$Predictors <- "Validation Microbiome"
-
-
 validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
 ```
 
@@ -573,12 +477,6 @@ validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, fullbiome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs, validation_biome_response_aucprs)
 
 save(response.rf, file = "../data/randomforest-response-rfe.rds")
-
-
-response.rf.imp <- rbind(clinical_response_Imp, blood_response_Imp, biome_response_Imp, fullbiome_response_Imp, biome_clinical_response_Imp, blood_clinical_response_Imp,  biome_and_blood_response_Imp, biome_blood_clinical_response_Imp, validation_biome_response_Imp)
-
-save(response.rf.imp, file = "../data/randomforest-response-rfe.rds")
-
 ```
 
 
