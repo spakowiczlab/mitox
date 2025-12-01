@@ -348,6 +348,12 @@ grabVals <- function(input, seed_list){
   dplyr::bind_rows(out)
 }
 
+# Grabbing the variables used in each model
+# Function to get distinct rownames from all list elements
+get_vars <- function(myList) {
+  unique(unlist(lapply(myList, function(x) rownames(x[[1]][[4]]))))
+}
+
 # Main function call to generate RF models using 25 seeds #
 kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, validation, tree){
   out <- list()
