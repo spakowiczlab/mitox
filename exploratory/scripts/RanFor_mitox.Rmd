@@ -164,22 +164,6 @@ clinical_irae_aucprs$Predictors <- "Clinical"
 irAE_clinical <- mean(clinical_irae_aucprs$AUCPR)
 ```
 
-<!-- # Full biome model -->
-<!-- ```{r} -->
-<!-- rf_fullbiome_irAE_list <- kTest(seed_list, -->
-<!--                           "No", -->
-<!--                           "Yes", -->
-<!--                           "irAE", -->
-<!--                           full_micro_list, -->
-<!--                           FALSE, -->
-<!--                           1000) -->
-
-<!-- fullbiome_irae_aucprs <- grabVals(rf_fullbiome_irAE_list, -->
-<!--                               seed_list) -->
-<!-- fullbiome_irae_aucprs$Predictors <- "Full Microbiome" -->
-
-<!-- irAE_fullbiome <- mean(fullbiome_irae_aucprs$AUCPR) -->
-<!-- ``` -->
 
 # Limited biome model
 ```{r}
@@ -198,6 +182,7 @@ biome_irae_aucprs$Predictors <- "Microbiome"
 irAE_q005 <- mean(biome_irae_aucprs$AUCPR)
 
 irae.mic.vars <- get_vars(rf_q005_irAE_list)
+saveRDS(irae.mic.vars, "../data/irae-mic-vars.rds")
 ```
 
 # Just blood model
@@ -288,23 +273,7 @@ irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 ```
 
 
-<!-- ## Validation irAE -->
-<!-- ```{r} -->
-<!-- rf_validation_irAE_list <- kTest(seed_list, -->
-<!--                                            "No", -->
-<!--                                            "Yes", -->
-<!--                                            "irAE", -->
-<!--                                            irae_list, -->
-<!--                                            TRUE, -->
-<!--                                            1000) -->
 
-<!-- validation_biome_irae_aucprs <- grabVals(rf_validation_irAE_list, -->
-<!--                                         seed_list) -->
-
-<!-- validation_biome_irae_aucprs$Predictors <- "Validation Microbiome" -->
-
-<!-- validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR) -->
-<!-- ``` -->
 
 
 ## Combine and save as one df for irAE
@@ -334,22 +303,6 @@ clinical_response_aucprs$Predictors <- "Clinical"
 Response_clinical <- mean(clinical_response_aucprs$AUCPR)
 ```
 
-<!-- # Full biome model -->
-<!-- ```{r} -->
-<!-- rf_fullbiome_response_list <- kTest(seed_list, -->
-<!--                                 "Non-Responder", -->
-<!--                                 "Responder", -->
-<!--                                 "Response", -->
-<!--                                 full_micro_list, -->
-<!--                                 FALSE, -->
-<!--                                 1000) -->
-
-<!-- fullbiome_response_aucprs <- grabVals(rf_fullbiome_response_list, -->
-<!--                               seed_list) -->
-<!-- fullbiome_response_aucprs$Predictors <- "Full Microbiome" -->
-
-<!-- Response_fullbiome <- mean(fullbiome_response_aucprs$AUCPR) -->
-<!-- ``` -->
 
 # Limited biome model
 ```{r}
@@ -454,23 +407,6 @@ Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR
 ```
 
 
-<!-- ## Validation Response -->
-<!-- ```{r} -->
-<!-- rf_validation_response_list <- kTest(seed_list, -->
-<!--                               "Non-Responder", -->
-<!--                               "Responder", -->
-<!--                               "Response", -->
-<!--                               response_list, -->
-<!--                               TRUE, -->
-<!--                               1000) -->
-
-<!-- validation_biome_response_aucprs <- grabVals(rf_validation_response_list, -->
-<!--                          seed_list) -->
-<!-- validation_biome_response_aucprs$Predictors <- "Validation Microbiome" -->
-
-<!-- validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR) -->
-<!-- ``` -->
-
 
 ## Combine and save as one df for Response
 ```{r}
@@ -482,5 +418,6 @@ save(response.rf, file = "../data/randomforest-response-rfe.rds")
 ## Get variables used 
 ```{r}
 response.mic.vars <- get_vars(rf_q01_response_list)
+saveRDS(response.mic.vars, "../data/response-mic-vars.rds")
 ```
 

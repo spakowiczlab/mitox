@@ -1,0 +1,173 @@
+---
+title: "RanFor_mitox_validation"
+author: "Noah Lepola"
+date: "2025-12-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(randomForest)
+library(ROCR)
+library(caTools)
+library(openxlsx)
+library(respondersig) 
+library(PRROC)
+library(glmnet)
+library(caret)
+library(Boruta)
+```
+
+Loading data
+```{r}
+source("../scripts/mitox_functions.R")
+# irAE_aucprs <- readRDS("../data/rf_mitox_irAE_aucpr.RData")
+# Response_aucprs <- readRDS("../data/rf_mitox_Response_aucpr.RData")
+load("../../manuscript/data/ra-long.rds")
+load("../../manuscript/data/clinical.rds")
+load("../../manuscript/data/blood.rds")
+load("../../manuscript/data/microbiome_metadata.rds")
+load("../../manuscript/data/phylum-labels.rds")
+load("../../manuscript/data/ANCOM-BC2_response_baseline.Rdata")
+load("../../manuscript/data/ANCOM-BC2_irae_baseline.RData")
+load("../../manuscript/data/core-score-min3.rds")
+utils::data("met4ra", package = "respondersig")
+respondsig_metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv") 
+```
+
+```{r}
+seed_list <- c(12345:12369)
+```
+
+
+```{r}
+#Object to limit microbiome sample to one ones taken within 10 days of treatment
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10) %>%
+  subset(`Patient Id` %in% blood$`Patient Id`)
+
+phyl_labels <- phyl_labels %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+#creating object for use in biome model
+base.micro <- ra.l %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun) %>%
+  subset(sample %in% baseline$sample)
+
+#note it is dropping bacteria and archaea becaise it isn't in phyl_labels
+#making object for irAE where q < 0.01
+irAE_q <- res.irae %>%
+  left_join(phyl_labels) %>%
+  dplyr::select(microbe, q_irAEYes)  %>%
+  filter(q_irAEYes < 0.005) %>%
+  replace_na(list( microbe = "k__Archaea"))
+
+
+#making object for Response where q < 0.01
+Response_q <- res.recist %>%
+  left_join(phyl_labels) %>%
+  dplyr::select(microbe, q_ResponseResponder)  %>%
+  filter(q_ResponseResponder < 0.01) %>%
+  replace_na(list( microbe = "k__Archaea"))
+
+```
+
+# blood gene objects
+```{r}
+#limiting blood samples to ones also with microbiome sample and creating object
+base.gene <- blood %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  dplyr::select(`Patient Id`:YWHAZ)
+```
+
+# clinical objects
+```{r}
+base.clinical <- demographics %>%
+  dplyr::select(`Patient Id`, 
+         Sex,
+         Age,
+         Treatment.bin,
+         Stage,
+         `Total.WBC.(K/µL)`,
+         `Relative.lymphocyte.count.(%)`, 
+         `Relative.eosinophil.count.(%)`, 
+         `LDH.(U/L)`, 
+         `BMI.(kg/m2)`)
+
+base.clinical <- base.clinical %>% 
+  mutate_at(c("Sex",
+              "Treatment.bin", 
+              "Stage"), as.factor)
+
+```
+
+# Object with all factors
+```{r}
+all_factors <- baseline %>%
+  dplyr::select(sample, `Patient Id`) %>%
+  full_join(base.micro, baseline, by = "sample") %>%
+  full_join(base.gene, baseline, by = "Patient Id") %>%
+  left_join(base.clinical, baseline, by = "Patient Id") %>%
+  dplyr::select(-sample)
+```
+
+##limiting list to ones used in mitox models
+```{r}
+irae.mic.vars <- c("Patient Id", readRDS("../data/irae-mic-vars.rds"))
+response.mic.vars <- c("Patient Id", readRDS("../data/response-mic-vars.rds"))
+```
+
+
+
+## Validation irAE
+```{r}
+rf_validation_irAE_list <- kTest(seed_list,
+                                           "No",
+                                           "Yes",
+                                           "irAE",
+                                           irae.mic.vars,
+                                           TRUE,
+                                           1000)
+
+validation_biome_irae_aucprs <- grabVals(rf_validation_irAE_list,
+                                        seed_list)
+
+validation_biome_irae_aucprs$Predictors <- "Validation Microbiome"
+
+validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
+
+save(validation_biome_irae_aucprs, file = "../data/irae-validation-aucprs.rds")
+
+```
+
+
+
+## Validation Response
+```{r}
+rf_validation_response_list <- kTest(seed_list,
+                              "Non-Responder",
+                              "Responder",
+                              "Response",
+                              response.mic.vars,
+                              TRUE,
+                              1000)
+
+validation_biome_response_aucprs <- grabVals(rf_validation_response_list,
+                         seed_list)
+validation_biome_response_aucprs$Predictors <- "Validation Microbiome"
+
+validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
+
+save(validation_biome_response_aucprs, file = "../data/response-validation.aucprs.rds")
+
+```
+
+
+
