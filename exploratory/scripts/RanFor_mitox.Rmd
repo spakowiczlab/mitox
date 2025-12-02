@@ -273,17 +273,6 @@ irAE_biome_blood_clinical <- mean(biome_blood_clinical_irae_aucprs$AUCPR)
 ```
 
 
-
-
-
-## Combine and save as one df for irAE
-```{r}
-irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
-
-save(irae.rf, file = "../data/randomforest-irae-rfe.rds")
-```
-
-
 ### Response
 
 # Clinical model
@@ -406,18 +395,74 @@ biome_blood_clinical_response_aucprs$Predictors <- "Clinical + Blood + Microbiom
 Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR)
 ```
 
+## Combine and save as one df for irAE
+```{r}
+irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
+save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
+```
 
 ## Combine and save as one df for Response
 ```{r}
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
 
-save(response.rf, file = "../data/randomforest-response-rfe.rds")
+save(response.rf, file = "../data/randomforest-response-boruta.rds")
 ```
 
 ## Get variables used 
 ```{r}
-response.mic.vars <- get_vars(rf_q01_response_list)
-saveRDS(response.mic.vars, "../data/response-mic-vars.rds")
+# func to get best vars 
+r.vars <- get_best_auc_vars(rf_q01_response_list)
+i.vars <- get_best_auc_vars(rf_q005_irAE_list)
+
+# get vars from all with AUC > 0.8 from microbiome input
+r.vars <- get_vars_auc_threshold(rf_q01_response_list)
+i.vars <- get_vars_auc_threshold(rf_q005_irAE_list)
+
+# saveRDS(response.mic.vars, "../data/response-mic-vars.rds")
 ```
+
+What if we get all vars from any run with AUC >0.8
+```{r}
+response_lists <- list(
+  rf_blood_response_list,
+  rf_clinical_response_list,
+  rf_q01_response_list,
+  rf_biome_clinical_response_list,
+  rf_blood_clinical_response_list,
+  rf_biome_blood_response_list,
+  rf_biome_blood_clinical_response_list
+)
+
+# call the function on each list
+vars_list <- lapply(response_lists, get_vars_auc_threshold, threshold = 0.8)
+
+# combine all results into a single vector of unique variables
+response.vars <- unique(unlist(vars_list))
+
+# inspect
+response.vars
+```
+
+```{r}
+irae_lists <- list(
+  rf_blood_irAE_list,
+  rf_clinical_irAE_list,
+  rf_q005_irAE_list,
+  rf_biome_clinical_irAE_list,
+  rf_blood_clinical_irAE_list,
+  rf_biome_blood_irAE_list,
+  rf_biome_blood_clinical_irAE_list
+)
+
+# call the function on each list
+vars_list <- lapply(irae_lists, get_vars_auc_threshold, threshold = 0.8)
+
+# combine all results into a single vector of unique variables
+irae.vars <- unique(unlist(vars_list))
+
+# inspect
+irae.vars
+```
+
 

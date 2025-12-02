@@ -130,95 +130,122 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
   }
 
-###################### RF-RFE for selection to the model ######################
-  # Remove Patient Id
-  x_train <- train.seq[ , -1, drop = FALSE ]
-  y_train <- as.factor(train.outcomes[[outcome]])
-
-  # Control settings for RFE
-  ctrl <- rfeControl(
-    functions = rfFuncs,   # random forest functions for ranking
-    # method options: boot, cv, LOOCV or LGOCV
-    # going with CV b/c sample size
-    method = "cv",
-    number = 10,  # 10-fold
-    verbose = FALSE
-  )
-
-  # How many predictors to try?
-  # should automatically drop the ones > # predictors given
-  sizes <- c(2, 4, 6 ,8, 10, 20, 30, 40, 50, ncol(x_train))
-
-  set.seed(seed)
-  # essentially fit > rank > subset > refit > evaluate
-  rfe_fit <- rfe(
-    x = x_train,
-    y = y_train,
-    sizes = sizes,
-    rfeControl = ctrl
-  )
-
-  selected_vars <- predictors(rfe_fit)
-
-  if (length(selected_vars) == 0) {
-    stop("RFE selected zero variables — cannot continue.")
-  }
-
-  message("\nRFE selected ", length(selected_vars), " variables.")
-
-  # Restrict to selected features
-  train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
-  test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
-###############################################################################
-
-# ###################### Boruta for selection to the model ######################
-#   set.seed(seed)
-#
-#   # Drop Patient Id for modeling
+# ###################### RF-RFE for selection to the model ######################
+#   # Remove Patient Id
 #   x_train <- train.seq[ , -1, drop = FALSE ]
 #   y_train <- as.factor(train.outcomes[[outcome]])
 #
-#   # Combine for Boruta formula interface
-#   boruta_data <- cbind(y = y_train, x_train)
+#   # Control settings for RFE
+#   # ctrl <- rfeControl(
+#   #   functions = rfFuncs,   # random forest functions for ranking
+#   #   # method options: boot, cv, LOOCV or LGOCV
+#   #   # going with CV b/c sample size
+#   #   method = "cv",
+#   #   number = 10,  # 10-fold
+#   #   verbose = FALSE
+#   # )
 #
-#   # Run Boruta
-#   bor <- Boruta(y ~ ., data = boruta_data, doTrace = 2, ntree = tree)
+#   # try repeat cv
+#   ctrl <- rfeControl(
+#     functions = rfFuncs,  # random forest functions for ranking
+#     # method options: boot, cv, LOOCV or LGOCV
+#     method = "repeatedcv",
+#     number = 10,
+#     repeats = 5,
+#     verbose = FALSE
+#   )
+#   #
+#   # try boot instead
+#   # FAILS
+#   # ctrl <- rfeControl(
+#   #   functions = rfFuncs,
+#   #   method = "boot",
+#   #   number = 100,
+#   #   verbose = FALSE
+#   # )
 #
-#   # Resolve tentative features
-#   bor_fixed <- TentativeRoughFix(bor)
+#   # How many predictors to try?
+#   # should automatically drop the ones > # predictors given
+#   sizes <- c(2, 4, 6 ,8, 10, 25)
 #
-#   # Get confirmed features only
-#   selected_vars <- getSelectedAttributes(bor_fixed, withTentative = FALSE)
+#   set.seed(seed)
+#   # essentially fit > rank > subset > refit > evaluate
+#   rfe_fit <- rfe(
+#     x = x_train,
+#     y = y_train,
+#     sizes = sizes,
+#     rfeControl = ctrl
+#   )
 #
-#   min_vars <- 5   # set your desired minimum number of predictors
+#   selected_vars <- predictors(rfe_fit)
 #
-#   if(length(selected_vars) < min_vars){
-#     warning("Boruta confirmed fewer than min_vars — including tentative features")
-#     selected_vars <- getSelectedAttributes(bor_fixed, withTentative = TRUE)
+#   if (length(selected_vars) == 0) {
+#     stop("RFE selected zero variables — cannot continue.")
 #   }
 #
-#   # still selecting 0 vars so need another fallback
-#   # rank based RF selection - get top 5
-#   if(length(selected_vars) < min_vars){
-#     warning("Boruta still selected fewer than min_vars — filling with top RF importance features")
+#   message("\nRFE selected ", length(selected_vars), " variables.")
 #
-#     # Fit quick RF on all predictors
-#     rf_temp <- randomForest(x = x_train, y = y_train, ntree = max(500, tree))
-#
-#     # Rank features by importance
-#     imp <- importance(rf_temp)
-#     top_vars <- rownames(imp)[order(-imp[,1])]
-#
-#     # Add top features until min_vars is met
-#     selected_vars <- unique(c(selected_vars, top_vars[1:min_vars]))
-#   }
-#
-#   message("\nBoruta selected ", length(selected_vars), " variables.")
-#
-#   # Restrict train/test to selected features
+#   # Restrict to selected features
 #   train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
 #   test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
 # ###############################################################################
+
+###################### Boruta for selection to the model ######################
+  set.seed(seed)
+
+  # Drop Patient Id for modeling
+  x_train <- train.seq[ , -1, drop = FALSE ]
+  y_train <- as.factor(train.outcomes[[outcome]])
+
+  # Combine for Boruta formula interface
+  boruta_data <- cbind(y = y_train, x_train)
+
+  # Run Boruta
+  bor <- Boruta(y ~ ., data = boruta_data, doTrace = 2, ntree = tree)
+
+  # try with more trees
+  # better for response but worse for irAE
+  # bor <- Boruta(y ~ .,
+  #               data = boruta_data,
+  #               maxRuns = 500,
+  #               doTrace = 1,
+  #               ntree = max(tree, 1000))
+
+  # Resolve tentative features
+  bor_fixed <- TentativeRoughFix(bor)
+
+  # Get confirmed features only
+  selected_vars <- getSelectedAttributes(bor_fixed, withTentative = FALSE)
+
+  min_vars <- 5   # set your desired minimum number of predictors
+
+  if(length(selected_vars) < min_vars){
+    warning("Boruta confirmed fewer than min_vars — including tentative features")
+    selected_vars <- getSelectedAttributes(bor_fixed, withTentative = TRUE)
+  }
+
+  # still selecting 0 vars so need another fallback
+  # rank based RF selection - get top 5
+  if(length(selected_vars) < min_vars){
+    warning("Boruta still selected fewer than min_vars — filling with top RF importance features")
+
+    # Fit quick RF on all predictors
+    rf_temp <- randomForest(x = x_train, y = y_train, ntree = max(500, tree))
+
+    # Rank features by importance
+    imp <- importance(rf_temp)
+    top_vars <- rownames(imp)[order(-imp[,1])]
+
+    # Add top features until min_vars is met
+    selected_vars <- unique(c(selected_vars, top_vars[1:min_vars]))
+  }
+
+  message("\nBoruta selected ", length(selected_vars), " variables.")
+
+  # Restrict train/test to selected features
+  train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
+  test.seq  <- test.seq [ , c("Patient Id", selected_vars), drop = FALSE ]
+###############################################################################
 
 #################### Add lasso for selection to the model #####################
   # Design matrix for LASSO (drop Patient Id)
@@ -352,6 +379,24 @@ grabVals <- function(input, seed_list){
 # Function to get distinct rownames from all list elements
 get_vars <- function(myList) {
   unique(unlist(lapply(myList, function(x) rownames(x[[1]][[4]]))))
+}
+
+# get vars from top AUC
+get_best_auc_vars <- function(myList) {
+  aucs <- sapply(myList, function(x) x[[1]][[1]])
+  best_idx <- which.max(aucs)
+  rownames(myList[[best_idx]][[1]][[4]])
+}
+
+# get vars from AUC > 0.8
+get_vars_auc_threshold <- function(myList, threshold = 0.8) {
+  aucs <- sapply(myList, function(x) x[[1]][[1]])
+
+  # which models pass the threshold?
+  idx <- which(aucs > threshold)
+  if (length(idx) == 0) return(character(0))
+  vars <- unlist(lapply(idx, function(i) rownames(myList[[i]][[1]][[4]])))
+  unique(vars)
 }
 
 # Main function call to generate RF models using 25 seeds #
