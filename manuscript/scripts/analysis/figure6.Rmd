@@ -23,10 +23,14 @@ load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 # load("../../../exploratory/data/randomforest-irae.rds")
 # load("../../../exploratory/data/randomforest-response.rds")
-load("../../../exploratory/data/randomforest-irae-boruta.rds")
-load("../../../exploratory/data/randomforest-response-boruta.rds")
+# load("../../../exploratory/data/randomforest-irae-boruta.rds")
+# load("../../../exploratory/data/randomforest-response-boruta.rds")
+load("../../../exploratory/data/randomforest-irae-bor.rds")
+load("../../../exploratory/data/randomforest-response-bor.rds")
 # load("../../../exploratory/data/randomforest-irae-RFE.rds")
 # load("../../../exploratory/data/randomforest-response-RFE.rds")
+# load("../../../exploratory/data/randomforest-irae-rfe.rds")
+# load("../../../exploratory/data/randomforest-response-rfe.rds")
 ```
 
 # Prepare data
@@ -158,7 +162,7 @@ ggplot(results_response, aes(x = OR, y = reorder(Label, OR))) +
   ) +
   theme(text = element_text(size = 14))
 
-ggsave("../../figures/Fig6B-Forestplot-irae.svg", height = 2.5, width = 4)
+ggsave("../../figures/Fig6A-Forestplot-irae.svg", height = 2.5, width = 4)
 ```
 
 ### Univariate Clinical Predictors of irAE
@@ -175,7 +179,7 @@ ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
   ) +
   theme(text = element_text(size = 14))
 
-ggsave("../../figures/Fig6A-Forestplot-response.svg", height = 2.5, width = 4)
+ggsave("../../figures/Fig6B-Forestplot-response.svg", height = 2.5, width = 4)
 ```
 
 ### upset plot style fig? or maybe just boxplots
@@ -260,7 +264,7 @@ ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 5, width = 5)
 ```
 
 ```{r}
-aucpr_box(response.rf %>% filter(Predictors != "Full Microbiome"))
+aucpr_box(response.rf  %>% filter(Predictors != "Full Microbiome"))
 
 ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 5, width = 5)
 ```
