@@ -34,6 +34,13 @@ load("../../manuscript/data/phylum-labels.rds")
 load("../../manuscript/data/ANCOM-BC2_response_baseline.Rdata")
 load("../../manuscript/data/ANCOM-BC2_irae_baseline.RData")
 load("../../manuscript/data/core-score-min3.rds")
+
+r.vars <- readRDS("../data/r-vars.rds")
+i.vars <- readRDS("../data/i-vars.rds")
+irae.vars <- readRDS("../data/irae-vars.rds")
+response.vars <- readRDS("../data/response-vars.rds")
+
+
 utils::data("met4ra", package = "respondersig")
 respondsig_metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv") 
 ```
@@ -42,7 +49,7 @@ respondsig_metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv")
 seed_list <- c(12345:12369)
 ```
 
-
+#q value objects
 ```{r}
 #Object to limit microbiome sample to one ones taken within 10 days of treatment
 baseline <- mic.meta %>%
@@ -122,6 +129,7 @@ all_factors <- baseline %>%
 ```{r}
 irae.mic.vars <- c("Patient Id", readRDS("../data/irae-mic-vars.rds"))
 response.mic.vars <- c("Patient Id", readRDS("../data/response-mic-vars.rds"))
+
 ```
 
 
@@ -132,7 +140,7 @@ rf_validation_irAE_list <- kTest(seed_list,
                                            "No",
                                            "Yes",
                                            "irAE",
-                                           irae.mic.vars,
+                                           irae.vars,
                                            TRUE,
                                            1000)
 
@@ -143,7 +151,7 @@ validation_biome_irae_aucprs$Predictors <- "Validation Microbiome"
 
 validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
 
-save(validation_biome_irae_aucprs, file = "../data/irae-validation-aucprs.rds")
+save(validation_biome_irae_aucprs, file = "../data/irae-validation-aucprs-80allfactor.rds")
 
 ```
 
@@ -155,7 +163,7 @@ rf_validation_response_list <- kTest(seed_list,
                               "Non-Responder",
                               "Responder",
                               "Response",
-                              response.mic.vars,
+                              response.vars,
                               TRUE,
                               1000)
 
@@ -165,7 +173,7 @@ validation_biome_response_aucprs$Predictors <- "Validation Microbiome"
 
 validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
 
-save(validation_biome_response_aucprs, file = "../data/response-validation-aucprs.rds")
+save(validation_biome_response_aucprs, file = "../data/response-validation-aucprs80allfactor.rds")
 
 ```
 

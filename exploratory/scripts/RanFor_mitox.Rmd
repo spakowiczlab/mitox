@@ -419,7 +419,16 @@ i.vars <- get_best_auc_vars(rf_q005_irAE_list)
 r.vars <- get_vars_auc_threshold(rf_q01_response_list)
 i.vars <- get_vars_auc_threshold(rf_q005_irAE_list)
 
-# saveRDS(response.mic.vars, "../data/response-mic-vars.rds")
+
+# inspect
+r.vars
+
+# inspect
+i.vars
+
+
+saveRDS(r.vars, "../data/r-vars.rds")
+saveRDS(i.vars, "../data/i-vars.rds")
 ```
 
 What if we get all vars from any run with AUC >0.8
@@ -442,6 +451,8 @@ response.vars <- unique(unlist(vars_list))
 
 # inspect
 response.vars
+
+saveRDS(response.vars, "../data/response-vars.rds")
 ```
 
 ```{r}
@@ -463,6 +474,8 @@ irae.vars <- unique(unlist(vars_list))
 
 # inspect
 irae.vars
+
+saveRDS(irae.vars, "../data/irae-vars.rds")
 ```
 
 

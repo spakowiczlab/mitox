@@ -25,6 +25,17 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
   if(validation == TRUE) {
 
+    if (factors_list[[1]] != "Patient Id") {
+      factors_list <- c(as.vector("Patient Id"), factors_list)
+    }
+
+
+    factors_list <- sub(
+      pattern = "Treatment bin",
+      replacement = "Treatment.bin",
+      x = factors_list
+    )
+
     train.outcomes <- demographics %>%
       dplyr::select(`Patient Id`, irAE, Response) %>%
       subset(`Patient Id` %in% blood$`Patient Id`) %>%
@@ -37,7 +48,8 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
       subset(respondsig_metadata$sample %in% met4ra$sample) %>%
       mutate(response = str_replace_all(response, "_", "-")) %>%
       rename(Response = response) %>%
-      drop_na(outcome)
+      drop_na(outcome) %>%
+      rename(`Patient Id` = sample)
 
     respondsig_metadata$irAE <- ifelse(
       respondsig_metadata$irAE == 1,
@@ -50,12 +62,23 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
         respondsig_metadata$irAE
       ))
+    respondersig_clinical <- respondsig_metadata %>%
+      select(`Patient Id`, immunotherapy, bmi, ldh)  %>%
+      mutate(Treatment.bin = ifelse(grepl("CLTA.4", immunotherapy), "Anti-CTLA-4",
+                                    ifelse(grepl("CTLA.4", immunotherapy), "Anti-CTLA-4",
+                                    ifelse(grepl("PD.1", immunotherapy), "Anti-PD-1", NA)))) %>%
+      rename(
+        "BMI.(kg/m2)" = bmi, "LDH.(U/L)"   = ldh)
 
     met4ra <- met4ra %>%
-      subset(met4ra$sample %in% respondsig_metadata$sample) %>%
+      subset(met4ra$sample %in% respondsig_metadata$`Patient Id`) %>%
       select(clade_name, relative_abundance, sample) %>%
       pivot_wider(names_from = clade_name, values_from = relative_abundance) %>%
-      replace(is.na(.), 0)
+      replace(is.na(.), 0) %>%
+      rename(`Patient Id` = sample) %>%
+      left_join(respondersig_clinical)
+
+
 
     test.outcomes <- respondsig_metadata %>%
       # filter(dataset == "Frankel_2017") %>%
@@ -63,28 +86,40 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
       # filter(dataset == "Matson_2019") %>%
       # filter(dataset == "McCulloch_2022") %>%
       # filter(dataset == "Peters_2019") %>%
-      select(sample, outcome) %>%
-      subset(sample %in% met4ra$sample) %>%
-      arrange(desc(sample)) %>%
-      rename(`Patient Id` = sample)
+      select(`Patient Id`, outcome) %>%
+      subset(`Patient Id` %in% met4ra$`Patient Id`) %>%
+      arrange(desc(`Patient Id`))
+
+    #getting names to remove factors not present in respondersig
+    met4ra_colnames <- colnames(met4ra)
+
+    factors_list <- factors_list[factors_list %in% met4ra_colnames]
 
     #creating objects for the model to be trained and tested on
     factors <- all_factors %>%
       dplyr::select((factors_list))
+
 
     train.seq <- filter(factors,
                         (`Patient Id` %in% train.outcomes$`Patient Id`))
 
     train.seq <- arrange(train.seq, desc(`Patient Id`))
 
+
     test.seq <- met4ra %>%
-      rename(`Patient Id` = sample) %>%
       dplyr::select((factors_list))
 
     test.seq <- filter(test.seq,
-                       (`Patient Id` %in% test.outcomes$`Patient Id`))
+                       (`Patient Id` %in% test.outcomes$`Patient Id`)) %>%
+      na.omit()
 
     test.seq <- arrange(test.seq, desc(`Patient Id`))
+
+    test.outcomes <- filter(test.outcomes,
+                       (`Patient Id` %in% test.seq$`Patient Id`))
+
+    test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
+
 
   } else {
 
