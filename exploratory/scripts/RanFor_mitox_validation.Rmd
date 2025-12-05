@@ -48,7 +48,7 @@ seed_list <- c(12345:12369)
 ```
 
 #q value objects
-```{r}
+```{r, warning=FALSE}
 #Object to limit microbiome sample to one ones taken within 10 days of treatment
 baseline <- mic.meta %>%
   group_by(`Patient Id`) %>%
