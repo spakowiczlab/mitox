@@ -472,7 +472,7 @@ irae.vars <- unique(unlist(vars_list))
 # inspect
 irae.vars
 
-saveRDS(irae.vars, "../data/irae-vars.rds")
+saveRDS(irae.vars, "../data/i-all-vars.rds")
 ```
 
 
