@@ -236,6 +236,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
   boruta_data <- cbind(y = y_train, x_train)
 
   # Run Boruta
+  set.seed(seed)
   bor <- Boruta(y ~ ., data = boruta_data, doTrace = 2, ntree = tree)
 
   # try with more trees
@@ -256,6 +257,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 
   if(length(selected_vars) < min_vars){
     warning("Boruta confirmed fewer than min_vars — including tentative features")
+    set.seed(seed)
     selected_vars <- getSelectedAttributes(bor_fixed, withTentative = TRUE)
   }
 
@@ -265,6 +267,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
     warning("Boruta still selected fewer than min_vars — filling with top RF importance features")
 
     # Fit quick RF on all predictors
+    set.seed(seed)
     rf_temp <- randomForest(x = x_train, y = y_train, ntree = max(500, tree))
 
     # Rank features by importance
@@ -325,6 +328,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
   if(all(test.outcomes$`Patient Id` == test.outcomes$`Patient Id`) == FALSE){
     stop("Testing Sample_IDs do not match")
   }
+  set.seed(seed)
   model.training <- randomForest(x = train.seq[,-1, drop=FALSE], y =
                           as.factor(train.outcomes[[outcome]]), ntree = tree, importance = TRUE) #, mtry = 9
 

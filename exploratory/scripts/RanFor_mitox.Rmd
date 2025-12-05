@@ -24,8 +24,7 @@ library(Boruta)
 Loading data
 ```{r}
 source("../scripts/mitox_functions.R")
-# irAE_aucprs <- readRDS("../data/rf_mitox_irAE_aucpr.RData")
-# Response_aucprs <- readRDS("../data/rf_mitox_Response_aucpr.RData")
+
 load("../../manuscript/data/ra-long.rds")
 load("../../manuscript/data/clinical.rds")
 load("../../manuscript/data/blood.rds")
@@ -34,8 +33,6 @@ load("../../manuscript/data/phylum-labels.rds")
 load("../../manuscript/data/ANCOM-BC2_response_baseline.Rdata")
 load("../../manuscript/data/ANCOM-BC2_irae_baseline.RData")
 load("../../manuscript/data/core-score-min3.rds")
-utils::data("met4ra", package = "respondersig")
-respondsig_metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv") 
 ```
 
 ```{r}
@@ -43,7 +40,7 @@ seed_list <- c(12345:12369)
 ```
 
 #q value model objects
-```{r}
+```{r, warning=FALSE}
 #Object to limit microbiome sample to one ones taken within 10 days of treatment
 baseline <- mic.meta %>%
   group_by(`Patient Id`) %>%
@@ -128,7 +125,6 @@ blood_clinical_list <- c(blood_list, clinical_list)
 
 response_clinical_list <- c(irae_list, clinical_list)
 blood_clinical_list <- c(blood_list, clinical_list)
-
 
 irae_blood_clinical_list <- c(irae_blood_list, clinical_list)
 response_blood_clinical_list <- c(response_blood_list, clinical_list)
@@ -399,14 +395,14 @@ Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR
 ```{r}
 irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
-save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
+save(irae.rf, file = "../data/randomforest-irae-boruta3.rds")
 ```
 
 ## Combine and save as one df for Response
 ```{r}
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
 
-save(response.rf, file = "../data/randomforest-response-boruta.rds")
+save(response.rf, file = "../data/randomforest-response-boruta3.rds")
 ```
 
 ## Get variables used 
