@@ -395,14 +395,14 @@ Response_biome_blood_clinical <- mean(biome_blood_clinical_response_aucprs$AUCPR
 ```{r}
 irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
 
-save(irae.rf, file = "../data/randomforest-irae-boruta3.rds")
+save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
 ```
 
 ## Combine and save as one df for Response
 ```{r}
 response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
 
-save(response.rf, file = "../data/randomforest-response-boruta3.rds")
+save(response.rf, file = "../data/randomforest-response-boruta.rds")
 ```
 
 ## Get variables used 
@@ -422,6 +422,7 @@ r.vars
 # inspect
 i.vars
 
+intersect(r.vars, i.vars)
 
 saveRDS(r.vars, "../data/r-vars.rds")
 saveRDS(i.vars, "../data/i-vars.rds")
@@ -448,7 +449,7 @@ response.vars <- unique(unlist(vars_list))
 # inspect
 response.vars
 
-saveRDS(response.vars, "../data/response-vars.rds")
+saveRDS(response.vars, "../data/r-all-vars.rds")
 ```
 
 ```{r}
