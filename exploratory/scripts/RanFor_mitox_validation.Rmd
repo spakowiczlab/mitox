@@ -151,7 +151,17 @@ validation_biome_irae_aucprs$Predictors <- "Validation Microbiome"
 
 validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
 
+validation_irae_vars <- grabImp(rf_validation_irAE_list,
+                                        seed_list)
+
+
+irae_validation_vars <- get_vars(rf_validation_irAE_list)
+
+
 save(validation_biome_irae_aucprs, file = "../data/irae-validation-aucprs-80allfactor.rds")
+
+save(irae_validation_vars, file = "../data/irae_validation_vars.rds")
+
 
 ```
 
@@ -173,7 +183,13 @@ validation_biome_response_aucprs$Predictors <- "Validation Microbiome"
 
 validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
 
+validation_response_vars <- grabImp(rf_validation_response_list,
+                         seed_list)
+
 save(validation_biome_response_aucprs, file = "../data/response-validation-aucprs80allfactor.rds")
+
+save(validation_response_vars, file = "../data/validation_response_vars.rds")
+
 
 ```
 

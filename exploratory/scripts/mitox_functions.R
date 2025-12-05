@@ -446,3 +446,25 @@ kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, va
   # colnames(out) <- c("AUCPR")
   out
 }
+
+grabImp <- function(input, seed_list){
+
+  out <- list()
+
+  for (i in seq_along(seed_list)) {
+
+    # Extract getROC() output for this seed
+    res <- input[[i]][[1]]
+
+    impdf <- res[[4]] %>%   # Variable importance export
+      as.data.frame() %>%
+      rownames_to_column(var = "Factors")  #convert row names to column
+
+    impdf$seed  <- seed_list[i]
+
+    out[[i]] <- impdf
+  }
+
+  # bind into one big data frame
+  dplyr::bind_rows(out)
+}
