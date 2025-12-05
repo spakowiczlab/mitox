@@ -63,12 +63,14 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
         respondsig_metadata$irAE
       ))
     respondersig_clinical <- respondsig_metadata %>%
-      select(`Patient Id`, immunotherapy, bmi, ldh)  %>%
+      select(`Patient Id`, immunotherapy, bmi, ldh, age)  %>%
       mutate(Treatment.bin = ifelse(grepl("CLTA.4", immunotherapy), "Anti-CTLA-4",
                                     ifelse(grepl("CTLA.4", immunotherapy), "Anti-CTLA-4",
                                     ifelse(grepl("PD.1", immunotherapy), "Anti-PD-1", NA)))) %>%
       rename(
-        "BMI.(kg/m2)" = bmi, "LDH.(U/L)"   = ldh)
+        "BMI.(kg/m2)" = bmi,
+        "LDH.(U/L)"   = ldh,
+        "Age" = age)
 
     met4ra <- met4ra %>%
       subset(met4ra$sample %in% respondsig_metadata$`Patient Id`) %>%

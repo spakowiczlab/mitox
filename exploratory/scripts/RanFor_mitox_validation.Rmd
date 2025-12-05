@@ -24,8 +24,7 @@ library(Boruta)
 Loading data
 ```{r}
 source("../scripts/mitox_functions.R")
-# irAE_aucprs <- readRDS("../data/rf_mitox_irAE_aucpr.RData")
-# Response_aucprs <- readRDS("../data/rf_mitox_Response_aucpr.RData")
+
 load("../../manuscript/data/ra-long.rds")
 load("../../manuscript/data/clinical.rds")
 load("../../manuscript/data/blood.rds")
@@ -37,9 +36,8 @@ load("../../manuscript/data/core-score-min3.rds")
 
 r.vars <- readRDS("../data/r-vars.rds")
 i.vars <- readRDS("../data/i-vars.rds")
-irae.vars <- readRDS("../data/irae-vars.rds")
-response.vars <- readRDS("../data/response-vars.rds")
-
+irae.vars <- readRDS("../data/i-all-vars.rds")
+response.vars <- readRDS("../data/r-all-vars.rds")
 
 utils::data("met4ra", package = "respondersig")
 respondsig_metadata <- read.csv(file = "../data/cleaned-metadata-expanded.csv") 
@@ -127,12 +125,9 @@ all_factors <- baseline %>%
 
 ##limiting list to ones used in mitox models
 ```{r}
-irae.mic.vars <- c("Patient Id", readRDS("../data/irae-mic-vars.rds"))
-response.mic.vars <- c("Patient Id", readRDS("../data/response-mic-vars.rds"))
-
+irae.vars <- c("Patient Id", irae.vars)
+response.vars <- c("Patient Id", response.vars)
 ```
-
-
 
 ## Validation irAE
 ```{r}
@@ -147,25 +142,13 @@ rf_validation_irAE_list <- kTest(seed_list,
 validation_biome_irae_aucprs <- grabVals(rf_validation_irAE_list,
                                         seed_list)
 
-validation_biome_irae_aucprs$Predictors <- "Validation Microbiome"
+validation_biome_irae_aucprs$Predictors <- "Validation"
 
 validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
 
 validation_irae_vars <- grabImp(rf_validation_irAE_list,
                                         seed_list)
-
-
-irae_validation_vars <- get_vars(rf_validation_irAE_list)
-
-
-save(validation_biome_irae_aucprs, file = "../data/irae-validation-aucprs-80allfactor.rds")
-
-save(irae_validation_vars, file = "../data/irae_validation_vars.rds")
-
-
 ```
-
-
 
 ## Validation Response
 ```{r}
@@ -179,19 +162,88 @@ rf_validation_response_list <- kTest(seed_list,
 
 validation_biome_response_aucprs <- grabVals(rf_validation_response_list,
                          seed_list)
-validation_biome_response_aucprs$Predictors <- "Validation Microbiome"
+validation_biome_response_aucprs$Predictors <- "Validation"
 
 validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
 
 validation_response_vars <- grabImp(rf_validation_response_list,
                          seed_list)
+```
 
-save(validation_biome_response_aucprs, file = "../data/response-validation-aucprs80allfactor.rds")
+# Save results for all vars
+```{r}
+rsig.allvars.aucprs.i <- validation_biome_irae_aucprs
+save(rsig.allvars.aucprs.i, file = "../data/irae-validation-aucprs-allvars.rds")
+rsig.allvars.vimp.i <- validation_irae_vars
+save(rsig.allvars.vimp.i, file = "../data/irae_validation_allvars.rds")
 
-save(validation_response_vars, file = "../data/validation_response_vars.rds")
-
-
+rsig.allvars.aucprs.r <- validation_biome_response_aucprs
+save(rsig.allvars.aucprs.r , file = "../data/response-validation-aucprs-allvars.rds")
+rsig.allvars.vimp.r <- validation_response_vars
+save(rsig.allvars.vimp.r, file = "../data/validation_response_allvars.rds")
 ```
 
 
+# Run on the microbiome only set
+
+##limiting list to ones used in mitox models
+```{r}
+irae.vars <- c("Patient Id", i.vars)
+response.vars <- c("Patient Id", r.vars)
+```
+
+## Validation irAE
+```{r}
+rf_validation_irAE_list <- kTest(seed_list,
+                                           "No",
+                                           "Yes",
+                                           "irAE",
+                                           irae.vars,
+                                           TRUE,
+                                           1000)
+
+validation_biome_irae_aucprs <- grabVals(rf_validation_irAE_list,
+                                        seed_list)
+
+validation_biome_irae_aucprs$Predictors <- "Validation"
+
+validation_irAE_q005 <- mean(validation_biome_irae_aucprs$AUCPR)
+
+validation_irae_vars <- grabImp(rf_validation_irAE_list,
+                                        seed_list)
+```
+
+## Validation Response
+```{r}
+rf_validation_response_list <- kTest(seed_list,
+                              "Non-Responder",
+                              "Responder",
+                              "Response",
+                              response.vars,
+                              TRUE,
+                              1000)
+
+validation_biome_response_aucprs <- grabVals(rf_validation_response_list,
+                         seed_list)
+validation_biome_response_aucprs$Predictors <- "Validation"
+
+validation_Response_q01 <- mean(validation_biome_response_aucprs$AUCPR)
+
+validation_response_vars <- grabImp(rf_validation_response_list,
+                         seed_list)
+```
+
+
+# Save results for mics only
+```{r}
+rsig.mic.aucprs.i <- validation_biome_irae_aucprs
+save(rsig.mic.aucprs.i, file = "../data/irae-validation-aucprs-mic.rds")
+rsig.mic.vimp.i <- validation_irae_vars
+save(rsig.mic.vimp.i, file = "../data/irae_validation_mic.rds")
+
+rsig.mic.aucprs.r <- validation_biome_response_aucprs
+save(rsig.mic.aucprs.r , file = "../data/response-validation-aucprs-mic.rds")
+rsig.mic.vimp.r <- validation_response_vars
+save(rsig.mic.vimp.r, file = "../data/validation_response_mic.rds")
+```
 
