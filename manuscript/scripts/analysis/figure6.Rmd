@@ -21,12 +21,14 @@ library(ggpubr)
 ```{r}
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
+load("../../../exploratory/data/randomforest-irae-boruta.rds")
+load("../../../exploratory/data/randomforest-response-boruta.rds")
+
+# trying other variable selection methods 
 # load("../../../exploratory/data/randomforest-irae.rds")
 # load("../../../exploratory/data/randomforest-response.rds")
-# load("../../../exploratory/data/randomforest-irae-boruta.rds")
-# load("../../../exploratory/data/randomforest-response-boruta.rds")
-load("../../../exploratory/data/randomforest-irae-bor.rds")
-load("../../../exploratory/data/randomforest-response-bor.rds")
+# load("../../../exploratory/data/randomforest-irae-bor.rds")
+# load("../../../exploratory/data/randomforest-response-bor.rds")
 # load("../../../exploratory/data/randomforest-irae-RFE.rds")
 # load("../../../exploratory/data/randomforest-response-RFE.rds")
 # load("../../../exploratory/data/randomforest-irae-rfe.rds")
@@ -182,7 +184,7 @@ ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
 ggsave("../../figures/Fig6B-Forestplot-response.svg", height = 2.5, width = 4)
 ```
 
-### upset plot style fig? or maybe just boxplots
+### Boxplots with upset plot style x-axis made in illustrator
 ```{r}
 # function to plot AUCPR boxplots 
 aucpr_box <- function(input){
@@ -269,55 +271,52 @@ aucpr_box(response.rf  %>% filter(Predictors != "Full Microbiome"))
 ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 5, width = 5)
 ```
 
-Figure E and F - ROC curves
+Figure E and F - ROC curves for mitox 
 
 ```{r}
 response.rf %>% 
-  filter(Predictors == "Microbiome" | Predictors=="Clinical") %>%
-  group_by(Predictors) %>%
-  mutate(max_AUCPR = max(AUCPR)) %>%
-  filter(AUCPR == max_AUCPR) %>%
-  select(-max_AUCPR) %>%
-  ungroup() %>%
-  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors), 
+  filter(Predictors %in% c("Microbiome", "Clinical")) %>%
+  ggplot(aes(FalsePositive, TruePositive,
              colour = Predictors)) +
+  geom_line(aes(group = interaction(seed, Predictors)),
+            alpha = 0.15, linewidth = 0.4) +
+  geom_smooth(aes(group = Predictors),
+              se = FALSE, linewidth = 1.2) +
   scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
   theme_minimal() +
-  geom_smooth(se = FALSE) +
-  xlab("Specifity") +
+  xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.5, y=0.92, label="AUC = 0.993",
-              color="darkgreen", size=4) +
-  annotate(geom="text", x=0.55, y=0.73, label="AUC = 0.856",
-              color="cornflowerblue", size=4) +
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.768",
+           color="darkgreen", size=4) +
+  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.678",
+           color="cornflowerblue", size=4) +
   theme(legend.position = "none")
 
-ggsave("../../figures/Fig6E-ROC-response.svg", height = 2.5, width = 2.5)
+ggsave("../../figures/Fig6E-ROC-response.svg", height = 3, width = 3)
+ggsave("../../figures/Fig6E-ROC-response.png", height = 3, width = 3)
 ```
 
 ```{r}
 irae.rf %>% 
-  filter(Predictors == "Microbiome" | Predictors=="Clinical") %>%
-  group_by(Predictors) %>%
-  mutate(max_AUCPR = max(AUCPR)) %>%
-  filter(AUCPR == max_AUCPR) %>%
-  select(-max_AUCPR) %>%
-  ungroup() %>%
-  ggplot(aes(FalsePositive, TruePositive, group = interaction(seed, Predictors), 
+  filter(Predictors %in% c("Microbiome", "Blood + Microbiome")) %>%
+  ggplot(aes(FalsePositive, TruePositive,
              colour = Predictors)) +
-  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
+  geom_line(aes(group = interaction(seed, Predictors)),
+            alpha = 0.15, linewidth = 0.4) +
+  geom_smooth(aes(group = Predictors),
+              se = FALSE, linewidth = 1.2) +
+  scale_color_manual(values = c("darkgoldenrod2", "darkgreen")) +
   theme_minimal() +
-  geom_smooth(se = FALSE) +
-  xlab("Specifity") +
+  xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.4, y=0.92, label="AUC = 1.0",
-              color="darkgreen", size=4) +
-  annotate(geom="text", x=0.75, y=0.45, label="AUC = 0.670",
-              color="cornflowerblue", size=4) +
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.691",
+           color="darkgreen", size=4) +
+  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.506",
+           color="darkgoldenrod2", size=4) +
   theme(legend.position = "none")
 
-
-ggsave("../../figures/Fig6F-ROC-irae.svg", height = 2.5, width = 2.5)
+ggsave("../../figures/Fig6F-ROC-irae.svg", height = 3, width = 3)
+ggsave("../../figures/Fig6F-ROC-irae.png", height = 3, width = 3)
 ```
 
 
@@ -326,6 +325,7 @@ Figure G and H - ROC validation
 ```{r}
 
 ```
+
 
 Figure I and J - Variable Importance Plots
 
