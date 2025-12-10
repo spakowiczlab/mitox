@@ -1,0 +1,238 @@
+---
+title: "Random Forest Validation"
+author: "Noah Lepola"
+author: "Edited by CD"
+date: "2025-12-08"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(randomForest)
+library(ROCR)
+library(caTools)
+library(respondersig) 
+library(PRROC)
+library(Boruta)
+```
+
+Loading data
+```{r}
+source("rf-functions.R")
+
+# mitox data
+load("../../data/ra-long.rds")
+load("../../data/clinical.rds")
+load("../../data/blood.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/phylum-labels.rds")
+load("../../data/ANCOM-BC2_response_baseline.Rdata")
+load("../../data/ANCOM-BC2_irae_baseline.RData") 
+
+# microbes of interest 
+r.vars <- readRDS("../../../exploratory/data/r-vars.rds")
+i.vars <- readRDS("../../../exploratory/data/i-vars.rds")
+
+# respondersig validation cohort
+utils::data("met4ra", package = "respondersig")
+utils::data("metadata", package = "respondersig")
+```
+
+```{r}
+seed_list <- c(12345:12369)
+```
+
+## prepare full mitox baseline set for 
+```{r, warning=FALSE}
+#Object to limit microbiome sample to one ones taken within 10 days of treatment
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+phyl_labels <- phyl_labels %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+#creating object for use in biome model
+base.micro <- ra.l %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun) %>%
+  subset(sample %in% baseline$sample) %>%
+  dplyr::select(sample, i.vars, r.vars) %>%
+  left_join(baseline)
+```
+
+## Prepare respondersig data
+```{r}
+val.base <- metadata %>%
+  filter(timepoint == "pre") %>%
+  select(sample, response, irAE, dataset) 
+
+met4ra$clade_name <- gsub(".*\\|", "", met4ra$clade_name)
+
+val.mic <- met4ra %>%
+  filter(sample %in% val.base$sample) %>%
+  select(clade_name, relative_abundance, sample) %>%
+  pivot_wider(names_from = clade_name, values_from = relative_abundance) %>%  
+  replace(is.na(.), 0) %>%
+  dplyr::select(sample, i.vars, r.vars) %>%
+  left_join(val.base) %>%
+  rename(`Patient Id` = sample) %>%
+  mutate(Response = ifelse(response == "Non_Responder", "Non-Responder", 
+                           "Responder"))
+
+val.mic.i <- val.mic %>%
+  filter(!is.na(irAE)) %>%
+  mutate(irAE = ifelse(irAE == 1, "Yes", "No"))
+```
+
+## microbes from microbiome models with > 0.8 AUC
+```{r}
+irae.vars <- c("Patient Id", i.vars)
+response.vars <- c("Patient Id", r.vars)
+```
+
+## Validation - Response 
+```{r}
+# entire response cohort - all 5 studies 
+val.r.all <- kTest(seed_list, 
+                   "Non-Responder",
+                   "Responder",
+                   "Response",
+                   response.vars,
+                   TRUE,
+                   val.mic,
+                   1000)
+
+val.r.all_aucprs <- grabVals(val.r.all, seed_list)
+val.r.all_aucprs$Group <- "Validation - All"
+val.r.all_vars <- grabImp(val.r.all, seed_list)
+val.r.all_vars$Group <- "Validation - All"
+
+# individual datasets
+
+# Frankel 
+val.r.frank <- kTest(seed_list, 
+                   "Non-Responder",
+                   "Responder",
+                   "Response",
+                   response.vars,
+                   TRUE,
+                   val.mic %>% filter(dataset == "Frankel_2017"),
+                   1000)
+
+val.r.frank_aucprs <- grabVals(val.r.frank, seed_list)
+val.r.frank_aucprs$Group <- "Validation - Frankel"
+val.r.frank_vars <- grabImp(val.r.frank, seed_list)
+val.r.frank_vars$Group <- "Validation - Frankel"
+
+# Gopalakrishnan 
+val.r.gopa <- kTest(seed_list, 
+                   "Non-Responder",
+                   "Responder",
+                   "Response",
+                   response.vars,
+                   TRUE,
+                   val.mic %>% filter(dataset == "Gopalakrishnan_2019"),
+                   1000)
+
+val.r.gopa_aucprs <- grabVals(val.r.gopa, seed_list)
+val.r.gopa_aucprs$Group <- "Validation - Gopalakrishnan"
+val.r.gopa_vars <- grabImp(val.r.gopa, seed_list)
+val.r.gopa_vars$Group <- "Validation - Gopalakrishnan"
+
+# Matson
+val.r.mat <- kTest(seed_list, 
+                   "Non-Responder",
+                   "Responder",
+                   "Response",
+                   response.vars,
+                   TRUE,
+                   val.mic %>% filter(dataset == "Matson_2019"),
+                   1000)
+
+val.r.mat_aucprs <- grabVals(val.r.mat, seed_list)
+val.r.mat_aucprs$Group <- "Validation - Matson"
+val.r.mat_vars <- grabImp(val.r.mat, seed_list)
+val.r.mat_vars$Group <- "Validation - Matson"
+
+# McCulloch
+val.r.mcc <- kTest(seed_list, 
+                   "Non-Responder",
+                   "Responder",
+                   "Response",
+                   response.vars,
+                   TRUE,
+                   val.mic %>% filter(dataset == "McCulloch_2022"),
+                   1000)
+
+val.r.mcc_aucprs <- grabVals(val.r.mcc, seed_list)
+val.r.mcc_aucprs$Group <- "Validation - McCulloch"
+val.r.mcc_vars <- grabImp(val.r.mcc, seed_list)
+val.r.mcc_vars$Group <- "Validation - McCulloch"
+
+# Peters
+val.r.pet <- kTest(seed_list, 
+                   "Non-Responder",
+                   "Responder",
+                   "Response",
+                   response.vars,
+                   TRUE,
+                   val.mic %>% filter(dataset == "Peters_2019"),
+                   1000)
+
+val.r.pet_aucprs <- grabVals(val.r.pet, seed_list)
+val.r.pet_aucprs$Group <- "Validation - Peters"
+val.r.pet_vars <- grabImp(val.r.pet, seed_list)
+val.r.pet_vars$Group <- "Validation - Peters"
+```
+
+# Save response validation 
+```{r}
+# combine 
+val.r.aucprs <- rbind(val.r.all_aucprs,
+                      val.r.frank_aucprs,
+                      val.r.pet_aucprs,
+                      val.r.mat_aucprs,
+                      val.r.mcc_aucprs,
+                      val.r.gopa_aucprs)
+val.r.vars <- rbind(val.r.all_vars,
+                      val.r.frank_vars,
+                      val.r.pet_vars,
+                      val.r.mat_vars,
+                      val.r.mcc_vars,
+                      val.r.gopa_vars)
+# save
+save(val.r.aucprs, val.r.vars, 
+     file = "../../data/validation-response.rda")
+```
+
+## Validation - irAE
+```{r}
+# entire irAE cohort which is just the McCulloch data
+val.i.all <- kTest(seed_list, 
+                   "No",
+                   "Yes",
+                   "irAE",
+                   irae.vars,
+                   TRUE,
+                   val.mic.i,
+                   1000)
+
+val.i.all_aucprs <- grabVals(val.i.all, seed_list)
+val.i.all_aucprs$Group <- "Validation - McCulloch"
+val.i.all_vars <- grabImp(val.i.all, seed_list)
+val.i.all_vars$Group <- "Validation - McCulloch"
+```
+
+# Save irAE validation 
+```{r}
+save(val.i.all_aucprs, val.i.all_vars, file = "../../data/validation-irae.rda")
+```
+
+

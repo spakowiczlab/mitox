@@ -1,0 +1,386 @@
+---
+title: "Random Forest"
+author: "Noah Lepola"
+author: "Edited by CD"
+date: "2025-12-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(randomForest)
+library(ROCR)
+library(caTools)
+library(PRROC)
+library(Boruta)
+```
+
+Loading data
+```{r}
+source("rf-functions.R")
+
+load("../../data/ra-long.rds")
+load("../../data/clinical.rds")
+load("../../data/blood.rds")
+load("../../data/microbiome_metadata.rds")
+load("../../data/phylum-labels.rds")
+load("../../data/ANCOM-BC2_response_baseline.Rdata")
+load("../../data/ANCOM-BC2_irae_baseline.RData") 
+```
+
+```{r}
+seed_list <- c(12345:12369)
+```
+
+#q value model objects
+```{r, warning=FALSE}
+#Object to limit microbiome sample to one ones taken within 10 days of treatment
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10) %>%
+  subset(`Patient Id` %in% blood$`Patient Id`)
+
+phyl_labels <- phyl_labels %>%
+  mutate(taxon = substr(microbe, 4, nchar(microbe)))
+
+#creating object for use in biome model
+base.micro <- ra.l %>%
+  pivot_wider(names_from = microbe, values_from = RelAbun) %>%
+  subset(sample %in% baseline$sample)
+
+full_micro_list <- colnames(base.micro)
+full_micro_list[[1]] <- "Patient Id"
+
+# CD note - how do we feel about these cut offs being different??
+#note it is dropping bacteria and archaea becaise it isn't in phyl_labels
+#making object for irAE where q < 0.01
+irAE_q <- res.irae %>%
+  left_join(phyl_labels) %>%
+  dplyr::select(microbe, q_irAEYes)  %>%
+  filter(q_irAEYes < 0.005) %>%
+  replace_na(list( microbe = "k__Archaea"))
+
+irae_list <- irAE_q$microbe %>%
+  append("Patient Id", after = 0)
+
+irae_list[[1]] <- "Patient Id"
+
+#making object for Response where q < 0.01
+Response_q <- res.recist %>%
+  left_join(phyl_labels) %>%
+  dplyr::select(microbe, q_ResponseResponder)  %>%
+  filter(q_ResponseResponder < 0.01) %>%
+  replace_na(list( microbe = "k__Archaea"))
+
+response_list <- Response_q$microbe %>%
+  append("Patient Id", after = 0)
+
+response_list[[1]] <- "Patient Id"
+```
+
+# blood gene objects
+```{r}
+#limiting blood samples to ones also with microbiome sample and creating object
+base.gene <- blood %>%
+  subset(`Patient Id` %in% baseline$`Patient Id`) %>%
+  dplyr::select(`Patient Id`:YWHAZ)
+
+blood_list <- colnames(base.gene)
+irae_blood_list <- c(irae_list, blood_list)
+response_blood_list <- c(response_list, blood_list)
+```
+
+# clinical objects
+```{r}
+base.clinical <- demographics %>%
+  dplyr::select(`Patient Id`, 
+         Sex,
+         Age,
+         Treatment.bin,
+         Stage,
+         `Total.WBC.(K/µL)`,
+         `Relative.lymphocyte.count.(%)`, 
+         `Relative.eosinophil.count.(%)`, 
+         `LDH.(U/L)`, 
+         `BMI.(kg/m2)`)
+
+base.clinical <- base.clinical %>% 
+  mutate_at(c("Sex",
+              "Treatment.bin", 
+              "Stage"), as.factor)
+
+clinical_list <- colnames(base.clinical)
+
+irae_clinical_list <- c(irae_list, clinical_list)
+blood_clinical_list <- c(blood_list, clinical_list)
+
+response_clinical_list <- c(irae_list, clinical_list)
+blood_clinical_list <- c(blood_list, clinical_list)
+
+irae_blood_clinical_list <- c(irae_blood_list, clinical_list)
+response_blood_clinical_list <- c(response_blood_list, clinical_list)
+```
+
+# Object with all factors
+```{r}
+all_factors <- baseline %>%
+  dplyr::select(sample, `Patient Id`) %>%
+  full_join(base.micro, baseline, by = "sample") %>%
+  full_join(base.gene, baseline, by = "Patient Id") %>%
+  left_join(base.clinical, baseline, by = "Patient Id") %>%
+  dplyr::select(-sample)
+```
+
+
+### irAE 
+
+# Clinical model
+```{r}
+rf_clinical_irAE_list <- kTest(seed_list,
+                               "No",
+                               "Yes",
+                               "irAE",
+                               clinical_list,
+                               FALSE,
+                               1000)
+
+clinical_irae_aucprs <- grabVals(rf_clinical_irAE_list,
+                            seed_list)
+clinical_irae_aucprs$Predictors <- "Clinical"
+```
+
+
+# Limited biome model
+```{r}
+rf_q005_irAE_list <- kTest(seed_list,
+                          "No",
+                          "Yes",
+                          "irAE",
+                          irae_list,
+                          FALSE,
+                          1000)
+
+biome_irae_aucprs <- grabVals(rf_q005_irAE_list,
+                         seed_list)
+biome_irae_aucprs$Predictors <- "Microbiome"
+```
+
+# Just blood model
+```{r}
+rf_blood_irAE_list <- kTest(seed_list,
+                            "No",
+                            "Yes",
+                            "irAE",
+                            blood_list,
+                            FALSE,
+                            1000)
+
+blood_irae_aucprs <- grabVals(rf_blood_irAE_list,
+                         seed_list)
+blood_irae_aucprs$Predictors <- "Blood"
+```
+
+# Biome and blood model
+```{r}
+rf_biome_blood_irAE_list <- kTest(seed_list,
+                                  "No",
+                                  "Yes",
+                                  "irAE",
+                                  irae_blood_list,
+                                  FALSE,
+                                  1000)
+
+biome_and_blood_irae_aucprs <- grabVals(rf_biome_blood_irAE_list,
+                                   seed_list)
+biome_and_blood_irae_aucprs$Predictors <- "Blood + Microbiome"
+```
+
+# Blood and clinical model
+```{r}
+rf_blood_clinical_irAE_list <- kTest(seed_list,
+                                  "No",
+                                  "Yes",
+                                  "irAE",
+                                  blood_clinical_list,
+                                  FALSE,
+                                  1000)
+
+blood_and_clinical_irae_aucprs <- grabVals(rf_blood_clinical_irAE_list,
+                                   seed_list)
+blood_and_clinical_irae_aucprs$Predictors <- "Clinical + Blood"
+```
+
+# Biome and clinical model
+```{r}
+rf_biome_clinical_irAE_list <- kTest(seed_list,
+                                  "No",
+                                  "Yes",
+                                  "irAE",
+                                  irae_clinical_list,
+                                  FALSE,
+                                  1000)
+
+biome_and_clinical_irae_aucprs <- grabVals(rf_biome_clinical_irAE_list,
+                                   seed_list)
+biome_and_clinical_irae_aucprs$Predictors <- "Clinical + Microbiome"
+```
+
+# Biome blood clinical model
+```{r}
+rf_biome_blood_clinical_irAE_list <- kTest(seed_list,
+                                           "No",
+                                           "Yes",
+                                           "irAE",
+                                           irae_blood_clinical_list,
+                                           FALSE,
+                                           1000)
+
+biome_blood_clinical_irae_aucprs <- grabVals(rf_biome_blood_clinical_irAE_list,
+                                        seed_list)
+biome_blood_clinical_irae_aucprs$Predictors <- "Clinical + Blood + Microbiome"
+```
+
+
+### Response
+
+# Clinical model
+```{r}
+rf_clinical_response_list <- kTest(seed_list,
+                                "Non-Responder",
+                                "Responder",
+                                "Response",
+                                clinical_list,
+                                FALSE,
+                                1000)
+
+clinical_response_aucprs <- grabVals(rf_clinical_response_list,
+                            seed_list)
+clinical_response_aucprs$Predictors <- "Clinical"
+```
+
+
+# Limited biome model
+```{r}
+rf_q01_response_list <- kTest(seed_list,
+                              "Non-Responder",
+                              "Responder",
+                              "Response",
+                              response_list,
+                              FALSE,
+                              1000)
+
+biome_response_aucprs <- grabVals(rf_q01_response_list,
+                         seed_list)
+biome_response_aucprs$Predictors <- "Microbiome"
+```
+
+# Just blood model
+```{r}
+rf_blood_response_list <- kTest(seed_list,
+                                "Non-Responder",
+                                "Responder",
+                                "Response",
+                                blood_list,
+                                FALSE,
+                                1000)
+
+blood_response_aucprs <- grabVals(rf_blood_response_list,
+                         seed_list)
+blood_response_aucprs$Predictors <- "Blood"
+```
+
+# Biome and blood model
+```{r}
+rf_biome_blood_response_list <- kTest(seed_list,
+                                  "Non-Responder",
+                                  "Responder",
+                                  "Response",
+                                  response_blood_list,
+                                  FALSE,
+                                  1000)
+
+biome_and_blood_response_aucprs <- grabVals(rf_biome_blood_response_list,
+                                   seed_list)
+biome_and_blood_response_aucprs$Predictors <- "Blood + Microbiome"
+```
+
+# Biome clinical model
+```{r}
+rf_biome_clinical_response_list <- kTest(seed_list,
+                                          "Non-Responder",
+                                          "Responder",
+                                          "Response",
+                                          response_clinical_list,
+                                          FALSE,
+                                          1000)
+
+biome_clinical_response_aucprs <- grabVals(rf_biome_clinical_response_list,
+                                   seed_list)
+biome_clinical_response_aucprs$Predictors <- "Clinical + Microbiome"
+```
+
+# Blood clinical model
+```{r}
+rf_blood_clinical_response_list <- kTest(seed_list,
+                                          "Non-Responder",
+                                          "Responder",
+                                          "Response",
+                                          blood_clinical_list,
+                                          FALSE,
+                                          1000)
+
+blood_clinical_response_aucprs <- grabVals(rf_blood_clinical_response_list,
+                                   seed_list)
+blood_clinical_response_aucprs$Predictors <- "Clinical + Blood"
+```
+
+# Biome blood clinical model
+```{r}
+rf_biome_blood_clinical_response_list <- kTest(seed_list,
+                                          "Non-Responder",
+                                          "Responder",
+                                          "Response",
+                                          response_blood_clinical_list,
+                                          FALSE,
+                                          1000)
+
+biome_blood_clinical_response_aucprs <- grabVals(rf_biome_blood_clinical_response_list,
+                                   seed_list)
+biome_blood_clinical_response_aucprs$Predictors <- "Clinical + Blood + Microbiome"
+```
+
+
+### Combine and save as one df for irAE
+```{r}
+irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
+
+save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
+```
+
+### Combine and save as one df for Response
+```{r}
+response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
+
+save(response.rf, file = "../data/randomforest-response-boruta.rds")
+```
+
+## Get variables used 
+```{r}
+# get vars from all with AUC > 0.8 from microbiome input
+r.vars <- get_vars_auc_threshold(rf_q01_response_list)
+i.vars <- get_vars_auc_threshold(rf_q005_irAE_list)
+
+r.vars
+i.vars
+
+intersect(r.vars, i.vars)
+
+saveRDS(r.vars, "../data/r-vars.rds")
+saveRDS(i.vars, "../data/i-vars.rds")
+```
