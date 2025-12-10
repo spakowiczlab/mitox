@@ -155,67 +155,70 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
     stop("Testing Sample_IDs do not match")
   }
   set.seed(seed)
-  model.training <- randomForest(x = train.seq[,-1, drop=FALSE], y =
-                                   as.factor(train.outcomes[[outcome]]), ntree = tree, importance = TRUE) #, mtry = 9
 
-  test.preds <- predict(model.training,
-                        test.seq[,-1, drop=FALSE])
+  # Train random forest
+  model.training <- randomForest(
+    x = train.seq[,-1, drop = FALSE],
+    y = as.factor(train.outcomes[[outcome]]),
+    ntree = tree,
+    importance = TRUE
+  )
 
-  # Prediction confusion matrix
-  pred_cm <- table(observed = test.outcomes[[outcome]],
-                   predicted = test.preds)
+  # Predict class labels
+  test.preds <- predict(model.training, test.seq[,-1, drop = FALSE])
 
+  # Confusion matrix
+  pred_cm <- table(
+    observed = test.outcomes[[outcome]],
+    predicted = test.preds
+  )
   print(pred_cm)
 
-  prediction_for_roc_curve <- predict(model.training,
-                                      test.seq[,-1, drop=FALSE],
-                                      type="prob")
+  #  Predict probabilities
+  pred_probs <- predict(model.training, test.seq[,-1, drop = FALSE], type = "prob")[,2]
 
-  pred <- prediction(prediction_for_roc_curve[,2],
-                     test.outcomes[[outcome]],
-                     label.ordering =
-                       c(neg.outcome, pos.outcome))
-  #for making aucpr curves
-  scores <- data.frame(prediction_for_roc_curve[,2], test.outcomes[[outcome]])
+  # ROC / AUROC (for plotting)
+  pred_rocr <- prediction(pred_probs, test.outcomes[[outcome]], label.ordering = c(neg.outcome, pos.outcome))
+  roc_perf <- performance(pred_rocr, "tpr", "fpr")
+  auc_roc <- performance(pred_rocr, measure = "auc")@y.values[[1]]
 
-  scores <- scores %>%
-    mutate(score = case_when((test.outcomes..outcome.. == pos.outcome) ~ 1,
-                             TRUE ~ 0))
-  # print(prediction_for_roc_curve[,2])
-  aucpr <- pr.curve(scores.class0=scores[scores$score=="0",]$`prediction_for_roc_curve...2.`,
-                    scores.class1=scores[scores$score=="1",]$`prediction_for_roc_curve...2.`,
-                    curve=T)
+  roc_df <- data.frame(
+    FalsePositive = unlist(roc_perf@x.values),
+    TruePositive  = unlist(roc_perf@y.values)
+  )
 
-  aucpr.plot <- as.data.frame(aucpr$curve)
-  print(ggplot(aucpr.plot, aes(V1, V2))+geom_path()+ylim(0,1))
+  # Precision-Recall / AUCPR
+  # Convert outcome to 0/1
+  y_true <- ifelse(test.outcomes[[outcome]] == pos.outcome, 1, 0)
 
-  perf <- performance(pred, "tpr", "fpr")
+  pr <- PRROC::pr.curve(
+    scores.class0 = pred_probs[y_true == 0],
+    scores.class1 = pred_probs[y_true == 1],
+    curve = TRUE
+  )
 
-  AUCPR_ROCR <- performance(pred, measure = "aucpr")
-  print(AUCPR_ROCR)
-  AUCPR <- AUCPR_ROCR@y.values[[1]]
-  print(AUCPR)
+  auc_pr <- pr$auc.integral
+  pr_df <- as.data.frame(pr$curve)
+  colnames(pr_df) <- c("Recall", "Precision", "Threshold")
+  pr_df$seed <- seed
 
-  df <- data.frame(FalsePositive=c(perf@x.values[[1]]),
-                   TruePositive=c(perf@y.values[[1]]))
+
+  # Variable importance
   varimp <- model.training$importance
-  out <- list(AUCPR, df, pred_cm, varimp, aucpr.plot)
+
+  # Output
+  out <- list(
+    AUROC      = auc_roc,   # scalar
+    ROC_df     = roc_df,    # for ROC plotting
+    AUCPR      = auc_pr,    # scalar
+    PR_df      = pr_df,     # for PR plotting
+    ConfMat    = pred_cm,   # confusion matrix
+    VarImp     = varimp     # variable importance
+  )
 
   return(out)
 }
 
-# Currently unused but var importance
-# grabImp <- function(output, input, seed_list){
-#   datalist <- list()
-#
-#   for(i in 1:length(seed_list)){
-#     tempdata <- data.frame(as.list(input[[i]][[1]][[4]][,4]))
-#     datalist[[i]] <- tempdata
-#   }
-#   output <- do.call(rbind, datalist)
-#
-#   output
-# }
 
 # Grabbing AUROC values from input models #
 grabVals <- function(input, seed_list){
@@ -265,7 +268,7 @@ get_vars_auc_threshold <- function(myList, threshold = 0.8) {
 }
 
 # Main function call to generate RF models using 25 seeds #
-kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree){
+kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df = NULL, tree){
   out <- list()
   for(i in 1:length(seed_list)){
     out[[i]] <- k_validate(seed = seed_list[i], neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree)
