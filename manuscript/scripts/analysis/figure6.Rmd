@@ -20,15 +20,21 @@ library(MESS)
 
 # Load data 
 ```{r}
+# data for forest plot
 load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
-# can update these locations after I fix the script 
-load("../../../exploratory/data/randomforest-irae-boruta.rds")
-load("../../../exploratory/data/randomforest-response-boruta.rds")
+
+# random forest output
+load("../../data/randomforest-irae.rda")
+load("../../data/randomforest-response.rda")
 
 # validation microbes only
 load("../../data/validation-response.rda")
 load("../../data/validation-irae.rda")
+
+# ANCOM results to examine direction of effect
+load("../../data/ANCOM-BC2_response_baseline.Rdata")
+load("../../data/ANCOM-BC2_irae_baseline.RData") 
 ```
 
 # Prepare data
@@ -256,23 +262,53 @@ Model_Comparison_Plot <- df %>%
 ```
 
 ```{r}
-aucpr_box(irae.rf %>% filter(Predictors != "Full Microbiome"))
-
-ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 5, width = 5)
-ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.png", height = 5, width = 5)
-```
-
-```{r}
-aucpr_box(response.rf  %>% filter(Predictors != "Full Microbiome"))
+aucpr_box(pr_response_df)
 
 ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 5, width = 5)
 ggsave("../../figures/Fig6C-AUCPR-boxplots-response.png", height = 5, width = 5)
 ```
 
+```{r}
+aucpr_box(pr_irae_df)
+
+ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 5, width = 5)
+ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.png", height = 5, width = 5)
+```
+
 Figure E and F - ROC curves for mitox 
+```{r}
+pr_irae_df %>%
+  select(AUCPR, Predictors, seed) %>%
+  distinct() %>%
+  group_by(Predictors) %>%
+  summarise(avg.aucpr = mean(AUCPR)) %>%
+  arrange(avg.aucpr)
+
+pr_response_df %>%
+  select(AUCPR, Predictors, seed) %>%
+  distinct() %>%
+  group_by(Predictors) %>%
+  summarise(avg.aucpr = mean(AUCPR)) %>%
+  arrange(avg.aucpr)
+
+roc_irae_df %>%
+  select(AUCROC, Predictors, seed) %>%
+  distinct() %>%
+  group_by(Predictors) %>%
+  summarise(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
+
+roc_response_df %>%
+  select(AUCROC, Predictors, seed) %>%
+  distinct() %>%
+  group_by(Predictors) %>%
+  summarise(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
+```
+
 
 ```{r}
-response.rf %>% 
+roc_response_df %>% 
   filter(Predictors %in% c("Microbiome", "Clinical")) %>%
   ggplot(aes(FalsePositive, TruePositive,
              colour = Predictors)) +
@@ -284,9 +320,9 @@ response.rf %>%
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.774",
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.614",
            color="darkgreen", size=4) +
-  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.682",
+  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.562",
            color="cornflowerblue", size=4) +
   theme(legend.position = "none")
 
@@ -295,7 +331,7 @@ ggsave("../../figures/Fig6E-ROC-response.png", height = 3, width = 3)
 ```
 
 ```{r}
-irae.rf %>% 
+roc_irae_df %>% 
   filter(Predictors %in% c("Microbiome", "Clinical")) %>%
   ggplot(aes(FalsePositive, TruePositive,
              colour = Predictors)) +
@@ -307,9 +343,9 @@ irae.rf %>%
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.674",
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.773",
            color="darkgreen", size=4) +
-  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.485",
+  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.489",
            color="cornflowerblue", size=4) +
   theme(legend.position = "none")
 
@@ -317,31 +353,32 @@ ggsave("../../figures/Fig6F-ROC-irae.svg", height = 3, width = 3)
 ggsave("../../figures/Fig6F-ROC-irae.png", height = 3, width = 3)
 ```
 
+Alternative is to show the PR-curves as represented by the AUCPR, but the plots 
+don't look that good
+
+
 # Figure G and H - ROC validation 
 
 ## Response 
 
 ```{r}
-val.r.aucprs %>%
- select(seed, AUCPR, Group) %>% 
+val.r.aucpr %>%
+  select(seed, AUCPR, Group) %>% 
   distinct() %>% 
   group_by(Group) %>% 
-  summarize(avg.AUC = mean(AUCPR))
+  summarize(avg.aucpr = mean(AUCPR)) %>%
+  arrange(avg.aucpr)
 
-auc_by_seed <- val.r.aucprs %>%
-  group_by(seed, Group, FalsePositive) %>%
-  summarise(TruePositive = mean(TruePositive), .groups = "drop") %>%  # average duplicates
-  group_by(seed, Group) %>%
-  summarise(seed_auc = auc(FalsePositive, TruePositive), .groups = "drop")
-
-# group-level average
-auc_by_seed %>%
-  group_by(Group) %>%
-  summarise(mean_auc = mean(seed_auc), sd_auc = sd(seed_auc))
+val.r.aucroc %>%
+  select(seed, AUCROC, Group) %>% 
+  distinct() %>% 
+  group_by(Group) %>% 
+  summarize(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
 ```
 
 ```{r}
-val.r.aucprs %>%
+val.r.aucroc %>%
   filter(Group == "Validation - All") %>%
   ggplot(aes(FalsePositive, TruePositive)) +
   geom_line(aes(group = seed),
@@ -354,7 +391,7 @@ val.r.aucprs %>%
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.645",
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.589",
            color="darkgreen", size=4) +
   theme(legend.position = "none")
 
@@ -364,15 +401,23 @@ ggsave("../../figures/Fig6G-valROC-response.png", height = 3, width = 3)
 
 ## irAE
 ```{r}
-val.i.all_aucprs %>%
- select(seed, AUCPR, Group) %>% 
+val.i.aucpr %>%
+  select(seed, AUCPR, Group) %>% 
   distinct() %>% 
   group_by(Group) %>% 
-  summarize(avg.AUC = mean(AUCPR))
+  summarize(avg.aucpr = mean(AUCPR)) %>%
+  arrange(avg.aucpr)
+
+val.i.aucroc %>%
+  select(seed, AUCROC, Group) %>% 
+  distinct() %>% 
+  group_by(Group) %>% 
+  summarize(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
 ```
 
 ```{r}
-val.i.all_aucprs %>%
+val.i.aucroc %>%
   ggplot(aes(FalsePositive, TruePositive)) +
   geom_line(aes(group = seed),
             alpha = 0.1, 
@@ -384,7 +429,7 @@ val.i.all_aucprs %>%
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.776",
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.544",
            color="darkgreen", size=4) +
   theme(legend.position = "none")
 
@@ -393,13 +438,25 @@ ggsave("../../figures/Fig6H-valROC-irae.png", height = 3, width = 3)
 ```
 
 # Fig I - validation by study
-Validation - Frankel	0.6692721			
-Validation - Gopalakrishnan	0.6277729			
-Validation - Matson	0.5736169			
-Validation - McCulloch	0.7659100			
-Validation - Peters	0.7510879
+
+Group         avg.aucpr
+Validation - Matson	0.5005887			
+Validation - Gopalakrishnan	0.5739966			
+Validation - All	0.6361556			
+Validation - McCulloch	0.7252095			
+Validation - Frankel	0.7370352			
+Validation - Peters	0.7397849	
+
+
+Group         avg.auc
+Validation - Gopalakrishnan	0.4868831			
+Validation - Matson	0.5076111			
+Validation - McCulloch	0.5300000			
+Validation - All	0.5894170			
+Validation - Frankel	0.6419444			
+Validation - Peters	0.7408889	- New York
 ```{r}
-val.r.aucprs %>%
+val.r.aucroc %>%
   filter(Group != "Validation - All") %>%
   mutate(Group = gsub("Validation - ", "", Group)) %>%
   ggplot(aes(FalsePositive, TruePositive,
@@ -413,177 +470,65 @@ val.r.aucprs %>%
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="New York; AUC = 0.751",
+  annotate(geom="text", x=0.8, y=0.25, label="New York; AUC = 0.741",
            color="brown4", size=4) +
-    annotate(geom="text", x=0.8, y=0.20, label="Pittsburgh; AUC = 0.766",
-           color="#E1AF00", size=4) +
-    annotate(geom="text", x=0.8, y=0.15, label="Chicago; AUC = 0.574",
-           color="#5A7247", size=4) +
-    annotate(geom="text", x=0.8, y=0.10, label="Houston; AUC = 0.628",
-           color="#CCBA72", size=4) +
-    annotate(geom="text", x=0.8, y=0.05, label="Dallas; AUC = 0.670",
+      annotate(geom="text", x=0.8, y=0.20, label="Dallas; AUC = 0.642",
            color="#3B9AB2", size=4) +
+    annotate(geom="text", x=0.8, y=0.15, label="Pittsburgh; AUC = 0.530",
+           color="#E1AF00", size=4) +
+    annotate(geom="text", x=0.8, y=0.10, label="Chicago; AUC = 0.508",
+           color="#5A7247", size=4) +
+    annotate(geom="text", x=0.8, y=0.05, label="Houston; AUC = 0.487",
+           color="#CCBA72", size=4) +
   theme(legend.position = "top")
 
+ggsave("../../figures/Fig6I-valROC-by-study.svg", height = 4, width = 6)
+ggsave("../../figures/Fig6I-valROC-by-study.png", height = 4, width = 6)
 ```
 
-
-
-```{r}
-# mic only
-rsig.mic.aucprs.r %>%
-  select(seed, AUCPR) %>%
-  distinct() %>%
-  summarize(mean.auc = mean(AUCPR))
-
-rsig.mic.aucprs.i %>%
-  select(seed, AUCPR) %>%
-  distinct() %>%
-  summarize(mean.auc = mean(AUCPR))
-
-# mic + clin 
-rsig.allvars.aucprs.r %>%
-  select(seed, AUCPR) %>%
-  distinct() %>%
-  summarize(mean.auc = mean(AUCPR))
-
-rsig.allvars.aucprs.i %>%
-  select(seed, AUCPR) %>%
-  distinct() %>%
-  summarize(mean.auc = mean(AUCPR))
-```
-
+# Fig J - Variable Importance Plots for validation 
 
 ```{r}
-rsig.allvars.aucprs.r %>%
-  ggplot(aes(x = FalsePositive, y = TruePositive, group = seed)) +
-  geom_line(size = 1, color = "grey") +
-  geom_line(aes(group = seed),
-            alpha = 0.15, linewidth = 0.4) +
-  geom_smooth(aes(group = 1), se = FALSE, linewidth = 1.2, color = "blue") +
-  labs(
-    x = "False Positive Rate",
-    y = "True Positive Rate"
-  ) +
-  theme_minimal()
-
-  ggplot(aes(FalsePositive, TruePositive)) +
-  geom_line(aes(group = seed),
-            alpha = 0.15, linewidth = 0.4) +
-  geom_smooth(aes(group = Predictors),
-              se = FALSE, linewidth = 1.2) +
-  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
-  theme_minimal() +
-  xlab("1 - Specificity") +
-  ylab("Sensitivity") +
-  # annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.674",
-  #          color="darkgreen", size=4) +
-  theme(legend.position = "none")
-```
-
-
-Figure I and J - Variable Importance Plots
-
-```{r}
-# Select top N variables by mean importance across all seeds
-top_n <- 20
-top_vars <- rsig.allvars.vimp.i %>%
+plot.in <- val.r.vars %>%
   group_by(Factors) %>%
   summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
   arrange(desc(meanGini)) %>%
-  slice(1:top_n) %>%
-  pull(Factors)
+  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
+  left_join(res.recist) %>%
+  mutate(`Effect Direction` = ifelse(lfc_ResponseResponder < 0, "Depleted", "Enriched"),
+         taxon = gsub("_", " ", taxon))
 
-df_top <- rsig.allvars.vimp.i %>% filter(Factors %in% top_vars)
-
-# Facet plot
-ggplot(df_top, aes(x = reorder(Factors, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_col(fill = "steelblue") +
+plot.in %>%
+  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini, 
+             fill = `Effect Direction`)) +
+  scale_fill_manual(values = c("#91BFDB", "#FC8D59")) + 
+  geom_col() +
   coord_flip() +
-  facet_wrap(~ seed, scales = "free_y") +
-  labs(
-    title = "Random Forest Variable Importance by Seed",
-    x = "Factors",
-    y = "Mean Decrease in Gini"
-  ) +
+  labs(x = "", y = "Variable Importance") +
   theme_minimal()
-```
 
+ggsave("../../figures/Fig6J-varImp-response.svg", height = 4, width = 3)
+ggsave("../../figures/Fig6J-varImp-response.png", height = 4, width = 3)
+```
 ```{r}
-# Select top N variables by mean importance across all seeds
-top_n <- 20
-top_vars <- rsig.allvars.vimp.r %>%
+plot.in <- val.i.vars %>%
   group_by(Factors) %>%
   summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
   arrange(desc(meanGini)) %>%
-  slice(1:top_n) %>%
-  pull(Factors)
+  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
+  left_join(res.irae) %>%
+  mutate(`Effect Direction` = ifelse(lfc_irAEYes < 0, "Depleted", "Enriched"),
+         taxon = gsub("_", " ", taxon))
 
-df_top <- rsig.allvars.vimp.r %>% filter(Factors %in% top_vars)
-
-# Facet plot
-ggplot(df_top, aes(x = reorder(Factors, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_col(fill = "steelblue") +
+plot.in %>%
+  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini, 
+             fill = `Effect Direction`)) +
+  scale_fill_manual(values = c("#91BFDB", "#FC8D59")) + 
+  geom_col() +
   coord_flip() +
-  facet_wrap(~ seed, scales = "free_y") +
-  labs(
-    title = "Random Forest Variable Importance by Seed",
-    x = "Factors",
-    y = "Mean Decrease in Gini"
-  ) +
+  labs(x = "", y = "Variable Importance") +
   theme_minimal()
+
+ggsave("../../figures/Fig6K-varImp-irae.svg", height = 4, width = 3)
+ggsave("../../figures/Fig6K-varImp-irae.png", height = 4, width = 3)
 ```
-
-```{r}
-# Select top N variables by mean importance across all seeds
-top_n <- 20
-top_vars <- rsig.mic.vimp.i %>%
-  group_by(Factors) %>%
-  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
-  arrange(desc(meanGini)) %>%
-  slice(1:top_n) %>%
-  pull(Factors)
-
-df_top <- rsig.mic.vimp.i %>% filter(Factors %in% top_vars)
-
-# Facet plot
-ggplot(df_top, aes(x = reorder(Factors, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  facet_wrap(~ seed, scales = "free_y") +
-  labs(
-    title = "Random Forest Variable Importance by Seed",
-    x = "Factors",
-    y = "Mean Decrease in Gini"
-  ) +
-  theme_minimal()
-```
-
-```{r}
-# Select top N variables by mean importance across all seeds
-top_n <- 20
-top_vars <- rsig.mic.vimp.r %>%
-  group_by(Factors) %>%
-  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
-  arrange(desc(meanGini)) %>%
-  slice(1:top_n) %>%
-  pull(Factors)
-
-df_top <- rsig.mic.vimp.r %>% filter(Factors %in% top_vars)
-
-# Facet plot
-ggplot(df_top, aes(x = reorder(Factors, MeanDecreaseGini), y = MeanDecreaseGini)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  facet_wrap(~ seed, scales = "free_y") +
-  labs(
-    title = "Random Forest Variable Importance by Seed",
-    x = "Factors",
-    y = "Mean Decrease in Gini"
-  ) +
-  theme_minimal()
-```
-
-
-
-
