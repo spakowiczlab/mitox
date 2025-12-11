@@ -15,7 +15,7 @@ k_validate <- function(seed, df, neg.outcome, pos.outcome, outcome, factors_list
 
   out[[1]] <- getROC(seed, df, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree)
 
-  avg_AUCPR <- lapply(out, function(x){ x[[1]]})
+  avg_AUCPR <- lapply(out, function(x){ x[[3]]})
   message("\nAUCPR average: ", (rowMeans(as.data.frame(avg_AUCPR))))
   return(out)
 }
@@ -27,21 +27,20 @@ getROC <- function(seed, df, neg.outcome, pos.outcome, outcome, factors_list, va
 
   if(validation == TRUE) {
 
-    train.outcomes <- demographics %>%
+    train.outcomes <- df %>%
       dplyr::select(`Patient Id`, irAE, Response) %>%
-      subset(`Patient Id` %in% baseline$`Patient Id`) %>%
       arrange(desc(`Patient Id`))
 
     test.outcomes <- val_df %>%
-      select(`Patient Id`, outcome) %>%
+      dplyr::select(`Patient Id`, outcome) %>%
       arrange(desc(`Patient Id`))
 
     train.seq <- base.micro %>%
-      select(factors_list) %>%
+      dplyr::select(factors_list) %>%
       arrange(desc(`Patient Id`))
 
     test.seq <- val_df %>%
-      select(factors_list) %>%
+      dplyr::select(factors_list) %>%
       arrange(desc(`Patient Id`))
 
   } else {
@@ -252,23 +251,6 @@ grabVals <- function(input, seed_list) {
   list(ROC = roc_df, PR = pr_df)
 }
 
-
-
-
-
-# Grabbing the variables used in each model
-# Function to get distinct rownames from all list elements
-get_vars <- function(myList) {
-  unique(unlist(lapply(myList, function(x) rownames(x[[1]][[4]]))))
-}
-
-# get vars from top AUC
-get_best_auc_vars <- function(myList) {
-  aucs <- sapply(myList, function(x) x[[1]][[1]])
-  best_idx <- which.max(aucs)
-  rownames(myList[[best_idx]][[1]][[4]])
-}
-
 # get vars from AUC > 0.8
 get_vars_auc_threshold <- function(myList, threshold = 0.8) {
   aucs <- sapply(myList, function(x) x[[1]][[1]])
@@ -276,10 +258,11 @@ get_vars_auc_threshold <- function(myList, threshold = 0.8) {
   # which models pass the threshold?
   idx <- which(aucs > threshold)
   if (length(idx) == 0) return(character(0))
-  vars <- unlist(lapply(idx, function(i) rownames(myList[[i]][[1]][[4]])))
+  vars <- unlist(lapply(idx, function(i) rownames(myList[[i]][[1]][[6]])))
   unique(vars)
 }
 
+# get variable importance
 grabImp <- function(input, seed_list){
 
   out <- list()
@@ -289,7 +272,7 @@ grabImp <- function(input, seed_list){
     # Extract getROC() output for this seed
     res <- input[[i]][[1]]
 
-    impdf <- res[[4]] %>%   # Variable importance export
+    impdf <- res[[6]] %>%   # Variable importance export
       as.data.frame() %>%
       rownames_to_column(var = "Factors")  #convert row names to column
 

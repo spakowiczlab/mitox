@@ -419,6 +419,24 @@ pr_response_df <- bind_rows(
 )
 ```
 
+# Get top vars 
+```{r}
+# get vars from all with AUC > 0.8 from microbiome input
+r.vars <- get_vars_auc_threshold(rf_q01_response_list)
+i.vars <- get_vars_auc_threshold(rf_q005_irAE_list)
+
+r.vars
+i.vars
+
+intersect(r.vars, i.vars)
+```
+
+# save objects
+```{r}
+save(roc_irae_df, pr_irae_df, i.vars, file = "../../data/randomforest-irae.rda")
+save(roc_response_df, pr_response_df, r.vars, file = "../../data/randomforest-response.rda")
+```
+
 Examine averages
 ```{r}
 pr_irae_df %>%
@@ -434,35 +452,18 @@ pr_response_df %>%
   group_by(Predictors) %>%
   summarise(avg.aucpr = mean(AUCPR)) %>%
   arrange(avg.aucpr)
-  
-```
 
+roc_irae_df %>%
+  select(AUCROC, Predictors, seed) %>%
+  distinct() %>%
+  group_by(Predictors) %>%
+  summarise(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
 
-
-# ```{r}
-# irae.rf <- rbind(clinical_irae_aucprs, blood_irae_aucprs, biome_irae_aucprs, biome_and_blood_irae_aucprs, blood_and_clinical_irae_aucprs, biome_and_clinical_irae_aucprs, biome_blood_clinical_irae_aucprs)
-# 
-# save(irae.rf, file = "../data/randomforest-irae-boruta.rds")
-# ```
-# 
-# ### Combine and save as one df for Response
-# ```{r}
-# response.rf <- rbind(clinical_response_aucprs, blood_response_aucprs, biome_response_aucprs, biome_clinical_response_aucprs, blood_clinical_response_aucprs,  biome_and_blood_response_aucprs, biome_blood_clinical_response_aucprs)
-# 
-# save(response.rf, file = "../data/randomforest-response-boruta.rds")
-# ```
-
-## Get variables used 
-```{r}
-# get vars from all with AUC > 0.8 from microbiome input
-r.vars <- get_vars_auc_threshold(rf_q01_response_list)
-i.vars <- get_vars_auc_threshold(rf_q005_irAE_list)
-
-r.vars
-i.vars
-
-intersect(r.vars, i.vars)
-
-saveRDS(r.vars, "../data/r-vars.rds")
-saveRDS(i.vars, "../data/i-vars.rds")
+roc_response_df %>%
+  select(AUCROC, Predictors, seed) %>%
+  distinct() %>%
+  group_by(Predictors) %>%
+  summarise(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
 ```
