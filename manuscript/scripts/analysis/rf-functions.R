@@ -8,12 +8,12 @@
 
 # this function is an additional layer we aren't using right now
 # could use this to add cross fold validation as it was originally intended for
-k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree){
+k_validate <- function(seed, df, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree){
   set.seed(seed)
 
   out <- list()
 
-  out[[1]] <- getROC(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree)
+  out[[1]] <- getROC(seed, df, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree)
 
   avg_AUCPR <- lapply(out, function(x){ x[[1]]})
   message("\nAUCPR average: ", (rowMeans(as.data.frame(avg_AUCPR))))
@@ -21,7 +21,7 @@ k_validate <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, va
 }
 
 # Function create and test RF model #
-getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree){
+getROC <- function(seed, df, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree){
 
   set.seed(seed)
 
@@ -47,34 +47,25 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
   } else {
 
     #splitting data into train and test
-    split <- sample.split(demographics[[outcome]], SplitRatio = 0.5)
+    split <- sample.split(df[[outcome]], SplitRatio = 0.5)
 
-    train <- subset(demographics, split == TRUE) %>%
-      subset(`Patient Id` %in% blood$`Patient Id`) %>%
-      subset(`Patient Id` %in% baseline$`Patient Id`)
+    train <- subset(df, split == TRUE)
+    test <- subset(df, split == FALSE)
 
-    test <- subset(demographics, split == FALSE) %>%
-      subset(`Patient Id` %in% blood$`Patient Id`) %>%
-      subset(`Patient Id` %in% baseline$`Patient Id`)
-
-    train.outcomes <- demographics %>%
+    train.outcomes <- df %>%
       dplyr::select(`Patient Id`, irAE, Response) %>%
-      subset(`Patient Id` %in% train$`Patient Id`) %>%
-      subset(`Patient Id` %in% blood$`Patient Id`) %>%
-      subset(`Patient Id` %in% baseline$`Patient Id`)
+      subset(`Patient Id` %in% train$`Patient Id`)
 
     train.outcomes <- arrange(train.outcomes, desc(`Patient Id`))
 
-    test.outcomes <- demographics %>%
+    test.outcomes <- df %>%
       dplyr::select(`Patient Id`, irAE, Response) %>%
-      subset(`Patient Id` %in% test$`Patient Id`) %>%
-      subset(`Patient Id` %in% blood$`Patient Id`) %>%
-      subset(`Patient Id` %in% baseline$`Patient Id`)
+      subset(`Patient Id` %in% test$`Patient Id`)
 
     test.outcomes <- arrange(test.outcomes, desc(`Patient Id`))
 
     #creating objects for the model to be trained and tested on
-    factors <- all_factors %>%
+    factors <- df %>%
       dplyr::select((factors_list))
 
     train.seq <- filter(factors,
@@ -154,6 +145,7 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
   if(all(test.outcomes$`Patient Id` == test.outcomes$`Patient Id`) == FALSE){
     stop("Testing Sample_IDs do not match")
   }
+
   set.seed(seed)
 
   # Train random forest
@@ -175,33 +167,36 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
   print(pred_cm)
 
   #  Predict probabilities
-  pred_probs <- predict(model.training, test.seq[,-1, drop = FALSE], type = "prob")[,2]
+  pred_probs <- predict(model.training, test.seq[,-1, drop = FALSE], type = "prob")
 
   # ROC / AUROC (for plotting)
-  pred_rocr <- prediction(pred_probs, test.outcomes[[outcome]], label.ordering = c(neg.outcome, pos.outcome))
+  pred_rocr <- prediction(pred_probs[,2], test.outcomes[[outcome]], label.ordering = c(neg.outcome, pos.outcome))
+
+  # Precision-Recall / AUCPR using ROCR
+  pr_perf <- performance(pred_rocr, "prec", "rec")
+
+  # create fresh prediction object
+  pred_rocr <- prediction(pred_probs[,2], test.outcomes[[outcome]], label.ordering = c(neg.outcome, pos.outcome))
+  AUCPR_ROCR <- performance(pred_rocr, measure = "aucpr")
+  auc_pr <- AUCPR_ROCR@y.values[[1]]
+
+  pr_df <- data.frame(
+    Recall    = unlist(pr_perf@x.values),
+    Precision = unlist(pr_perf@y.values)
+  )
+  pr_df$seed <- seed
+
+  # ROC curve
+  pred_rocr <- prediction(pred_probs[,2], test.outcomes[[outcome]], label.ordering = c(neg.outcome, pos.outcome))
   roc_perf <- performance(pred_rocr, "tpr", "fpr")
-  auc_roc <- performance(pred_rocr, measure = "auc")@y.values[[1]]
+  pred_rocr <- prediction(pred_probs[,2], test.outcomes[[outcome]], label.ordering = c(neg.outcome, pos.outcome))
+  auc_roc  <- performance(pred_rocr, measure = "auc")@y.values[[1]]
 
   roc_df <- data.frame(
     FalsePositive = unlist(roc_perf@x.values),
     TruePositive  = unlist(roc_perf@y.values)
   )
-
-  # Precision-Recall / AUCPR
-  # Convert outcome to 0/1
-  y_true <- ifelse(test.outcomes[[outcome]] == pos.outcome, 1, 0)
-
-  pr <- PRROC::pr.curve(
-    scores.class0 = pred_probs[y_true == 0],
-    scores.class1 = pred_probs[y_true == 1],
-    curve = TRUE
-  )
-
-  auc_pr <- pr$auc.integral
-  pr_df <- as.data.frame(pr$curve)
-  colnames(pr_df) <- c("Recall", "Precision", "Threshold")
-  pr_df$seed <- seed
-
+  roc_df$seed <- seed
 
   # Variable importance
   varimp <- model.training$importance
@@ -220,28 +215,46 @@ getROC <- function(seed, neg.outcome, pos.outcome, outcome, factors_list, valida
 }
 
 
-# Grabbing AUROC values from input models #
-grabVals <- function(input, seed_list){
-
+# Main function call to generate RF models using 25 seeds #
+kTest <- function(seed_list, df, neg.outcome, pos.outcome, outcome, factors_list, validation = FALSE, val_df = NULL, tree = 1000){
   out <- list()
+  for(i in 1:length(seed_list)){
+    out[[i]] <- k_validate(seed = seed_list[i], df, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree)
+  }
+  # out <- grabVals(out)
+  out
+}
+
+grabVals <- function(input, seed_list) {
+
+  # Lists to hold per-seed curve data
+  roc_list <- list()
+  pr_list  <- list()
 
   for (i in seq_along(seed_list)) {
+    res <- input[[i]][[1]]  # getROC output for this seed
 
-    # Extract getROC() output for this seed
-    res <- input[[i]][[1]]
+    # --- ROC data ---
+    rocdf <- res[[2]]           # assuming ROC df is res[[2]]
+    rocdf$AUCROC <- res[[1]]
+    roc_list[[i]] <- rocdf
 
-    AUCPR <- res[[1]]    # AUPCR value
-    rocdf <- res[[2]]    # ROC curve dataframe
-
-    rocdf$seed  <- seed_list[i]
-    rocdf$AUCPR <- AUCPR
-
-    out[[i]] <- rocdf
+    # --- PR data ---
+    prdf <- res[[4]]
+    prdf$AUCPR <- res[[3]]
+    pr_list[[i]] <- prdf
   }
 
-  # bind into one big data frame
-  dplyr::bind_rows(out)
+  # Combine all seeds into one data.frame each
+  roc_df <- dplyr::bind_rows(roc_list)
+  pr_df  <- dplyr::bind_rows(pr_list)
+
+  list(ROC = roc_df, PR = pr_df)
 }
+
+
+
+
 
 # Grabbing the variables used in each model
 # Function to get distinct rownames from all list elements
@@ -265,19 +278,6 @@ get_vars_auc_threshold <- function(myList, threshold = 0.8) {
   if (length(idx) == 0) return(character(0))
   vars <- unlist(lapply(idx, function(i) rownames(myList[[i]][[1]][[4]])))
   unique(vars)
-}
-
-# Main function call to generate RF models using 25 seeds #
-kTest <- function(seed_list, neg.outcome, pos.outcome, outcome, factors_list, validation, val_df = NULL, tree){
-  out <- list()
-  for(i in 1:length(seed_list)){
-    out[[i]] <- k_validate(seed = seed_list[i], neg.outcome, pos.outcome, outcome, factors_list, validation, val_df, tree)
-  }
-  # out <- grabVals(out)
-  # CW edit to function
-  # out <- do.call(rbind.data.frame, out)
-  # colnames(out) <- c("AUCPR")
-  out
 }
 
 grabImp <- function(input, seed_list){
