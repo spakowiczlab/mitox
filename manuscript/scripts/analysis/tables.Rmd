@@ -14,6 +14,7 @@ library(tidyverse)
 library(table1)
 library(tableone)
 library(gridExtra)
+library(htmltools)
 ```
 
 ```{r}
@@ -32,7 +33,8 @@ baseline <- mic.meta %>%
   filter(abs(Days) <= 10)
 
 demo.filt <- demographics %>%
-  filter(`Patient Id` %in% baseline$`Patient Id`)
+  filter(`Patient Id` %in% baseline$`Patient Id`) %>%
+  mutate(Treatment = Treatment.bin)
 ```
 
 
@@ -64,7 +66,12 @@ table1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
 print(table1, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
+
+html_file <- "../../figures/table1.html"
+save_html(table1, file = html_file)
 ```
+
+
 
 If we decide to make our own version 
 ```{r}
@@ -88,7 +95,10 @@ table2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
        data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
-table2
+print(table2, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
+
+html_file <- "../../figures/table2.html"
+save_html(table2, file = html_file)
 ```
 
 
@@ -133,6 +143,11 @@ table3 <- table1(~ Type + Grade, data = irae.in)
        render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
 table3
+
+print(table3, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
+
+html_file <- "../../figures/table3.html"
+save_html(table3, file = html_file)
 ```
 
 
