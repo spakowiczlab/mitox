@@ -123,7 +123,7 @@ phyl.ra %>%
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
 
-ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.png", height = 3.5, width = 5, dpi = 300)
+ggsave("../../figures/Fig3A-irAE-baseline-stackedbar.svg", height = 3.5, width = 5, dpi = 300)
 ```
 Figure 3B - diversity boxplots
 ```{r}
@@ -181,7 +181,7 @@ g <- res.irae %>%
 
 g
 
-ggsave("../../figures/Fig3C-irae-baseline-volcano.png", height = 4, width = 5, dpi = 300)
+ggsave("../../figures/Fig3C-irae-baseline-volcano.svg", height = 4, width = 5, dpi = 300)
 ```
 
 Figure 3D - Respondersig 
@@ -325,7 +325,7 @@ box.in %>%
   ) +
   xlab("")
 
-ggsave("../../figures/Fig3E-irAE-s0-baseline-boxplots.png", height = 3, width = 5)
+ggsave("../../figures/Fig3E-irAE-s0-baseline-boxplots.svg", height = 3, width = 5)
 ```
 # Figure 3F - baseline timepoint distance to irAE centroid vs no-irAE per person
 Q: are the irae pts more variable?
@@ -437,7 +437,7 @@ ggplot(dist_long, aes(x = Group, y = Distance, fill = Group)) +
   labs(x = "Group", y = "Pairwise distances within group") +
   theme(legend.position = "none")
 
-ggsave("../../figures/Fig3F-pairwise-dist_boxplots.png", height = 3, width = 3)
+ggsave("../../figures/Fig3F-pairwise-dist_boxplots.svg", height = 3, width = 3)
 ```
 No irAE definitely more tightly clustered!
 

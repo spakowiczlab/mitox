@@ -954,32 +954,32 @@
 <circle cx='178.27' cy='201.54' r='1.60' style='stroke-width: 0.58; stroke: #C1CDC1; fill: #C1CDC1;' />
 <circle cx='204.77' cy='219.80' r='1.60' style='stroke-width: 0.58; stroke: #C1CDC1; fill: #C1CDC1;' />
 <circle cx='148.10' cy='55.06' r='1.60' style='stroke-width: 0.58; stroke: #8B0A50; fill: #8B0A50;' />
-<line x1='287.79' y1='43.30' x2='294.60' y2='40.10' style='stroke-width: 1.07;' />
-<line x1='41.64' y1='63.97' x2='38.39' y2='46.95' style='stroke-width: 1.07;' />
-<line x1='61.03' y1='11.01' x2='46.92' y2='15.79' style='stroke-width: 1.07;' />
-<line x1='59.66' y1='42.24' x2='39.51' y2='43.38' style='stroke-width: 1.07;' />
-<text x='233.56' y='146.85' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='57.80px' lengthAdjust='spacingAndGlyphs'>GGB33512 SGB15201</text>
-<text x='262.20' y='83.31' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='51.48px' lengthAdjust='spacingAndGlyphs'>GGB2653 SGB3574</text>
-<text x='213.00' y='125.13' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='40.42px' lengthAdjust='spacingAndGlyphs'>Blautia stercoris</text>
-<text x='256.15' y='46.04' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='59.67px' lengthAdjust='spacingAndGlyphs'>Longicatena caecimuris</text>
-<text x='159.63' y='147.77' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='68.84px' lengthAdjust='spacingAndGlyphs'>Intestinimonas massiliensis</text>
-<text x='211.35' y='96.73' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='92.20px' lengthAdjust='spacingAndGlyphs'>Clostridiaceae bacterium AF18 31LB</text>
-<text x='315.75' y='34.79' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='72.30px' lengthAdjust='spacingAndGlyphs'>Enterocloster asparagiformis</text>
-<text x='174.05' y='96.73' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='54.22px' lengthAdjust='spacingAndGlyphs'>GGB9176 SGB14114</text>
-<text x='276.89' y='71.86' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='56.20px' lengthAdjust='spacingAndGlyphs'>Coprococcus eutactus</text>
-<text x='287.15' y='58.60' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='30.94px' lengthAdjust='spacingAndGlyphs'>Longicatena</text>
-<text x='134.38' y='108.34' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='25.27px' lengthAdjust='spacingAndGlyphs'>GGB9176</text>
-<text x='40.44' y='35.34' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='27.47px' lengthAdjust='spacingAndGlyphs'>FGB38642</text>
-<text x='55.59' y='66.77' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='24.31px' lengthAdjust='spacingAndGlyphs'>FGB1787</text>
-<text x='127.56' y='94.80' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='24.31px' lengthAdjust='spacingAndGlyphs'>FGB2875</text>
-<text x='66.60' y='24.04' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.89px' lengthAdjust='spacingAndGlyphs'>OFGB38642</text>
-<text x='41.06' y='55.47' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.73px' lengthAdjust='spacingAndGlyphs'>OFGB1787</text>
-<text x='161.47' y='85.43' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.73px' lengthAdjust='spacingAndGlyphs'>OFGB2875</text>
-<text x='78.62' y='12.72' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.58px' lengthAdjust='spacingAndGlyphs'>CFGB38642</text>
-<text x='75.67' y='44.28' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.42px' lengthAdjust='spacingAndGlyphs'>CFGB1787</text>
-<text x='133.56' y='74.05' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.42px' lengthAdjust='spacingAndGlyphs'>CFGB2875</text>
+<line x1='287.52' y1='43.36' x2='294.60' y2='40.09' style='stroke-width: 1.07;' />
+<line x1='41.69' y1='64.04' x2='38.39' y2='46.95' style='stroke-width: 1.07;' />
+<line x1='61.12' y1='11.00' x2='46.92' y2='15.79' style='stroke-width: 1.07;' />
+<line x1='59.61' y1='42.25' x2='39.51' y2='43.38' style='stroke-width: 1.07;' />
+<text x='233.58' y='146.85' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='57.80px' lengthAdjust='spacingAndGlyphs'>GGB33512 SGB15201</text>
+<text x='262.16' y='83.34' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='51.48px' lengthAdjust='spacingAndGlyphs'>GGB2653 SGB3574</text>
+<text x='213.01' y='125.12' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='40.42px' lengthAdjust='spacingAndGlyphs'>Blautia stercoris</text>
+<text x='255.88' y='46.08' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='59.67px' lengthAdjust='spacingAndGlyphs'>Longicatena caecimuris</text>
+<text x='159.72' y='147.76' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='68.84px' lengthAdjust='spacingAndGlyphs'>Intestinimonas massiliensis</text>
+<text x='211.31' y='96.72' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='92.20px' lengthAdjust='spacingAndGlyphs'>Clostridiaceae bacterium AF18 31LB</text>
+<text x='315.75' y='34.83' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='72.30px' lengthAdjust='spacingAndGlyphs'>Enterocloster asparagiformis</text>
+<text x='174.10' y='96.76' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='54.22px' lengthAdjust='spacingAndGlyphs'>GGB9176 SGB14114</text>
+<text x='276.65' y='71.89' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='56.20px' lengthAdjust='spacingAndGlyphs'>Coprococcus eutactus</text>
+<text x='287.11' y='58.63' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='30.94px' lengthAdjust='spacingAndGlyphs'>Longicatena</text>
+<text x='134.47' y='108.31' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='25.27px' lengthAdjust='spacingAndGlyphs'>GGB9176</text>
+<text x='40.44' y='35.31' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='27.47px' lengthAdjust='spacingAndGlyphs'>FGB38642</text>
+<text x='55.64' y='66.84' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='24.31px' lengthAdjust='spacingAndGlyphs'>FGB1787</text>
+<text x='127.58' y='94.78' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='24.31px' lengthAdjust='spacingAndGlyphs'>FGB2875</text>
+<text x='66.62' y='24.03' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.89px' lengthAdjust='spacingAndGlyphs'>OFGB38642</text>
+<text x='41.06' y='55.54' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.73px' lengthAdjust='spacingAndGlyphs'>OFGB1787</text>
+<text x='161.64' y='85.44' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.73px' lengthAdjust='spacingAndGlyphs'>OFGB2875</text>
+<text x='78.71' y='12.72' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.58px' lengthAdjust='spacingAndGlyphs'>CFGB38642</text>
+<text x='75.62' y='44.29' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.42px' lengthAdjust='spacingAndGlyphs'>CFGB1787</text>
+<text x='133.58' y='74.12' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.42px' lengthAdjust='spacingAndGlyphs'>CFGB2875</text>
 <text x='41.21' y='12.16' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='29.05px' lengthAdjust='spacingAndGlyphs'>Tenericutes</text>
-<text x='156.70' y='50.43' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='21.16px' lengthAdjust='spacingAndGlyphs'>Archaea</text>
+<text x='156.76' y='50.38' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='21.16px' lengthAdjust='spacingAndGlyphs'>Archaea</text>
 <rect x='23.09' y='4.48' width='332.43' height='257.77' style='stroke-width: 0.87; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHwzNjAuMDB8MC4wMHwyODguMDA=)'>
