@@ -29,8 +29,8 @@ load("../../data/phylum-labels.rds")
 load("../../data/taxonomy-key.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_NR_irAE.rds")
 load("../../data/ANCOM-BC2-fulltax-sigq_R_No_irAE.rds")
-load("../../data/struct0_response.rds")
-load("../../data/struct0_irae.rds")
+# load("../../data/struct0_response.rds")
+# load("../../data/struct0_irae.rds")
 load("../../data/alpha-diversity.rds")
 load("../../data/respondersig-output.rds")
 load("../../data/respondersig-output-baseline.rds")
@@ -292,6 +292,27 @@ nr.top <- nr %>%
   ungroup()
 ```
 
+# struct0 totals 
+```{r}
+lach.key <- tax.key %>%
+  select(Family, taxon) %>%
+  mutate(microbe = gsub(" ", "_", taxon))
+
+# 380 mics
+# 56 lachnospiracae
+x <- r %>%
+  select(microbe) %>%
+  distinct() %>%
+  left_join(lach.key)
+famx <- as.data.frame(table(x$Family))
+
+# 210 mics 
+y <- nr %>%
+  select(microbe) %>%
+  distinct() %>%
+  left_join(lach.key)
+famy <- as.data.frame(table(y$Family))
+```
 
 ```{r}
 top10 <- rbind(r.top, nr.top) %>%
@@ -313,6 +334,7 @@ box.in <- rbind(r, nr) %>%
 colors <- c("#999933","#6699CC","#44AA99")
 colors <- c("darkgoldenrod2", "cyan4", "salmon2")
 ```
+
 
 ```{r}
 box.in %>%
