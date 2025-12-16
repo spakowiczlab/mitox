@@ -137,7 +137,7 @@ div  %>%
   scale_fill_manual(values = c("No irAE" = "#E69F00", "irAE" = "#3B9AB2")) +
   theme(legend.position = "none") +
   stat_compare_means(
-    method = "t.test",
+    method = "wilcox.test",
     size = 2.5,          
     vjust = 11          
   )
@@ -192,7 +192,7 @@ rsig_plot(rsig.baseline, batch.correction = "Log.transformed")
 
 
 ```{r}
-keep_idx <- rsig.baseline$Group == "Experimental"
+keep_idx <- rsig.baseline$Dataset == "Experimental"
 
 rsig.filt <- lapply(rsig.baseline, function(x) {
   if (is.data.frame(x)) {
@@ -228,7 +228,7 @@ get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
   set.seed(seed)
   keep <- !is.na(group)
   data_in <- dist.in[keep, , drop = FALSE]
-  group <- droplevels(group[keep])+
+  group <- droplevels(group[keep])
 
   adon.results <- adonis2(data_in ~ group, 
                           method = "euclidean", 
@@ -238,7 +238,7 @@ get_pval <- function(dist.in, group, perm = 999, seed = 528934) {
 }
 
 # for log.transformed input
-pval <- get_pval(rsig.filt$Log.transformed, rsig.filt$Response)
+pval <- get_pval(rsig.filt$Log.transformed, rsig.filt$Group)
 
 print("Log-transformed")
 pval
@@ -336,7 +336,7 @@ pairwise distances show a difference
 
 ```{r}
 taxa_mat <- rsig.filt$Log.transformed
-group <- rsig.filt$Response
+group <- rsig.filt$Group
 ```
 
 # first lets get the dist to centroid - in the "feature space"

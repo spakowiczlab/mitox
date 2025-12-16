@@ -901,19 +901,19 @@
 <circle cx='142.47' cy='187.18' r='1.60' style='stroke-width: 0.58; stroke: #8B0A50; fill: #8B0A50;' />
 <circle cx='190.83' cy='232.33' r='1.60' style='stroke-width: 0.58; stroke: #C1CDC1; fill: #C1CDC1;' />
 <circle cx='122.09' cy='135.18' r='1.60' style='stroke-width: 0.58; stroke: #8B0A50; fill: #8B0A50;' />
-<line x1='45.94' y1='139.37' x2='56.74' y2='152.54' style='stroke-width: 1.07;' />
-<text x='323.02' y='108.38' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='57.80px' lengthAdjust='spacingAndGlyphs'>GGB33512 SGB15201</text>
-<text x='317.92' y='132.32' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='59.67px' lengthAdjust='spacingAndGlyphs'>Longicatena caecimuris</text>
-<text x='77.87' y='178.03' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='102.33px' lengthAdjust='spacingAndGlyphs'>Oscillospiraceae unclassified SGB15256</text>
-<text x='225.37' y='170.24' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='56.52px' lengthAdjust='spacingAndGlyphs'>Enterocloster citroniae</text>
-<text x='288.93' y='119.73' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='30.94px' lengthAdjust='spacingAndGlyphs'>Longicatena</text>
-<text x='115.76' y='205.03' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='25.27px' lengthAdjust='spacingAndGlyphs'>GGB9782</text>
-<text x='152.48' y='206.60' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.42px' lengthAdjust='spacingAndGlyphs'>GGB33586</text>
-<text x='106.53' y='161.63' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='25.27px' lengthAdjust='spacingAndGlyphs'>GGB9708</text>
-<text x='48.74' y='166.71' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='27.47px' lengthAdjust='spacingAndGlyphs'>FGB38642</text>
-<text x='77.22' y='148.79' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.89px' lengthAdjust='spacingAndGlyphs'>OFGB38642</text>
-<text x='42.55' y='137.57' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.58px' lengthAdjust='spacingAndGlyphs'>CFGB38642</text>
-<text x='113.41' y='143.90' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='21.16px' lengthAdjust='spacingAndGlyphs'>Archaea</text>
+<line x1='45.89' y1='139.29' x2='56.74' y2='152.54' style='stroke-width: 1.07;' />
+<text x='322.99' y='108.40' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='57.80px' lengthAdjust='spacingAndGlyphs'>GGB33512 SGB15201</text>
+<text x='317.88' y='132.36' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='59.67px' lengthAdjust='spacingAndGlyphs'>Longicatena caecimuris</text>
+<text x='77.85' y='178.01' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='102.33px' lengthAdjust='spacingAndGlyphs'>Oscillospiraceae unclassified SGB15256</text>
+<text x='266.13' y='156.95' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='56.52px' lengthAdjust='spacingAndGlyphs'>Enterocloster citroniae</text>
+<text x='288.94' y='119.70' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='30.94px' lengthAdjust='spacingAndGlyphs'>Longicatena</text>
+<text x='115.74' y='205.02' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='25.27px' lengthAdjust='spacingAndGlyphs'>GGB9782</text>
+<text x='152.47' y='206.61' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='28.42px' lengthAdjust='spacingAndGlyphs'>GGB33586</text>
+<text x='106.57' y='161.66' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='25.27px' lengthAdjust='spacingAndGlyphs'>GGB9708</text>
+<text x='48.76' y='166.70' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='27.47px' lengthAdjust='spacingAndGlyphs'>FGB38642</text>
+<text x='77.22' y='148.77' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.89px' lengthAdjust='spacingAndGlyphs'>OFGB38642</text>
+<text x='42.48' y='137.49' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='31.58px' lengthAdjust='spacingAndGlyphs'>CFGB38642</text>
+<text x='113.53' y='143.85' text-anchor='middle' style='font-size: 5.69px; font-family: "Arial";' textLength='21.16px' lengthAdjust='spacingAndGlyphs'>Archaea</text>
 <rect x='23.09' y='4.48' width='332.43' height='257.77' style='stroke-width: 0.87; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHwzNjAuMDB8MC4wMHwyODguMDA=)'>
