@@ -136,7 +136,7 @@ phyl.ra %>%
   facet_grid(~Response, scales = "free_x", space = "free", switch = "x") +
   guides(fill = guide_legend(ncol = 6, nrow = 1, byrow = TRUE))
 
-ggsave("../../figures/Fig2A-response-baseline-stackedbar.png", height = 3.5, width = 5, dpi = 500)
+ggsave("../../figures/Fig2A-response-baseline-stackedbar.svg", height = 3.5, width = 5, dpi = 500)
 ```
 
 Figure 2B - Alpha Diversity 
@@ -158,7 +158,7 @@ div  %>%
     vjust = 13          # push lower vertically
   )
 
-ggsave("../../figures/Fig2B-boxplots_diversity-response.png", width = 3, height = 3, dpi = 500)
+ggsave("../../figures/Fig2B-boxplots_diversity-response.svg", width = 3, height = 3, dpi = 500)
 ```
 
 Figure 2C - Volcano Plot R vs. NR
@@ -194,7 +194,7 @@ g <- res.recist %>%
 
 g
 
-ggsave("../../figures/Fig2C-response-baseline-volcano.png", height = 4, width = 5, dpi = 500)
+ggsave("../../figures/Fig2C-response-baseline-volcano.svg", height = 4, width = 5, dpi = 500)
 ```
 
 Figure 2D - Respondersig
@@ -330,7 +330,7 @@ box.in %>%
   ) +
   xlab("")
 
-ggsave("../../figures/Fig2E-response-s0-baseline-boxplots.png", height = 3, width = 5, dpi = 300)
+ggsave("../../figures/Fig2E-response-s0-baseline-boxplots.svg", height = 3, width = 5, dpi = 300)
 ```
 
 ## Figure 2F - Overlap with respondersig
