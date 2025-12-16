@@ -153,7 +153,7 @@ div  %>%
   scale_fill_manual(values=c("#E69F00", "#3B9AB2")) +
   theme(legend.position = "none") +
   stat_compare_means(
-    method = "t.test",
+    method = "wilcox.test"
     size = 2.5,          # smaller font
     vjust = 13          # push lower vertically
   )
@@ -360,6 +360,10 @@ ggsave("../../figures/Fig2E-response-s0-baseline-boxplots.svg", height = 3, widt
 respondersig was on RA which could definitely have an impact 
 check direction 
 ```{r}
+# reload ancom results 
+load("../../data/ANCOM-BC2_respondersig.RData")
+load("../../data/ANCOM-BC2_response_baseline.RData")
+
 res.recist.sig.r <- (res.recist |>
   filter(q_ResponseResponder < 0.05 & lfc_ResponseResponder > 0))$taxon
 res.recist.sig.nr <- (res.recist |>
@@ -391,12 +395,14 @@ overlap <- c(r.overlap, nr.overlap)
 res.in <- res.recist |>
   filter(taxon %in% overlap) |>
   select(taxon, lfc_ResponseResponder) |>
-  mutate(Dataset = "Experimental")
+  mutate(Dataset = "Experimental",
+         taxon = gsub("_", " ", taxon))
 
 mit.in <- res.rsig |>
   filter(taxon %in% overlap) |>
   select(taxon, lfc_ResponseResponder) |>
-  mutate(Dataset = "Respondersig")
+  mutate(Dataset = "Respondersig",
+         taxon = gsub("_", " ", taxon))
 ```
 
 Effect size plot showing top overlapping microbes 
