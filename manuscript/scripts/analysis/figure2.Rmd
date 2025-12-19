@@ -378,7 +378,7 @@ intersect(res.recist.sig.r, res.rsig.sig.r)
 intersect(res.recist.sig.nr, res.rsig.sig.nr)
 ```
 
-lets use the ones with recognizeable names 
+lets use the ones with recognizeable names
 ```{r}
 r.overlap <- setdiff(intersect(res.recist.sig.r, res.rsig.sig.r), 
                      grep("GB", intersect(res.recist.sig.r, res.rsig.sig.r), 
@@ -393,13 +393,19 @@ overlap <- c(r.overlap, nr.overlap)
 
 ```{r}
 res.in <- res.recist |>
-  filter(taxon %in% overlap) |>
+  filter(taxon %in% overlap,
+         !grepl("unclassified", taxon),
+         grepl("_", taxon),
+         taxon != "Candidatus_Gastranaerophilales_bacterium") |>
   select(taxon, lfc_ResponseResponder) |>
   mutate(Dataset = "Experimental",
          taxon = gsub("_", " ", taxon))
 
 mit.in <- res.rsig |>
-  filter(taxon %in% overlap) |>
+  filter(taxon %in% overlap,
+         !grepl("unclassified", taxon),
+         grepl("_", taxon),
+         taxon != "Candidatus_Gastranaerophilales_bacterium") |>
   select(taxon, lfc_ResponseResponder) |>
   mutate(Dataset = "Respondersig",
          taxon = gsub("_", " ", taxon))
@@ -422,7 +428,7 @@ res.in |>
   theme_bw() +
   labs(x = "Effect Size", y = "")
 
-ggsave("../../figures/Fig2F-rsig-overlap-effect-size.svg", height = 2.5, width = 4.5, dpi = 300)
+ggsave("../../figures/Fig2F-rsig-overlap-effect-size.svg", height = 2.5, width = 5.5, dpi = 300)
 ```
 
 microbe_order <- data %>%

@@ -447,6 +447,56 @@ Validation - McCulloch	0.7252095
 Validation - Frankel	0.7370352			
 Validation - Peters	0.7397849	
 
+This looks bad because the AUPRCs are all so close 
+# ```{r}
+# df <- val.r.aucpr %>%
+#   select(seed, AUCPR, Group) %>% 
+#   distinct() 
+# 
+# # Reorder predictors by mean AUCPR (highest to lowest)
+# mean_order <- df %>%
+#   group_by(Group) %>%
+#   summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE)) %>%
+#   arrange(mean_aucpr) %>%
+#   pull(Group)
+# 
+# Means <- df %>%
+#   group_by(Group) %>%
+#   summarise(mean_aucpr = mean(AUCPR, na.rm = TRUE)) %>%
+#   arrange(mean_aucpr)
+# 
+# Model_Comparison_Plot <- df %>%
+#   ggplot(aes(
+#     x = fct_relevel(Group, mean_order),
+#     y = log(AUCPR),
+#     color = Group  
+#   )) +
+#   geom_boxplot(outlier.colour = NA, fatten = 1) + 
+#   geom_jitter(width = 0.1, alpha = 0.6) +        
+#   labs(y = "AUPRC", x = NULL, title = NULL) +
+#   scale_color_manual(values = c("#CCBA72", "#3B9AB2", "black", "#5A7247", "#E1AF00","brown4")) +
+#   scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
+#   theme(
+#     axis.title = element_text(size = 16),
+#     axis.text.x = element_text(angle = 45, hjust=1),
+#     legend.position = "none",
+#     axis.line = element_line(color = 'black', linewidth = 0.5),
+#     panel.background = element_rect(fill = 'white')
+#   ) +
+#   scale_y_continuous(limits = c(0, 1.1), breaks = seq(0, 1, 0.1)) +
+#   # annotate mean values below boxes
+#   annotate(
+#     geom = "text",
+#     x = seq_along(mean_order),
+#     y = 0.03,
+#     label = round(Means$mean_aucpr, 3),
+#     color = "black",
+#     size = 4
+#   )
+# 
+# Model_Comparison_Plot
+# ```
+
 
 Group         avg.auc
 Validation - Gopalakrishnan	0.4868831			
@@ -470,20 +520,20 @@ val.r.aucroc %>%
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.25, label="New York; AUC = 0.741",
+  annotate(geom="text", x=0.8, y=0.25, label="AUC = 0.741, AUPRC = 0.740",
            color="brown4", size=4) +
-      annotate(geom="text", x=0.8, y=0.20, label="Dallas; AUC = 0.642",
+      annotate(geom="text", x=0.8, y=0.20, label="AUC = 0.642, AUPRC = 0.737",
            color="#3B9AB2", size=4) +
-    annotate(geom="text", x=0.8, y=0.15, label="Pittsburgh; AUC = 0.530",
+    annotate(geom="text", x=0.8, y=0.15, label="AUC = 0.530, AUPRC = 0.725",
            color="#E1AF00", size=4) +
-    annotate(geom="text", x=0.8, y=0.10, label="Chicago; AUC = 0.508",
+    annotate(geom="text", x=0.8, y=0.10, label="AUC = 0.508, AUPRC = 0.501",
            color="#5A7247", size=4) +
-    annotate(geom="text", x=0.8, y=0.05, label="Houston; AUC = 0.487",
+    annotate(geom="text", x=0.8, y=0.05, label="AUC = 0.487, AUPRC = 0.574",
            color="#CCBA72", size=4) +
   theme(legend.position = "top")
 
-ggsave("../../figures/Fig6I-valROC-by-study.svg", height = 4, width = 6)
-ggsave("../../figures/Fig6I-valROC-by-study.png", height = 4, width = 6)
+ggsave("../../figures/Fig6I-valROC-by-study.svg", height = 4, width = 5.5)
+ggsave("../../figures/Fig6I-valROC-by-study.png", height = 4, width = 5.5)
 ```
 
 # Fig J - Variable Importance Plots for validation 
@@ -505,11 +555,12 @@ plot.in %>%
   geom_col() +
   coord_flip() +
   labs(x = "", y = "Variable Importance") +
-  theme_minimal()
+  theme_minimal() 
 
-ggsave("../../figures/Fig6J-varImp-response.svg", height = 4, width = 3)
-ggsave("../../figures/Fig6J-varImp-response.png", height = 4, width = 3)
+ggsave("../../figures/Fig6J-varImp-response.svg", height = 4, width = 6)
+ggsave("../../figures/Fig6J-varImp-response.png", height = 4, width = 6)
 ```
+
 ```{r}
 plot.in <- val.i.vars %>%
   group_by(Factors) %>%
@@ -529,6 +580,6 @@ plot.in %>%
   labs(x = "", y = "Variable Importance") +
   theme_minimal()
 
-ggsave("../../figures/Fig6K-varImp-irae.svg", height = 4, width = 3)
-ggsave("../../figures/Fig6K-varImp-irae.png", height = 4, width = 3)
+ggsave("../../figures/Fig6K-varImp-irae.svg", height = 4, width = 6)
+ggsave("../../figures/Fig6K-varImp-irae.png", height = 4, width = 6)
 ```
