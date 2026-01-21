@@ -127,13 +127,29 @@ Adrenal insufficiency  Autoimmune hepatitis              Delirium              D
                     
 ```{r}
 irae.in <- irae %>%
-  filter(`Patient Id` %in% (demo.filt %>% filter(irAE == "irAE"))$`Patient Id`) %>%
+  filter(`Patient Id` %in% (demo.filt %>% filter(irAE == "Yes"))$`Patient Id`) %>%
   mutate(Grade = as.factor(`CTCAE grade (final)`),
          Type = ifelse(Symptoms %in% c("Rash", "Skin itching", "Maculo-paular rash", "Psoriasis flare"), 
                        "Skin Toxicity", 
                        ifelse(Symptoms %in% c("Adrenal insufficiency", "Hypothyroidism", "Hyperthyroidism", "Thyroiditis"), "Endocrine Disorder",
                        ifelse(Symptoms == "Autoimmune hepatitis", "Autoimmune Hepatitis", Symptoms))))
 ```
+
+```{r}
+tab3 <- CreateTableOne(
+  vars = c("Type", "Grade"),  # Variables
+  data = irae.in,
+)
+
+print(tab3)
+
+# Convert TableOne to a data frame
+tab3_df <- as.data.frame(print(tab3, quote = FALSE, noSpaces = TRUE))
+
+# Save as CSV
+write.csv(tab3_df, "../../figures/supplemental-table1.csv", row.names = TRUE)
+```
+
 
 ```{r}
 table3 <- table1(~ Type + Grade, data = irae.in)

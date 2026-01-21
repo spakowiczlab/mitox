@@ -1,0 +1,49 @@
+---
+title: "Supplemental tables"
+author: "Caroline Dravillas"
+date: "2026-01-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+load("../../data/ANCOM-BC2_response_baseline.RData")
+load("../../data/ANCOM-BC2_irae_baseline.RData")
+load("../../data/ANCOM-BC2_respondersig.RData")
+load("../../data/ZIGMM-model-output.rds")
+load("../../data/ZIGMM-model-output-irAE.rds")
+```
+
+Table S2
+```{r}
+write.csv(res.recist, row.names = F, file = "../../figures/supplemental-table2A.csv")
+write.csv(struct0.recist, row.names = F, file = "../../figures/supplemental-table2B.csv")
+```
+
+Table S4
+```{r}
+write.csv(res.rsig, row.names = F, file = "../../figures/supplemental-table3A.csv")
+write.csv(struct0.rsig, row.names = F, file = "../../figures/supplemental-table3B.csv")
+```
+
+Table S4
+```{r}
+write.csv(res.irae, row.names = F, file = "../../figures/supplemental-table4A.csv")
+write.csv(struct0.irae, row.names = F, file = "../../figures/supplemental-table4B.csv")
+```
+
+Table S5
+```{r}
+write.csv(gmm.out %>% select(-group), row.names = F, file = "../../figures/supplemental-table5.csv")
+```
+
+Table S6
+```{r}
+write.csv(gmm.out.mic %>% select(-group), row.names = F, file = "../../figures/supplemental-table6.csv")
+```
+
