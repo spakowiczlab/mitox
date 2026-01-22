@@ -425,12 +425,12 @@ val.i.aucroc %>%
             color = "honeydew4") +
   geom_smooth(se = FALSE, 
               linewidth = 1.2,
-              color = "darkgreen") +
+              color = "#3B9AB2") +
   theme_minimal() +
   xlab("1 - Specificity") +
   ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.544",
-           color="darkgreen", size=4) +
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.544, AUCPR = 0.754",
+           color="#3B9AB2", size=4) +
   theme(legend.position = "none")
 
 ggsave("../../figures/Fig6H-valROC-irae.svg", height = 3, width = 3)
@@ -536,6 +536,42 @@ ggsave("../../figures/Fig6I-valROC-by-study.svg", height = 4, width = 5.5)
 ggsave("../../figures/Fig6I-valROC-by-study.png", height = 4, width = 5.5)
 ```
 
+
+# Combined version G and I
+```{r}
+val.r.aucroc %>%
+  #filter(Group != "Validation - All") %>%
+  mutate(Group = gsub("Validation - ", "", Group)) %>%
+  ggplot(aes(FalsePositive, TruePositive,
+             colour = Group)) +
+  geom_line(aes(group =  interaction(seed, Group)),
+            alpha = 0.1, 
+            linewidth = 0.4) +
+  geom_smooth(se = FALSE, 
+              linewidth = 1.2) +
+  scale_color_manual(values = c("tomato2","#E1AF00", "orange3", "#5A7247", "#3B9AB2","brown4")) + 
+  theme_minimal() +
+  xlab("1 - Specificity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.8, y=0.25, label="AUC = 0.741, AUPRC = 0.740",
+           color="brown4", size=4) +
+      annotate(geom="text", x=0.8, y=0.20, label="AUC = 0.642, AUPRC = 0.737",
+           color="#E1AF00", size=4) +
+      annotate(geom="text", x=0.8, y=0.15, label="AUC = 0.589, AUPRC = 0.636",
+           color="tomato2", size=4) +
+    annotate(geom="text", x=0.8, y=0.10, label="AUC = 0.530, AUPRC = 0.725",
+           color="#3B9AB2", size=4) +
+    annotate(geom="text", x=0.8, y=0.05, label="AUC = 0.508, AUPRC = 0.501",
+           color="#5A7247", size=4) +
+    annotate(geom="text", x=0.8, y=0.00, label="AUC = 0.487, AUPRC = 0.574",
+           color="orange3", size=4) +
+  theme(legend.position = "top")
+
+ggsave("../../figures/Fig6I-combined.svg", height = 4, width = 5.5)
+ggsave("../../figures/Fig6I-combined.png", height = 4, width = 5.5)
+```
+
+
 # Fig J - Variable Importance Plots for validation 
 
 ```{r}
@@ -557,8 +593,8 @@ plot.in %>%
   labs(x = "", y = "Variable Importance") +
   theme_minimal() 
 
-ggsave("../../figures/Fig6J-varImp-response.svg", height = 4, width = 6)
-ggsave("../../figures/Fig6J-varImp-response.png", height = 4, width = 6)
+ggsave("../../figures/Fig6J-varImp-response.svg", height = 4, width = 8)
+ggsave("../../figures/Fig6J-varImp-response.png", height = 4, width = 8)
 ```
 
 ```{r}
@@ -580,6 +616,6 @@ plot.in %>%
   labs(x = "", y = "Variable Importance") +
   theme_minimal()
 
-ggsave("../../figures/Fig6K-varImp-irae.svg", height = 4, width = 6)
-ggsave("../../figures/Fig6K-varImp-irae.png", height = 4, width = 6)
+ggsave("../../figures/Fig6K-varImp-irae.svg", height = 4, width = 7)
+ggsave("../../figures/Fig6K-varImp-irae.png", height = 4, width = 7)
 ```
