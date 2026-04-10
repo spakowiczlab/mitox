@@ -1,10 +1,10 @@
 ---
-title: "Random Forest"
-author: "Noah Lepola"
-author: "Edited by CD"
-date: "2025-12-08"
+title: "prediction using core score"
+author: "Caroline Dravillas"
+date: "2026-04-08"
 output: html_document
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -18,7 +18,7 @@ library(PRROC)
 library(Boruta)
 ```
 
-Loading data
+# Load data 
 ```{r}
 source("rf-functions.R")
 
@@ -29,6 +29,9 @@ load("../../data/microbiome_metadata.rds")
 load("../../data/phylum-labels.rds")
 load("../../data/ANCOM-BC2_response_baseline.Rdata")
 load("../../data/ANCOM-BC2_irae_baseline.RData") 
+
+# core score
+load("../../data/core-score-min3.rds")
 ```
 
 ```{r}
@@ -44,7 +47,12 @@ baseline <- mic.meta %>%
   slice_head(n = 1) %>%
   ungroup() %>%
   filter(abs(Days) <= 10) %>%
-  subset(`Patient Id` %in% blood$`Patient Id`)
+  #subset(`Patient Id` %in% blood$`Patient Id`) |>
+  # filter to samples with core score value
+  # note there is also one person w/ no baseline sample
+  # final n = 12; r = 8, nr = 4 
+  # n = 8 if also filter to samples that have blood data 
+  filter(`Patient Id` %in% core_df$`Patient Id`)
 
 phyl_labels <- phyl_labels %>%
   mutate(taxon = substr(microbe, 4, nchar(microbe)))
@@ -87,10 +95,12 @@ response_list[[1]] <- "Patient Id"
 base.gene <- blood %>%
   subset(`Patient Id` %in% baseline$`Patient Id`) %>%
   dplyr::select(`Patient Id`:YWHAZ)
+```
 
-blood_list <- colnames(base.gene)
-irae_blood_list <- c(irae_list, blood_list)
-response_blood_list <- c(response_list, blood_list)
+# core score
+```{r}
+corescore <- core_df |>
+  select(`Patient Id`, core.fraction)
 ```
 
 # clinical objects
@@ -101,33 +111,49 @@ base.clinical <- demographics %>%
          Age,
          Treatment.bin,
          Stage,
-         `Total.WBC.(K/µL)`,
-         `Relative.lymphocyte.count.(%)`, 
-         `Relative.eosinophil.count.(%)`, 
-         `LDH.(U/L)`, 
-         `BMI.(kg/m2)`)
+         Antibiotics,
+         Probiotics,
+         Corticosteroids)
 
 base.clinical <- base.clinical %>% 
   mutate_at(c("Sex",
               "Treatment.bin", 
-              "Stage"), as.factor)
+              "Stage",
+              "Antibiotics",
+              "Probiotics",
+              "Corticosteroids"), as.factor)
 
+# clinical alone
 clinical_list <- colnames(base.clinical)
+# core score alone
+core_list <- c("Patient Id","core.fraction")
 
-irae_clinical_list <- c(irae_list, clinical_list)
-blood_clinical_list <- c(blood_list, clinical_list)
+# irae mics + core
+irae_core_list <- c(irae_list, core_list[core_list != "Patient Id"])
+# response mics + core
+response_core_list <- c(response_list, core_list[core_list != "Patient Id"])
 
-# note - i just noticed this was irae_list + clinical...fixed to be response
-response_clinical_list <- c(response_list, clinical_list)
+# irae mics + clin 
+irae_clinical_list <- c(irae_list, clinical_list[clinical_list != "Patient Id"])
+# response mics + clin 
+response_clinical_list <- c(response_list, clinical_list[clinical_list != "Patient Id"])
 
-irae_blood_clinical_list <- c(irae_blood_list, clinical_list)
-response_blood_clinical_list <- c(response_blood_list, clinical_list)
+# core + clin
+core_clinical_list <- c(core_list, clinical_list[clinical_list != "Patient Id"])
+
+# irae mics + core + clin
+irae_core_clinical_list <- c(irae_core_list, clinical_list[clinical_list != "Patient Id"])
+
+# response mics + core + clin 
+response_core_clinical_list <- c(response_core_list, clinical_list[clinical_list != "Patient Id"])
 ```
 
 # Object with all factors and outcomes to pass to rf func
 ```{r}
 outcomes <- demographics %>%
-  select(`Patient Id`, Response, irAE)
+  filter(`Patient Id` %in% baseline$`Patient Id`) |>
+  select(`Patient Id`, Response, irAE) |>
+    slice(match(baseline$`Patient Id`, `Patient Id`))
 
 in.df <- baseline %>%
   dplyr::select(sample, `Patient Id`) %>%
@@ -135,9 +161,9 @@ in.df <- baseline %>%
   left_join(base.clinical) %>%
   left_join(base.gene) %>%
   left_join(outcomes) %>%
+  left_join(corescore) %>%
   dplyr::select(-sample)
 ```
-
 ### irAE 
 
 # Clinical model
@@ -172,52 +198,52 @@ biome_irae_aucprs[[1]]$Predictors <- "Microbiome"
 biome_irae_aucprs[[2]]$Predictors <- "Microbiome"
 ```
 
-# Just blood model
+# Just corescore model
 ```{r}
-rf_blood_irAE_list <- kTest(seed_list,
+rf_core_irAE_list <- kTest(seed_list,
                             in.df,
                             "No",
                             "Yes",
                             "irAE",
-                            blood_list)
+                            core_list)
 
-blood_irae_aucprs <- grabVals(rf_blood_irAE_list,
+core_irae_aucprs <- grabVals(rf_core_irAE_list,
                          seed_list)
 
-blood_irae_aucprs[[1]]$Predictors <- "Blood"
-blood_irae_aucprs[[2]]$Predictors <- "Blood"
+core_irae_aucprs[[1]]$Predictors <- "Core Score"
+core_irae_aucprs[[2]]$Predictors <- "Core Score"
 ```
 
-# Biome and blood model
+# Biome and corescore model
 ```{r}
-rf_biome_blood_irAE_list <- kTest(seed_list,
+rf_biome_core_irAE_list <- kTest(seed_list,
                                   in.df,
                                   "No",
                                   "Yes",
                                   "irAE",
-                                  irae_blood_list)
+                                  irae_core_list)
 
-biome_and_blood_irae_aucprs <- grabVals(rf_biome_blood_irAE_list,
+biome_and_core_irae_aucprs <- grabVals(rf_biome_core_irAE_list,
                                    seed_list)
 
-biome_and_blood_irae_aucprs[[1]]$Predictors <- "Blood + Microbiome"
-biome_and_blood_irae_aucprs[[2]]$Predictors <- "Blood + Microbiome"
+biome_and_core_irae_aucprs[[1]]$Predictors <- "Core Score + Microbiome"
+biome_and_core_irae_aucprs[[2]]$Predictors <- "Core Score + Microbiome"
 ```
 
-# Blood and clinical model
+# Corescore and clinical model
 ```{r}
-rf_blood_clinical_irAE_list <- kTest(seed_list,
+rf_core_clinical_irAE_list <- kTest(seed_list,
                                      in.df,
                                      "No",
                                      "Yes",
                                      "irAE",
-                                     blood_clinical_list)
+                                     core_clinical_list)
 
-blood_and_clinical_irae_aucprs <- grabVals(rf_blood_clinical_irAE_list,
+core_and_clinical_irae_aucprs <- grabVals(rf_core_clinical_irAE_list,
                                    seed_list)
 
-blood_and_clinical_irae_aucprs[[1]]$Predictors <- "Clinical + Blood"
-blood_and_clinical_irae_aucprs[[2]]$Predictors <- "Clinical + Blood"
+core_and_clinical_irae_aucprs[[1]]$Predictors <- "Clinical + Core Score"
+core_and_clinical_irae_aucprs[[2]]$Predictors <- "Clinical + Core Score"
 ```
 
 # Biome and clinical model
@@ -236,20 +262,20 @@ biome_and_clinical_irae_aucprs[[1]]$Predictors <- "Clinical + Microbiome"
 biome_and_clinical_irae_aucprs[[2]]$Predictors <- "Clinical + Microbiome"
 ```
 
-# Biome blood clinical model
+# Biome core clinical model
 ```{r}
-rf_biome_blood_clinical_irAE_list <- kTest(seed_list,
+rf_biome_core_clinical_irAE_list <- kTest(seed_list,
                                            in.df,
                                            "No",
                                            "Yes",
                                            "irAE",
-                                           irae_blood_clinical_list)
+                                           irae_core_clinical_list)
 
-biome_blood_clinical_irae_aucprs <- grabVals(rf_biome_blood_clinical_irAE_list,
+biome_core_clinical_irae_aucprs <- grabVals(rf_biome_core_clinical_irAE_list,
                                         seed_list)
 
-biome_blood_clinical_irae_aucprs[[1]]$Predictors <- "Clinical + Blood + Microbiome"
-biome_blood_clinical_irae_aucprs[[2]]$Predictors <- "Clinical + Blood + Microbiome"
+biome_core_clinical_irae_aucprs[[1]]$Predictors <- "Clinical + Core Score + Microbiome"
+biome_core_clinical_irae_aucprs[[2]]$Predictors <- "Clinical + Core Score + Microbiome"
 ```
 
 
@@ -288,36 +314,36 @@ biome_response_aucprs[[1]]$Predictors <- "Microbiome"
 biome_response_aucprs[[2]]$Predictors <- "Microbiome"
 ```
 
-# Just blood model
+# Just core model
 ```{r}
-rf_blood_response_list <- kTest(seed_list,
+rf_core_response_list <- kTest(seed_list,
                                 in.df,
                                 "Non-Responder",
                                 "Responder",
                                 "Response",
-                                blood_list)
+                                core_list)
 
-blood_response_aucprs <- grabVals(rf_blood_response_list,
+core_response_aucprs <- grabVals(rf_core_response_list,
                          seed_list)
 
-blood_response_aucprs[[1]]$Predictors <- "Blood"
-blood_response_aucprs[[2]]$Predictors <- "Blood"
+core_response_aucprs[[1]]$Predictors <- "Core Score"
+core_response_aucprs[[2]]$Predictors <- "Core Score"
 ```
 
-# Biome and blood model
+# Biome and core model
 ```{r}
-rf_biome_blood_response_list <- kTest(seed_list,
+rf_biome_core_response_list <- kTest(seed_list,
                                       in.df,
                                       "Non-Responder",
                                       "Responder",
                                       "Response",
-                                      response_blood_list)
+                                      response_core_list)
 
-biome_and_blood_response_aucprs <- grabVals(rf_biome_blood_response_list,
+biome_and_core_response_aucprs <- grabVals(rf_biome_core_response_list,
                                    seed_list)
 
-biome_and_blood_response_aucprs[[1]]$Predictors <- "Blood + Microbiome"
-biome_and_blood_response_aucprs[[2]]$Predictors <- "Blood + Microbiome"
+biome_and_core_response_aucprs[[1]]$Predictors <- "Core Score + Microbiome"
+biome_and_core_response_aucprs[[2]]$Predictors <- "Core Score + Microbiome"
 ```
 
 # Biome clinical model
@@ -336,36 +362,36 @@ biome_clinical_response_aucprs[[1]]$Predictors <- "Clinical + Microbiome"
 biome_clinical_response_aucprs[[2]]$Predictors <- "Clinical + Microbiome"
 ```
 
-# Blood clinical model
+# core clinical model
 ```{r}
-rf_blood_clinical_response_list <- kTest(seed_list,
+rf_core_clinical_response_list <- kTest(seed_list,
                                          in.df,
                                          "Non-Responder",
                                          "Responder",
                                          "Response",
-                                          blood_clinical_list)
+                                          core_clinical_list)
 
-blood_clinical_response_aucprs <- grabVals(rf_blood_clinical_response_list,
+core_clinical_response_aucprs <- grabVals(rf_core_clinical_response_list,
                                    seed_list)
 
-blood_clinical_response_aucprs[[1]]$Predictors <- "Clinical + Blood"
-blood_clinical_response_aucprs[[2]]$Predictors <- "Clinical + Blood"
+core_clinical_response_aucprs[[1]]$Predictors <- "Clinical + Core Score"
+core_clinical_response_aucprs[[2]]$Predictors <- "Clinical + Core Score"
 ```
 
-# Biome blood clinical model
+# Biome core clinical model
 ```{r}
-rf_biome_blood_clinical_response_list <- kTest(seed_list,
+rf_biome_core_clinical_response_list <- kTest(seed_list,
                                                in.df,
                                                "Non-Responder",
                                                "Responder",
                                                "Response",
-                                               response_blood_clinical_list)
+                                               response_core_clinical_list)
 
-biome_blood_clinical_response_aucprs <- grabVals(rf_biome_blood_clinical_response_list,
+biome_core_clinical_response_aucprs <- grabVals(rf_biome_core_clinical_response_list,
                                    seed_list)
 
-biome_blood_clinical_response_aucprs[[1]]$Predictors <- "Clinical + Blood + Microbiome"
-biome_blood_clinical_response_aucprs[[2]]$Predictors <- "Clinical + Blood + Microbiome"
+biome_core_clinical_response_aucprs[[1]]$Predictors <- "Clinical + Core Score + Microbiome"
+biome_core_clinical_response_aucprs[[2]]$Predictors <- "Clinical + Core Score + Microbiome"
 ```
 
 
@@ -375,22 +401,22 @@ biome_blood_clinical_response_aucprs[[2]]$Predictors <- "Clinical + Blood + Micr
 roc_irae_df <- bind_rows(
   clinical_irae_aucprs[[1]],
   biome_irae_aucprs[[1]],
-  blood_irae_aucprs[[1]],
-  biome_and_blood_irae_aucprs[[1]],
-  blood_and_clinical_irae_aucprs[[1]],
+  core_irae_aucprs[[1]],
+  biome_and_core_irae_aucprs[[1]],
+  core_and_clinical_irae_aucprs[[1]],
   biome_and_clinical_irae_aucprs[[1]],
-  biome_blood_clinical_irae_aucprs[[1]]
+  biome_core_clinical_irae_aucprs[[1]]
 )
 
 # Combine PR (AUCPR) for irAE
 pr_irae_df <- bind_rows(
   clinical_irae_aucprs[[2]],
   biome_irae_aucprs[[2]],
-  blood_irae_aucprs[[2]],
-  biome_and_blood_irae_aucprs[[2]],
-  blood_and_clinical_irae_aucprs[[2]],
+  core_irae_aucprs[[2]],
+  biome_and_core_irae_aucprs[[2]],
+  core_and_clinical_irae_aucprs[[2]],
   biome_and_clinical_irae_aucprs[[2]],
-  biome_blood_clinical_irae_aucprs[[2]]
+  biome_core_clinical_irae_aucprs[[2]]
 )
 ```
 
@@ -400,26 +426,67 @@ pr_irae_df <- bind_rows(
 roc_response_df <- bind_rows(
   clinical_response_aucprs[[1]],
   biome_response_aucprs[[1]],
-  blood_response_aucprs[[1]],
-  biome_and_blood_response_aucprs[[1]],
+  core_response_aucprs[[1]],
+  biome_and_core_response_aucprs[[1]],
   biome_clinical_response_aucprs[[1]],
-  blood_clinical_response_aucprs[[1]],
-  biome_blood_clinical_response_aucprs[[1]]
+  core_clinical_response_aucprs[[1]],
+  biome_core_clinical_response_aucprs[[1]]
 )
 
 # Combine PR (AUCPR) for Response
 pr_response_df <- bind_rows(
   clinical_response_aucprs[[2]],
   biome_response_aucprs[[2]],
-  blood_response_aucprs[[2]],
-  biome_and_blood_response_aucprs[[2]],
+  core_response_aucprs[[2]],
+  biome_and_core_response_aucprs[[2]],
   biome_clinical_response_aucprs[[2]],
-  blood_clinical_response_aucprs[[2]],
-  biome_blood_clinical_response_aucprs[[2]]
+  core_clinical_response_aucprs[[2]],
+  biome_core_clinical_response_aucprs[[2]]
 )
 ```
 
-# Get top vars 
+# Let's look at the variable importance
+```{r}
+# =========================
+# RESPONSE MODELS
+# =========================
+
+rf_response_list <- list(
+  clinical = rf_clinical_response_list,
+  biome = rf_q01_response_list,
+  core = rf_core_response_list,
+  biome_core = rf_biome_core_response_list,
+  biome_clinical = rf_biome_clinical_response_list,
+  core_clinical = rf_core_clinical_response_list,
+  biome_core_clinical = rf_biome_core_clinical_response_list
+)
+
+imp_response_list <- lapply(rf_response_list, function(x) {
+  grabImp(x, seed_list)
+})
+
+
+# =========================
+# irAE MODELS
+# =========================
+
+rf_irae_list <- list(
+  clinical = rf_clinical_irAE_list,
+  biome = rf_q005_irAE_list,
+  core = rf_core_irAE_list,
+  biome_core = rf_biome_core_irAE_list,
+  biome_clinical = rf_biome_clinical_irAE_list,
+  core_clinical = rf_core_clinical_irAE_list,
+  biome_core_clinical = rf_biome_core_clinical_irAE_list
+)
+
+imp_irae_list <- lapply(rf_irae_list, function(x) {
+  grabImp(x, seed_list)
+})
+
+
+```
+
 ```{r}
 # get vars from all with AUC > 0.8 from microbiome input
 r.vars <- get_vars_auc_threshold(rf_q01_response_list)
@@ -433,8 +500,8 @@ intersect(r.vars, i.vars)
 
 # save objects
 ```{r}
-save(roc_irae_df, pr_irae_df, i.vars, file = "../../data/randomforest-irae.rda")
-save(roc_response_df, pr_response_df, r.vars, file = "../../data/randomforest-response.rda")
+save(roc_irae_df, pr_irae_df, i.vars, imp_irae_list, file = "../../data/randomforest-irae-corescore.rda")
+save(roc_response_df, pr_response_df, r.vars, imp_response_list, file = "../../data/randomforest-response-corescore.rda")
 ```
 
 Examine averages
@@ -467,3 +534,7 @@ roc_response_df %>%
   summarise(avg.auc = mean(AUCROC)) %>%
   arrange(avg.auc)
 ```
+
+
+
+

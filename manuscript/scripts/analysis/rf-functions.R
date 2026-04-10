@@ -132,6 +132,7 @@ getROC <- function(seed, df, neg.outcome, pos.outcome, outcome, factors_list, va
   }
 
   message("\nBoruta selected ", length(selected_vars), " variables.")
+  selected_vars <- selected_vars[!is.na(selected_vars)]
 
   # Restrict train/test to selected features
   train.seq <- train.seq[ , c("Patient Id", selected_vars), drop = FALSE ]
