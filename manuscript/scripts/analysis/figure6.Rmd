@@ -35,6 +35,9 @@ load("../../data/validation-irae.rda")
 # ANCOM results to examine direction of effect
 load("../../data/ANCOM-BC2_response_baseline.Rdata")
 load("../../data/ANCOM-BC2_irae_baseline.RData") 
+
+# core score
+load("../../data/core-score-min3.rds")
 ```
 
 # Prepare data

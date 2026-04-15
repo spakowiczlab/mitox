@@ -143,22 +143,28 @@ pt_blood.met <- blood.met %>%
   subset(., select = which(!duplicated(names(.)))) %>%
   mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9),
          Smoker = `Smoker.(current/former/non/secondhand)`, 
-         Mel.type = `Primary.Melanoma.Type.(cutaneous/mucosal/uveal/acral/unknown)`) %>%
-  select(`MDSC #`, Smoker, Mel.type, `Total.WBC.(K/µL)`, "Absolute.lymphocytes.(K/µL)", 
-         "Relative.lymphocyte.count.(%)", "Relative.eosinophil.count.(%)", "LDH.(U/L)",
-         "Patient.Height.(m)", "Patient.Weight.(kg)", "BMI.(kg/m2)")
+         Mel.type = `Primary.Melanoma.Type.(cutaneous/mucosal/uveal/acral/unknown)`,
+         Comorbidities = `Other.Comorbidities.(Present.prior.to.therapy.of.interest)`) %>%
+  select(`MDSC #`, Smoker, Mel.type, Comorbidities, 
+        `Tumor.Mutational.Status.(if.known)`, `TMB.(muts/mb)`,  `Total.WBC.(K/µL)`, 
+        "Absolute.lymphocytes.(K/µL)","Relative.lymphocyte.count.(%)", 
+        "Relative.eosinophil.count.(%)", "LDH.(U/L)","Patient.Height.(m)",
+        "Patient.Weight.(kg)", "BMI.(kg/m2)")
 
 pt_blood.metj <- blood.metj %>%
   subset(., select = which(!duplicated(names(.)))) %>%
   mutate(`MDSC #` = substr(`Coded.Sample.#`, 0, 9),
          Smoker = `Smoker.(current/former/non/secondhand)`,
-         Mel.type = `Primary.Melanoma.Type.(cutaneous/mucosal/uveal/acral/unknown)`) %>%
-  select(`MDSC #`, Smoker, Mel.type, `Total.WBC.(K/µL)`, "Absolute.lymphocytes.(K/µL)", 
+         Mel.type = `Primary.Melanoma.Type.(cutaneous/mucosal/uveal/acral/unknown)`,
+         Comorbidities = `Other.Comorbidities.(Present.prior.to.therapy.of.interest)`) %>%
+  select(`MDSC #`, Smoker, Mel.type, Comorbidities, 
+        `Tumor.Mutational.Status.(if.known)`, `TMB.(muts/mb)`, `Total.WBC.(K/µL)`, 
+        "Absolute.lymphocytes.(K/µL)", 
          "Relative.lymphocyte.count.(%)", "Relative.eosinophil.count.(%)", "LDH.(U/L)",
          "Patient.Height.(m)", "Patient.Weight.(kg)", "BMI.(kg/m2)")
 
 pt_blood <- rbind(pt_blood.met, pt_blood.metj) %>%
-   mutate(across(4:11, as.double))
+   mutate(across(7:14, as.double))
 
 # join 
 demographics <- merge(demographics, recist.mic, all=T)
@@ -184,8 +190,104 @@ demographics <- demographics %>%
             Stage == 3 ~ "Stage III", 
             Stage == 4 ~ "Stage IV",
             TRUE ~ NA),
-         Treatment.bin = ifelse(Treatment == "IPI/NIVO", "Anti-CTLA-4", "Anti-PD-1")
-         )
+         Treatment.bin = ifelse(Treatment == "IPI/NIVO", "Anti-CTLA-4", "Anti-PD-1"),
+         Recurrence.site = NA,
+         `Tumor.Mutational.Status.(if.known)` = na_if(`Tumor.Mutational.Status.(if.known)`, "N/A"),
+         BRAF = case_when(
+            is.na(`Tumor.Mutational.Status.(if.known)`) ~ NA_real_,
+            str_detect(`Tumor.Mutational.Status.(if.known)`, regex("BRAF negative", ignore_case = TRUE)) ~ 0,
+            str_detect(`Tumor.Mutational.Status.(if.known)`, regex("BRAF\\s+V600|V600E|V600K|BRAF positive", ignore_case = TRUE)) ~ 1,
+            TRUE ~ NA_real_ ),
+        NRAS = case_when(
+            is.na(`Tumor.Mutational.Status.(if.known)`) ~ NA_real_,
+            str_detect(`Tumor.Mutational.Status.(if.known)`, regex("NRAS", ignore_case = TRUE)) ~ 1,
+            TRUE ~ 0),
+        NF1 = case_when(
+          is.na(`Tumor.Mutational.Status.(if.known)`) ~ NA_real_,
+          str_detect(`Tumor.Mutational.Status.(if.known)`, regex("\\bNF1\\b", ignore_case = TRUE)) ~ 1,
+          TRUE ~ 0), 
+        Recurrence.site.cat = case_when(
+          is.na(Location) ~ NA,
+          str_trim(Location) == "NA" ~ NA,
+          str_detect(Location, regex("brain|frontal|parietal|calvarium", ignore_case = TRUE)) ~ "Brain",
+          str_detect(Location, regex("lung|RUL|LLL|RLL|LUL|hilar|apical|supleural|pleural|nodule", ignore_case = TRUE)) ~ "Lung",
+          str_detect(Location, regex("liver|hepatic", ignore_case = TRUE)) ~ "Liver",
+          str_detect(Location, regex("LN|lymph|inguinal|cervical|paraesophageal|mesenteric", ignore_case = TRUE)) ~ "Lymph node",
+          str_detect(Location, regex("parotid|masseter|muscle|soft tissue|calf|pelvic mass", ignore_case = TRUE)) ~ "Soft tissue",
+          str_detect(Location, regex("bone|mandible|calvarium|calvarium|calvarial", ignore_case = TRUE)) ~ "Bone",
+          TRUE ~ "Other"
+        ),
+        comorb = tolower(Comorbidities),
+    
+        # remove melanoma-related text
+        comorb = str_remove_all(comorb, "melanoma[^,]*"),
+    
+        # -------------------------
+        # AUTOIMMUNE
+        # -------------------------
+        autoimmune = if_else(
+          str_detect(comorb, "rheumatoid|lupus|autoimmune|vitiligo|thyroiditis"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # IBD (important for IO tox)
+        # -------------------------
+        ibd = if_else(
+          str_detect(comorb, "crohn|ulcerative colitis"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # DERM AUTOIMMUNE
+        # -------------------------
+        derm_autoimmune = if_else(
+          str_detect(comorb, "psoriasis|eczema"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # IMMUNOSUPPRESSION
+        # -------------------------
+        immunosuppressed = if_else(
+          str_detect(comorb, "transplant|immunosuppression|history of chemotherapy|radiation"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # HEME MALIGNANCY / IMMUNE DYSFUNCTION
+        # -------------------------
+        heme_malignancy = if_else(
+          str_detect(comorb, "cll|leukemia|lymphoma"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # CARDIOMETABOLIC
+        # -------------------------
+        cardiometabolic = if_else(
+          str_detect(comorb, "hypertension|htn|diabetes|hyperlipidemia|cad|mi|heart|afib|atrial fibrillation"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # PULMONARY
+        # -------------------------
+        pulmonary = if_else(
+          str_detect(comorb, "copd|asthma|pneumonia"),
+          1, 0
+        ),
+    
+        # -------------------------
+        # OTHER CANCER (non-melanoma)
+        # -------------------------
+        other_cancer = if_else(
+          str_detect(comorb, "cancer|carcinoma|bcc|scc") &
+            !str_detect(comorb, "melanoma"),
+          1, 0
+        )
+  ) |>
+  select(-`Tumor.Mutational.Status.(if.known)`, -comorb)
 
 # filter to MET only
 # has microbiome sample
