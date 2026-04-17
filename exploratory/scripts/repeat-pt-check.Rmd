@@ -1,0 +1,352 @@
+---
+title: "Check correlation"
+author: "Caroline Dravillas"
+date: "2026-04-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(vegan)
+library(compositions)
+library(ggrepel)
+```
+
+```{r}
+load("../../manuscript/data/clinical.rds")
+load("../../manuscript/data/microbiome_metadata.rds")
+load("../../manuscript/data/ra-wide.rds")
+```
+
+
+Aim is to determine whether samples from M017 and M073 cluster more with each 
+other than with other people?
+```{r}
+target_ids <- c("M017", "M073")
+```
+
+Step 1 - Prepare input 
+CLR transform ??
+```{r}
+species <- ra.w |>
+  filter(grepl("s__", microbe)) |>
+  column_to_rownames("microbe") |>
+  t()
+
+# why are zeroes staying zeroes??
+# I think we would need to add a pseudo count, I don't think we should
+# lets just use RA 
+# spec_clr <- clr(species)
+```
+
+```{r}
+pca <- prcomp(species, center = TRUE, scale. = FALSE)
+plot_pca <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  sample = rownames(species)
+)
+
+plot_pca$patient <- mic.meta$`Patient Id`[match(plot_pca$sample, mic.meta$sample)]
+
+plot_pca$group <- ifelse(
+  plot_pca$patient == "M017", "M017",
+  ifelse(plot_pca$patient == "M073", "M073", "Other")
+)
+
+ggplot(plot_pca, aes(x = PC1, y = PC2)) +
+  
+  # all points
+  geom_point(aes(color = patient, shape = group), size = 2, alpha = 0.8) +
+  
+  # emphasize M017 and M073
+  geom_point(
+    data = subset(plot_pca, group != "Other"),
+    aes(color = patient, shape = group),
+    size = 3
+  ) +
+  
+  theme_classic() +
+  labs(
+    title = "PCA",
+    x = "PC1",
+    y = "PC2"
+  ) +
+  guides(color = "none") +
+  scale_shape_manual(values = c(
+    M017 = 17,   # triangle
+    M073 = 15,   # square
+    Other = 16   # circle
+  ))
+```
+
+Step 2 - Calculate the euclidean distances 
+```{r}
+rownames(species) == mic.meta$sample
+
+dist <- vegdist(species, method = "bray")
+dist_mat <- as.matrix(dist)
+```
+
+PCoA
+```{r}
+pcoa <- cmdscale(dist_mat, k = 2, eig = TRUE)
+
+plot_pcoa <- data.frame(
+  PC1 = pcoa_res$points[,1],
+  PC2 = pcoa_res$points[,2],
+  sample = rownames(pcoa_res$points)
+)
+
+plot_pcoa$patient <- mic.meta$`Patient Id`[
+  match(plot_pcoa$sample, mic.meta$sample)
+]
+
+plot_pcoa$group = ifelse(
+  plot_pca$patient == "M017", "M017",
+  ifelse(plot_pca$patient == "M073", "M073", "Other")
+)
+
+ggplot(plot_pcoa, aes(x = PC1, y = PC2)) +
+  
+  # all points
+  geom_point(aes(color = patient, shape = group), size = 2, alpha = 0.8) +
+  
+  # emphasize M017 and M073
+  geom_point(
+    data = subset(plot_pcoa, group != "Other"),
+    aes(color = patient, shape = group),
+    size = 3
+  ) +
+  
+  theme_classic() +
+  labs(
+    title = "PCoA",
+    x = "PC1",
+    y = "PC2"
+  ) +
+  guides(color = "none") +
+  scale_shape_manual(values = c(
+    M017 = 17,   # triangle
+    M073 = 15,   # square
+    Other = 16   # circle
+  ))
+```
+
+
+Step 3 - Get pairwise distances 
+```{r}
+pat <- mic.meta$`Patient Id`
+
+# get all pairwise indices (upper triangle only = no duplicates)
+idx <- which(upper.tri(dist_mat), arr.ind = TRUE)
+
+# keep only BETWEEN-person pairs
+keep <- pat[idx[,1]] != pat[idx[,2]]
+
+between_distances <- dist_mat[idx[keep, ]]
+```
+
+
+Step 4 Check
+```{r}
+pat <- mic.meta$`Patient Id`
+
+samples_M017 <- mic.meta$sample[pat == "M017"]
+samples_M073 <- mic.meta$sample[pat == "M073"]
+samples_other <- mic.meta$sample[!(pat %in% c("M017", "M073"))]
+
+m017_to_others <- as.vector(dist_mat[samples_M017, samples_other])
+m073_to_others <- as.vector(dist_mat[samples_M073, samples_other])
+m017_to_m073   <- as.vector(dist_mat[samples_M017, samples_M073])
+
+
+plot_df <- data.frame(
+  distance = c(
+    m017_to_others,
+    m073_to_others,
+    m017_to_m073
+  ),
+  group = c(
+    rep("M017 - others", length(m017_to_others)),
+    rep("M073 - others", length(m073_to_others)),
+    rep("M017 - M073", length(m017_to_m073))
+  )
+)
+
+test <- plot_df$distance[plot_df$group == "M017 - M073"]
+null <- plot_df$distance[plot_df$group != "M017 - M073"]
+wilcox.test(test, null, alternative = "less")
+
+p <- wilcox.test(test, null, alternative = "less")$p.value
+
+ggplot(plot_df, aes(x = group, y = distance, fill = group)) +
+  geom_violin(trim = TRUE, alpha = 0.5) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.2, size = 0.8) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  labs(
+    x = NULL,
+    y = "Bray–Curtis distance",
+    title = paste0("p = ", signif(p, 3))
+  )
+```
+get p-value
+```{r}
+null_distances <- plot_df$distance[plot_df$group != "M017 - M073"]
+test_value <- mean(plot_df$distance[plot_df$group == "M017 - M073"])
+p_value <- mean(null_distances <= test_value)
+p_value
+```
+
+
+Check w/ permutation test
+```{r}
+patient_distance <- function(p1, p2, dist_mat, meta) {
+  s1 <- meta$sample[meta$`Patient Id` == p1]
+  s2 <- meta$sample[meta$`Patient Id` == p2]
+  
+  mean(dist_mat[s1, s2])
+}
+
+obs <- patient_distance("M017", "M073", dist_mat, mic.meta)
+
+set.seed(345789)
+
+patients <- unique(mic.meta$`Patient Id`)
+n_perm <- 1000
+perm_stats <- numeric(n_perm)
+
+for (b in 1:n_perm) {
+  
+  perm_patients <- sample(patients)
+  
+  perm_map <- setNames(perm_patients, patients)
+  
+  perm_meta <- mic.meta
+  perm_meta$`Patient Id` <- perm_map[perm_meta$`Patient Id`]
+  
+  perm_stats[b] <- patient_distance(
+    "M017", "M073",
+    dist_mat,
+    perm_meta
+  )
+}
+
+p_value <- mean(perm_stats <= obs)
+p_value
+```
+
+
+
+
+
+```{r}
+m017 <- mic.meta$sample[mic.meta$`Patient Id` == "M017"]
+m073 <- mic.meta$sample[mic.meta$`Patient Id` == "M073"]
+
+cross_17_73 <- as.vector(dist_mat[m017, m073])
+cross_17_73
+m017_73_dist <- mean(cross_17_73)
+```
+
+```{r}
+cross_17_73 <- as.vector(dist_mat[m017, m073])
+cross_17_73
+m017_73_dist <- mean(cross_17_73)
+dist_mat <- as.matrix(dist_mat)
+pat <- mic.meta$`Patient Id`
+
+idx <- which(upper.tri(dist_mat), arr.ind = TRUE)
+
+between <- dist_mat[idx]
+between_keep <- pat[idx[,1]] != pat[idx[,2]]
+
+between_distances <- between[between_keep]
+percentile <- mean(between_distances <= m017_73_dist)
+percentile
+```
+
+
+
+```{r}
+samples_M017 <- mic.meta$sample[mic.meta$`Patient Id` == "M017"]
+samples_M073 <- mic.meta$sample[mic.meta$`Patient Id`== "M073"]
+samples_other <- mic.meta$sample[!(mic.meta$`Patient Id` %in% c("M017","M073"))]
+
+m017_to_others <- as.vector(dist_mat[samples_M017, samples_other])
+m073_to_others <- as.vector(dist_mat[samples_M073, samples_other])
+cross_17_73 <- as.vector(dist_mat[samples_M017, samples_M073])
+
+plot_df <- data.frame(
+  distance = c(m017_to_others, m073_to_others, cross_17_73),
+  group = c(
+    rep("M017 - others", length(m017_to_others)),
+    rep("M073 - others", length(m073_to_others)),
+    rep("M017 - M073", length(cross_17_73))
+  )
+)
+
+ggplot(plot_df, aes(x = group, y = distance, fill = group)) +
+  geom_violin(trim = TRUE, alpha = 0.5) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.15, alpha = 0.2, size = 0.7) +
+  theme_classic() +
+  labs(
+    x = NULL,
+    y = "CLR distance",
+  ) +
+  theme(legend.position = "none")
+# within_dist <- function(p) {
+#   idx <- mic.meta$sample[mic.meta$`Patient Id` == p]
+#   d <- dist_mat[idx, idx]
+#   d[upper.tri(d)]
+# }
+# 
+# within_all <- unlist(lapply(unique(mic.meta$`Patient Id`), within_dist))
+# 
+# cross_17_73 <- dist_mat[samples_M017, samples_M073]
+# cross_17_73 <- as.vector(cross_17_73)
+# 
+# pat <- mic.meta$`Patient Id`
+# pat_mat <- outer(pat, pat, FUN = "!=")
+# 
+# between_vals <- dist_mat[pat_mat]
+wilcox.test(
+  cross_17_73,
+  c(m017_to_others, m073_to_others)
+)
+```
+
+check on the outlying sample 
+```{r}
+plot_pca <- data.frame(
+  PC1 = pca$x[,1],
+  PC2 = pca$x[,2],
+  sample = rownames(pca$x)
+)
+
+plot_pca$patient <- mic.meta$`Patient Id`[match(plot_pca$sample, mic.meta$sample)]
+
+# samples of interest
+samples_interest <- c(samples_M017, samples_M073)
+
+# PCA plot with sample ID labels only for M017 + M073 samples
+ggplot(plot_pca, aes(PC1, PC2)) +
+  geom_point(aes(color = patient), size = 2, alpha = 0.7) +
+  geom_text_repel(
+    data = subset(plot_pca, sample %in% samples_interest),
+    aes(label = sample),
+    size = 3,
+    color = "black"
+  ) +
+  theme_classic()
+```
+FF08034109 from M017 is much closer to M073 samples. 
+
+
+
