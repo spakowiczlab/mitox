@@ -96,9 +96,9 @@ PCoA
 pcoa <- cmdscale(dist_mat, k = 2, eig = TRUE)
 
 plot_pcoa <- data.frame(
-  PC1 = pcoa_res$points[,1],
-  PC2 = pcoa_res$points[,2],
-  sample = rownames(pcoa_res$points)
+  PC1 = pcoa$points[,1],
+  PC2 = pcoa$points[,2],
+  sample = rownames(pcoa$points)
 )
 
 plot_pcoa$patient <- mic.meta$`Patient Id`[
@@ -162,24 +162,26 @@ samples_other <- mic.meta$sample[!(pat %in% c("M017", "M073"))]
 m017_to_others <- as.vector(dist_mat[samples_M017, samples_other])
 m073_to_others <- as.vector(dist_mat[samples_M073, samples_other])
 m017_to_m073   <- as.vector(dist_mat[samples_M017, samples_M073])
-
+other_to_other <- dist_mat[samples_other, samples_other]
+other_to_other <- other_to_other[upper.tri(other_to_other)]
 
 plot_df <- data.frame(
   distance = c(
     m017_to_others,
     m073_to_others,
-    m017_to_m073
+    m017_to_m073,
+    other_to_other
   ),
   group = c(
     rep("M017 - others", length(m017_to_others)),
     rep("M073 - others", length(m073_to_others)),
-    rep("M017 - M073", length(m017_to_m073))
+    rep("M017 - M073", length(m017_to_m073)),
+    rep("Others - others", length(other_to_other))
   )
 )
 
 test <- plot_df$distance[plot_df$group == "M017 - M073"]
-null <- plot_df$distance[plot_df$group != "M017 - M073"]
-wilcox.test(test, null, alternative = "less")
+null <- plot_df$distance[plot_df$group == "Others - others"]
 
 p <- wilcox.test(test, null, alternative = "less")$p.value
 
@@ -194,13 +196,6 @@ ggplot(plot_df, aes(x = group, y = distance, fill = group)) +
     y = "Bray–Curtis distance",
     title = paste0("p = ", signif(p, 3))
   )
-```
-get p-value
-```{r}
-null_distances <- plot_df$distance[plot_df$group != "M017 - M073"]
-test_value <- mean(plot_df$distance[plot_df$group == "M017 - M073"])
-p_value <- mean(null_distances <= test_value)
-p_value
 ```
 
 
@@ -241,86 +236,113 @@ p_value <- mean(perm_stats <= obs)
 p_value
 ```
 
-
-
-
-
-```{r}
-m017 <- mic.meta$sample[mic.meta$`Patient Id` == "M017"]
-m073 <- mic.meta$sample[mic.meta$`Patient Id` == "M073"]
-
-cross_17_73 <- as.vector(dist_mat[m017, m073])
-cross_17_73
-m017_73_dist <- mean(cross_17_73)
-```
-
-```{r}
-cross_17_73 <- as.vector(dist_mat[m017, m073])
-cross_17_73
-m017_73_dist <- mean(cross_17_73)
-dist_mat <- as.matrix(dist_mat)
-pat <- mic.meta$`Patient Id`
-
-idx <- which(upper.tri(dist_mat), arr.ind = TRUE)
-
-between <- dist_mat[idx]
-between_keep <- pat[idx[,1]] != pat[idx[,2]]
-
-between_distances <- between[between_keep]
-percentile <- mean(between_distances <= m017_73_dist)
-percentile
-```
-
-
-
-```{r}
-samples_M017 <- mic.meta$sample[mic.meta$`Patient Id` == "M017"]
-samples_M073 <- mic.meta$sample[mic.meta$`Patient Id`== "M073"]
-samples_other <- mic.meta$sample[!(mic.meta$`Patient Id` %in% c("M017","M073"))]
-
-m017_to_others <- as.vector(dist_mat[samples_M017, samples_other])
-m073_to_others <- as.vector(dist_mat[samples_M073, samples_other])
-cross_17_73 <- as.vector(dist_mat[samples_M017, samples_M073])
-
-plot_df <- data.frame(
-  distance = c(m017_to_others, m073_to_others, cross_17_73),
-  group = c(
-    rep("M017 - others", length(m017_to_others)),
-    rep("M073 - others", length(m073_to_others)),
-    rep("M017 - M073", length(cross_17_73))
-  )
-)
-
-ggplot(plot_df, aes(x = group, y = distance, fill = group)) +
-  geom_violin(trim = TRUE, alpha = 0.5) +
-  geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.7) +
-  geom_jitter(width = 0.15, alpha = 0.2, size = 0.7) +
-  theme_classic() +
-  labs(
-    x = NULL,
-    y = "CLR distance",
-  ) +
-  theme(legend.position = "none")
+## Other versions of testing ####
+# ```{r}
 # within_dist <- function(p) {
-#   idx <- mic.meta$sample[mic.meta$`Patient Id` == p]
-#   d <- dist_mat[idx, idx]
+#   s <- mic.meta$sample[mic.meta$`Patient Id` == p]
+#   if (length(s) < 2) return(NULL)
+#   
+#   d <- dist_mat[s, s]
 #   d[upper.tri(d)]
 # }
 # 
 # within_all <- unlist(lapply(unique(mic.meta$`Patient Id`), within_dist))
 # 
-# cross_17_73 <- dist_mat[samples_M017, samples_M073]
-# cross_17_73 <- as.vector(cross_17_73)
+# other_to_other <- dist_mat[samples_other, samples_other]
+# other_to_other <- other_to_other[upper.tri(other_to_other)]
 # 
+# wilcox.test(m017_to_m073, other_to_other, alternative = "less")
+# wilcox.test(m017_to_m073, within_all)
+# ```
+# 
+# Calculate centroids? 
+# Nearest neighbor?
+# ```{r}
+# 
+# ```
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# ```{r}
+# m017 <- mic.meta$sample[mic.meta$`Patient Id` == "M017"]
+# m073 <- mic.meta$sample[mic.meta$`Patient Id` == "M073"]
+# 
+# cross_17_73 <- as.vector(dist_mat[m017, m073])
+# cross_17_73
+# m017_73_dist <- mean(cross_17_73)
+# ```
+# 
+# ```{r}
+# cross_17_73 <- as.vector(dist_mat[m017, m073])
+# cross_17_73
+# m017_73_dist <- mean(cross_17_73)
+# dist_mat <- as.matrix(dist_mat)
 # pat <- mic.meta$`Patient Id`
-# pat_mat <- outer(pat, pat, FUN = "!=")
 # 
-# between_vals <- dist_mat[pat_mat]
-wilcox.test(
-  cross_17_73,
-  c(m017_to_others, m073_to_others)
-)
-```
+# idx <- which(upper.tri(dist_mat), arr.ind = TRUE)
+# 
+# between <- dist_mat[idx]
+# between_keep <- pat[idx[,1]] != pat[idx[,2]]
+# 
+# between_distances <- between[between_keep]
+# percentile <- mean(between_distances <= m017_73_dist)
+# percentile
+# ```
+# 
+# 
+# 
+# ```{r}
+# samples_M017 <- mic.meta$sample[mic.meta$`Patient Id` == "M017"]
+# samples_M073 <- mic.meta$sample[mic.meta$`Patient Id`== "M073"]
+# samples_other <- mic.meta$sample[!(mic.meta$`Patient Id` %in% c("M017","M073"))]
+# 
+# m017_to_others <- as.vector(dist_mat[samples_M017, samples_other])
+# m073_to_others <- as.vector(dist_mat[samples_M073, samples_other])
+# cross_17_73 <- as.vector(dist_mat[samples_M017, samples_M073])
+# 
+# plot_df <- data.frame(
+#   distance = c(m017_to_others, m073_to_others, cross_17_73),
+#   group = c(
+#     rep("M017 - others", length(m017_to_others)),
+#     rep("M073 - others", length(m073_to_others)),
+#     rep("M017 - M073", length(cross_17_73))
+#   )
+# )
+# 
+# ggplot(plot_df, aes(x = group, y = distance, fill = group)) +
+#   geom_violin(trim = TRUE, alpha = 0.5) +
+#   geom_boxplot(width = 0.15, outlier.shape = NA, alpha = 0.7) +
+#   geom_jitter(width = 0.15, alpha = 0.2, size = 0.7) +
+#   theme_classic() +
+#   labs(
+#     x = NULL,
+#     y = "CLR distance",
+#   ) +
+#   theme(legend.position = "none")
+# # within_dist <- function(p) {
+# #   idx <- mic.meta$sample[mic.meta$`Patient Id` == p]
+# #   d <- dist_mat[idx, idx]
+# #   d[upper.tri(d)]
+# # }
+# # 
+# # within_all <- unlist(lapply(unique(mic.meta$`Patient Id`), within_dist))
+# # 
+# # cross_17_73 <- dist_mat[samples_M017, samples_M073]
+# # cross_17_73 <- as.vector(cross_17_73)
+# # 
+# # pat <- mic.meta$`Patient Id`
+# # pat_mat <- outer(pat, pat, FUN = "!=")
+# # 
+# # between_vals <- dist_mat[pat_mat]
+# wilcox.test(
+#   cross_17_73,
+#   c(m017_to_others, m073_to_others)
+# )
+# ```
 
 check on the outlying sample 
 ```{r}
