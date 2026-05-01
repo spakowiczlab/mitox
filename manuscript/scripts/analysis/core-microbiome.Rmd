@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(betareg)
+library(ggplot2)
+library(ggpubr)
 ```
 
 # Load data
@@ -58,29 +60,48 @@ pts <- mic.meta |>
       # already have 3 or more irAE samples, keep only these
       return(patient_data %>% filter(irae_keep))
     } else {
-      # select irAE samples + most spread out remaining samples
-      remaining <- patient_data %>% filter(!irae_keep)
-      
-      if (nrow(remaining) <= n_slots) {
-        selected_remaining <- remaining
-      } else {
-        # pick samples that maximize spread in Days
-        # start with first and last
-        selected_remaining <- remaining %>%
-          slice_min(Days, n = 1) %>%
-          bind_rows(remaining %>% slice_max(Days, n = 1))
-        
-        # if more slots left, pick middle sample
-        if (nrow(selected_remaining) < n_slots) {
-          middle <- remaining %>%
-            filter(!Days %in% selected_remaining$Days) %>%
-            slice(1)
-          selected_remaining <- bind_rows(selected_remaining, middle)
-        }
-      }
-      
-      bind_rows(patient_data %>% filter(irae_keep), selected_remaining)
-    }
+  remaining <- patient_data %>% filter(!irae_keep)
+
+  if (nrow(remaining) <= n_slots) {
+
+    selected_remaining <- remaining
+
+  } else if (n_slots == 1) {
+
+    ## selects max here b/c thats what is farther from the irAE samples we 
+    ## have but this will need to be edited in future 
+    selected_remaining <- remaining %>%
+      slice_max(Days, n = 1, with_ties = FALSE)
+
+  } else if (n_slots == 2) {
+
+    selected_remaining <- remaining %>%
+      slice_min(Days, n = 1, with_ties = FALSE) %>%
+      bind_rows(
+        remaining %>%
+          slice_max(Days, n = 1, with_ties = FALSE)
+      ) %>%
+      distinct()
+
+  } else if (n_slots == 3) {
+
+    selected_remaining <- remaining %>%
+      slice_min(Days, n = 1, with_ties = FALSE) %>%
+      bind_rows(
+        remaining %>%
+          slice_max(Days, n = 1, with_ties = FALSE)
+      ) %>%
+      distinct()
+
+    middle <- remaining %>%
+      filter(!Days %in% selected_remaining$Days) %>%
+      slice(1)
+
+    selected_remaining <- bind_rows(selected_remaining, middle)
+  }
+
+  bind_rows(patient_data %>% filter(irae_keep), selected_remaining)
+}
   }) %>%
   ungroup() %>%
   select(-irae_keep)
@@ -137,6 +158,7 @@ core_df <- bind_rows(core_df) |>
   left_join(resp)
 
 save(core_df, file = "../../data/core-score-min3.rds")
+load("../../data/core-score-min3.rds")
 
 #write.csv(core_df, "../../../data/core-score-min2.csv")
 ```
@@ -157,7 +179,7 @@ core_df |>
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.4) +
   theme_bw() +
-  labs(x = "Response", y = "Core fraction of microbes") +
+  labs(x = "irAE", y = "Core fraction of microbes") +
   stat_compare_means(method = "wilcox.test") +
   theme(legend.position = "none")
 ```
@@ -173,7 +195,7 @@ summary(mod)
 mod <- betareg(core.fraction ~ irAE, data = core_df)
 summary(mod)
 ```
-
+Where are these numbers from again???
 ```{r}
 plogis(0.3295)
 plogis(0.3295 - 0.6268)
