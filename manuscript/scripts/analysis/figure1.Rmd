@@ -16,9 +16,191 @@ load data
 ```{r}
 load("../../data/clinical.rds")
 load("../../data/events.rds")
+load("../../data/microbiome_metadata.rds")
 ```
 
 Figure 1A - Schema
+
+Get microbiome sample numbers and distribution of timing 
+n = 88 samples total
+Samples can be in four categories:
+- baseline = within 10 days of C1D1
+  - n = 41
+  
+  
+- irAE = within 10 days of an irAE
+  - n = 12
+- 12 Weeks (EOS): 
+  - n = 10
+- Control (all other): 
+  - n = 31
+
+Some can be in two categories. Could be irAE and baseline or irAE and 12 wk. 
+
+```{r}
+# get baseline samples 
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+# get irAE samples 
+irAE.time <- events %>%
+  filter(Event == "irAE") %>%
+  mutate(irAE.day = Days) %>%
+  dplyr::select(`Patient Id`, irAE.day) 
+
+irae.samps <- mic.meta %>%
+  left_join(irAE.time) %>%
+  mutate(irAE.day = ifelse(irAE.day < 0 | irAE.day > 100, NA, irAE.day),
+         irAE= ifelse(is.na(irAE.day), 0,
+                       ifelse(abs(Days - irAE.day) <= 10, 1, 0))) %>%
+  group_by(sample) %>%
+  slice_max(irAE, n = 1, with_ties = FALSE) %>%
+  ungroup() 
+
+# n = 88 total samples 
+mic.samps <- irae.samps |>
+  mutate(Baseline = ifelse(sample %in% baseline$sample, 1, 0),
+         EOS = ifelse(Days > 73 & Days < 95, 1, 0),
+         Control = ifelse(Baseline == 0 & EOS == 0 & irAE == 0, 1, 0))
+```
+
+# visualize 
+
+Baseline samples 
+```{r}
+mic.samps |>
+  filter(Baseline == 1) %>%
+  {
+    m <- mean(.$Days, na.rm = TRUE)
+    s <- sd(.$Days, na.rm = TRUE)
+
+    ggplot(., aes(x = Days)) +
+      geom_histogram(binwidth = 1, fill = "darkgreen", color = "darkgreen") +
+      geom_vline(xintercept = m, linetype = "dashed" , linewidth = 0.5) +
+      geom_vline(xintercept = c(m - s, m + s),
+                 linetype = "dashed", linewidth = 0.4) +
+      annotate(
+        "text",
+        x = Inf, y = Inf,
+        label = paste0(
+          "Mean = ", round(m, 1),
+          "\nSD = ", round(s, 1)
+        ),
+        hjust = 1.1, vjust = 1.3, size = 3
+      ) +
+      labs(x = "Days from C1D1", 
+           y = NULL) +
+      theme_void() +
+      theme(
+        axis.line.x = element_line(),
+        axis.ticks.x = element_line(),
+        axis.text.x = element_text(size = 10),
+        axis.title.x = element_text(size = 11),
+        plot.margin = margin(5, 5, 5, 5)
+      ) +
+       xlim(-10, 10) +
+  ggplot2::ggtitle("Baseline (n = 41)") +
+  theme(plot.title = element_text(hjust = 0.5))
+      
+  }
+
+ggsave("../../figures/Fig1A-Baseline.svg", height = 2, width = 2, dpi = 400)
+ggsave("../../figures/Fig1A-Baseline.png", height = 2, width = 2, dpi = 400)
+```
+
+irAE samples 
+```{r}
+mic.samps |>
+  filter(irAE == 1) %>%
+  mutate(window = Days - irAE.day) %>%
+  {
+    m <- mean(.$window, na.rm = TRUE)
+    s <- sd(.$window, na.rm = TRUE)
+
+    ggplot(., aes(x = window)) +
+      geom_histogram(binwidth = 1, fill = "darkgreen", color = "darkgreen") +
+      geom_vline(xintercept = m, linetype = "dashed", linewidth = 0.5) +
+      geom_vline(xintercept = c(m - s, m + s),
+                 linetype = "dashed", linewidth = 0.4) +
+      annotate(
+        "text",
+        x = Inf, y = Inf,
+        label = paste0(
+          "Mean = ", round(m, 1),
+          "\nSD = ", round(s, 1)
+        ),
+        hjust = 1.1, vjust = 1.3, size = 3
+      ) +
+      labs(x = "Days from irAE", 
+           y = NULL) +
+      theme_void() +
+      theme(
+        axis.line.x = element_line(),
+        axis.ticks.x = element_line(),
+        axis.text.x = element_text(size = 10),
+        axis.title.x = element_text(size = 11),
+        plot.margin = margin(5, 5, 5, 5)
+      ) +
+      xlim(-10, 10) +
+  ggplot2::ggtitle("irAE (n = 12)") +
+  theme(plot.title = element_text(hjust = 0.5))
+      
+  }
+
+ggsave("../../figures/Fig1A-irAE.svg", height = 2, width = 2, dpi = 400)
+ggsave("../../figures/Fig1A-irAE.png", height = 2, width = 2, dpi = 400)
+```
+EOS samples 
+```{r}
+mic.samps |>
+  filter(EOS == 1) %>%
+  mutate(window = Days - 84) %>%
+  {
+    m <- mean(.$window, na.rm = TRUE)
+    s <- sd(.$window, na.rm = TRUE)
+
+    ggplot(., aes(x = window)) +
+      geom_histogram(binwidth = 1, fill = "darkgreen", color = "darkgreen") +
+      geom_vline(xintercept = m, linetype = "dashed", linewidth = 0.5) +
+      geom_vline(xintercept = c(m - s, m + s),
+                 linetype = "dashed", linewidth = 0.4) +
+      annotate(
+        "text",
+        x = Inf, y = Inf,
+        label = paste0(
+          "Mean = ", round(m, 1),
+          "\nSD = ", round(s, 1)
+        ),
+        hjust = 1.1, vjust = 1.3, size = 3
+      ) +
+      labs(x = "Days from 12 Weeks", 
+           y = NULL) +
+      theme_void() +
+      theme(
+        axis.line.x = element_line(),
+        axis.ticks.x = element_line(),
+        axis.text.x = element_text(size = 10),
+        axis.title.x = element_text(size = 11),
+        plot.margin = margin(5, 5, 5, 5)
+      ) +
+      xlim(-10, 10) +
+  ggplot2::ggtitle("12 Weeks (n = 10)") +
+  theme(plot.title = element_text(hjust = 0.5))
+      
+  }
+
+ggsave("../../figures/Fig1A-eos.svg", height = 2, width = 2, dpi = 400)
+ggsave("../../figures/Fig1A-eos.png", height = 2, width = 2, dpi = 400)
+```
+
+
+
+
+
 Figure 1B - CONSORT
 
 # Restrict dates 
