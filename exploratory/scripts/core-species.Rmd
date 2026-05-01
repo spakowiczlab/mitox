@@ -1,0 +1,205 @@
+---
+title: "core score exploration"
+author: "Caroline Dravillas"
+date: "2026-05-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+# Load data
+```{r}
+load("../../manuscript/data/counts-wide.rds")
+load("../../manuscript/data/ra-wide.rds")
+load("../../manuscript/data/microbiome_metadata.rds")
+load("../../manuscript/data/clinical.rds")
+load("../../manuscript/data/events.rds")
+```
+
+```{r}
+irAE.time <- events %>%
+  filter(Event == "irAE") %>%
+  mutate(irAE.day = Days) %>%
+  dplyr::select(`Patient Id`, irAE.day) 
+
+# get irae samples 
+meta.irae <- mic.meta %>%
+  left_join(demographics) %>%
+  left_join(irAE.time) %>%
+  mutate(irAE.day = ifelse(irAE.day < 0 | irAE.day > 100, NA, irAE.day),
+         irAE.sample = ifelse(is.na(irAE.day), 0,
+                       ifelse(abs(Days - irAE.day) <= 10, 1, 0))) %>%
+  group_by(sample) %>%
+  slice_max(irAE.sample, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(sample, `Patient Id`, irAE.sample)
+
+# pts with more than 2 samples 
+pts <- mic.meta |>
+  group_by(`Patient Id`) |>
+  filter(n() > 2) |>
+  ungroup() |>
+  left_join(meta.irae) |>
+    group_by(`Patient Id`) %>%
+  # Step 1: Keep all irAE samples
+  mutate(irae_keep = ifelse(irAE.sample == 1, TRUE, FALSE)) %>%
+  # Step 2: Count how many slots are left per patient
+  group_modify(~{
+    patient_data <- .
+    n_keep <- sum(patient_data$irae_keep)
+    n_slots <- 3 - n_keep
+    
+    if (n_slots <= 0) {
+      # already have 3 or more irAE samples, keep only these
+      return(patient_data %>% filter(irae_keep))
+    } else {
+  remaining <- patient_data %>% filter(!irae_keep)
+
+  if (nrow(remaining) <= n_slots) {
+
+    selected_remaining <- remaining
+
+  } else if (n_slots == 1) {
+
+    ## selects max here b/c thats what is farther from the irAE samples we 
+    ## have but this will need to be edited in future 
+    selected_remaining <- remaining %>%
+      slice_max(Days, n = 1, with_ties = FALSE)
+
+  } else if (n_slots == 2) {
+
+    selected_remaining <- remaining %>%
+      slice_min(Days, n = 1, with_ties = FALSE) %>%
+      bind_rows(
+        remaining %>%
+          slice_max(Days, n = 1, with_ties = FALSE)
+      ) %>%
+      distinct()
+
+  } else if (n_slots == 3) {
+
+    selected_remaining <- remaining %>%
+      slice_min(Days, n = 1, with_ties = FALSE) %>%
+      bind_rows(
+        remaining %>%
+          slice_max(Days, n = 1, with_ties = FALSE)
+      ) %>%
+      distinct()
+
+    middle <- remaining %>%
+      filter(!Days %in% selected_remaining$Days) %>%
+      slice(1)
+
+    selected_remaining <- bind_rows(selected_remaining, middle)
+  }
+
+  bind_rows(patient_data %>% filter(irae_keep), selected_remaining)
+}
+  }) %>%
+  ungroup() %>%
+  select(-irae_keep)
+
+# n = 26
+resp <- demographics |>
+  select(`Patient Id`, Response, irAE) |>
+  filter(`Patient Id` %in% pts$`Patient Id`)
+
+ra.spec <- as.matrix(ra.w |>
+  filter(grepl("s__", microbe)) |>
+  select(microbe, pts$sample) |>
+  column_to_rownames("microbe"))
+
+all.equal(colnames(ra.spec), pts$sample)
+```
+
+Binarize the abundance matrix at species level
+For each pt with > 1 sample
+Drop microbes with 0’s in each sample
+What fraction of the microbes are found in both (all) samples
+Core.fraction = Consistent microbes / total microbes
+
+```{r}
+# binarize
+mat_bin <- (ra.spec > 0) * 1
+patient_ids <- unique(pts$`Patient Id`)
+```
+
+Now instead of a per patient score, I want a per species score. 
+
+First lets do a strict version 
+Core 3/3​= #people where species present in all 3​/ #people
+
+Then a more relaxed version
+Core 2/3​ = #people where species present in at least 2 of 3​/ #people
+```{r}
+spec_core_score <- function(mat_bin, pts, sample_set) {
+  
+  patient_ids <- unique(sample_set$`Patient Id`)
+  
+  species_core <- lapply(rownames(mat_bin), function(sp) {
+    
+    vals3 <- sapply(patient_ids, function(pid) {
+      cols <- which(sample_set$`Patient Id` == pid)
+      if (length(cols) == 0) return(NA)
+      
+      subvec <- mat_bin[sp, cols, drop = TRUE]
+      sum(subvec) == length(cols)
+    })
+    
+    vals2 <- sapply(patient_ids, function(pid) {
+      cols <- which(sample_set$`Patient Id` == pid)
+      if (length(cols) == 0) return(NA)
+      
+      subvec <- mat_bin[sp, cols, drop = TRUE]
+      sum(subvec) >= ceiling(length(cols) * 2/3)
+    })
+    
+    data.frame(
+      species = sp,
+      core_3of3 = mean(vals3, na.rm = TRUE),
+      core_2of3 = mean(vals2, na.rm = TRUE)
+    )
+  })
+  
+  bind_rows(species_core) |>
+    mutate(delta = core_2of3 - core_3of3) |>
+    arrange(desc(core_3of3))
+}
+```
+
+
+```{r}
+species_core <- spec_core_score(mat_bin, pts, pts) |>
+  mutate(group = "all pts w/ 3 samples")
+
+head(species_core, 10)
+
+write.csv(species_core, "../data/core-species-all3samps.csv", row.names = F)
+```
+
+people w/o irAE & 3 samples 
+```{r}
+pts <- pts |>
+  left_join()
+no.irae.pts <- resp |>
+  filter(irAE == "No",
+         Response == "")
+```
+
+responders w/ 3 samples 
+```{r}
+
+```
+
+
+Then lets do the same with all people with 2 samples...but then i am only
+interested in presence in 2/2 samples 
+
+```{r}
+
+```
+
