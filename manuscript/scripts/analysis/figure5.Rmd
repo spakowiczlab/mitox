@@ -256,5 +256,12 @@ core_df |>
 ggsave("../../figures/Fig5E-boxplot.svg", height = 4.5, width = 5, dpi = 300)
 ```
 
+P-value calculation 
+```{r}
+mod <- betareg(core.fraction ~ irAE, data = core_df)
+summary(mod)
+```
+
+
 
 
