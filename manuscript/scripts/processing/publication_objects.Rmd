@@ -89,6 +89,10 @@ nano.adj <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdat
 nano.metdis <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 4)
 nano.metval <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 5)
 nano.metnivo <- readxl::read_xlsx(file.path(paths$tdrive, "mitox/data/Burd_clinicdata/Burd_NanostringSummary_June2022.xlsx"), sheet = 6)
+
+# Additional clinical info
+more.clin <- readxl::read_xlsx(file.path(paths$tdrive,"/mitox/Clinical info/2026-05-10-mitox-clinicaldata.xlsx"), sheet = 1) |>
+  dplyr::select(-MRN, -Name, -C1D1)
 ```
 
 Demographics (Input to Tables 1, S1)
@@ -216,78 +220,8 @@ demographics <- demographics %>%
           str_detect(Location, regex("parotid|masseter|muscle|soft tissue|calf|pelvic mass", ignore_case = TRUE)) ~ "Soft tissue",
           str_detect(Location, regex("bone|mandible|calvarium|calvarium|calvarial", ignore_case = TRUE)) ~ "Bone",
           TRUE ~ "Other"
-        ),
-        comorb = tolower(Comorbidities),
-    
-        # remove melanoma-related text
-        comorb = str_remove_all(comorb, "melanoma[^,]*"),
-    
-        # -------------------------
-        # AUTOIMMUNE
-        # -------------------------
-        autoimmune = if_else(
-          str_detect(comorb, "rheumatoid|lupus|autoimmune|vitiligo|thyroiditis"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # IBD (important for IO tox)
-        # -------------------------
-        ibd = if_else(
-          str_detect(comorb, "crohn|ulcerative colitis"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # DERM AUTOIMMUNE
-        # -------------------------
-        derm_autoimmune = if_else(
-          str_detect(comorb, "psoriasis|eczema"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # IMMUNOSUPPRESSION
-        # -------------------------
-        immunosuppressed = if_else(
-          str_detect(comorb, "transplant|immunosuppression|history of chemotherapy|radiation"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # HEME MALIGNANCY / IMMUNE DYSFUNCTION
-        # -------------------------
-        heme_malignancy = if_else(
-          str_detect(comorb, "cll|leukemia|lymphoma"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # CARDIOMETABOLIC
-        # -------------------------
-        cardiometabolic = if_else(
-          str_detect(comorb, "hypertension|htn|diabetes|hyperlipidemia|cad|mi|heart|afib|atrial fibrillation"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # PULMONARY
-        # -------------------------
-        pulmonary = if_else(
-          str_detect(comorb, "copd|asthma|pneumonia"),
-          1, 0
-        ),
-    
-        # -------------------------
-        # OTHER CANCER (non-melanoma)
-        # -------------------------
-        other_cancer = if_else(
-          str_detect(comorb, "cancer|carcinoma|bcc|scc") &
-            !str_detect(comorb, "melanoma"),
-          1, 0
-        )
-  ) |>
-  select(-`Tumor.Mutational.Status.(if.known)`, -comorb)
+        )) |>
+    select(-`Tumor.Mutational.Status.(if.known)`)
 
 # filter to MET only
 # has microbiome sample
@@ -300,6 +234,152 @@ demographics <- demographics %>%
          `Patient Id` != "M005") %>%
   # remove duplicate entry?
   distinct()
+
+# Now lets remove any column that we have present in the new df filled out by Anna
+demographics <- demographics |>
+  select(-any_of(setdiff(intersect(names(demographics), names(more.clin)),"Patient Id"))) |>
+  left_join(more.clin) |>
+  mutate(
+      comorb = tolower(Comorbidities),
+      comorb = str_replace_all(comorb, "\\bmalignant\\b\\s*,?", ""),
+      comorb = str_replace_all(comorb, "history of\\s*$", ""),
+      comorb = str_squish(comorb),
+  
+      autoimmune = if_else(
+        str_detect(comorb, "lupus|rheumatoid|autoimmune|vitiligo|psoriasis|thyroiditis"),
+        1, 0
+      ),
+  
+      inflammatory = if_else(
+        str_detect(comorb, "arthritis|gout|fibromyalgia|bursitis"),
+        1, 0
+      ),
+  
+      pulmonary = if_else(
+        str_detect(comorb, "copd|asthma|pneumonia|asbestosis|osa|sleep apnea"),
+        1, 0
+      ),
+  
+      cardiovascular = if_else(
+        str_detect(comorb, paste(
+          "hypertension|htn|cad|coronary|mi|myocardial infarction|",
+          "atrial fibrillation|afib|arrhythmia|svt|",
+          "heart failure|chf|",
+          "pvd|peripheral vascular|",
+          "tia|stroke|",
+          "pulmonary embolism|dvt"
+        )),
+        1, 0
+      ),
+  
+      metabolic = if_else(
+        str_detect(comorb, paste(
+          "diabetes|dm|hyperlipidemia|dyslipidemia|",
+          "obesity|",
+          "hypothyroid|hyperthyroid|",
+          "adrenal insufficiency|hypopituitarism"
+        )),
+        1, 0
+      ),
+  
+      renal = if_else(
+        str_detect(comorb, "ckd|chronic kidney|renal disease|kidney stone"),
+        1, 0
+      ),
+  
+      hepatic_gi = if_else(
+        str_detect(comorb, paste(
+          "cirrhosis|hepatitis|hep c|fatty liver|",
+          "gerd|gastroesophageal|ibs"
+        )),
+        1, 0
+      ),
+  
+      neuro_psych = if_else(
+        str_detect(comorb, paste(
+          "migraine|headache|seizure|neuropathy|vertigo|",
+          "depression|anxiety|ptsd|add"
+        )),
+        1, 0
+      ),
+  
+      hematologic = if_else(
+        str_detect(comorb, "anemia|monocytosis|hemochromatosis|bleeding|purpura"),
+        1, 0
+      ),
+  
+      prior_therapy = if_else(
+        str_detect(comorb, "chemotherapy|radiation"),
+        1, 0
+      ),
+  
+      heme_malignancy = if_else(
+        str_detect(comorb, "leukemia|lymphoma|cll"),
+        1, 0
+      ),
+  
+      prior_solid_cancer = if_else(
+        str_detect(comorb, "cancer|carcinoma|tumor|breast|ovarian|testicular") &
+          !str_detect(comorb, "metastatic|bcc|scc|leukemia|lymphoma"),
+        1, 0
+      ),
+  
+      skin_cancer = if_else(
+        str_detect(comorb, "bcc|basal cell|scc|squamous"),
+        1, 0
+      ),
+  
+      # ======================================================
+      # 🔹 CHARLSON COMPONENTS
+      # ======================================================
+  
+      # Weight = 1
+      cci_1 = if_else(
+        str_detect(comorb, paste(
+          "mi|myocardial infarction|",
+          "heart failure|chf|",
+          "pvd|peripheral vascular|",
+          "tia|stroke|cerebrovascular|",
+          "copd|",
+          "rheumatoid|lupus|",
+          "diabetes"
+        )),
+        1, 0
+      ),
+  
+      # Weight = 2
+      cci_2 = if_else(
+        str_detect(comorb, paste(
+          "ckd|chronic kidney|renal disease|",
+          "leukemia|lymphoma"
+        )),
+        2, 0
+      ),
+  
+      # Weight = 3
+      cci_3 = if_else(
+        str_detect(comorb, "cirrhosis"),
+        3, 0
+      ),
+  
+      # ======================================================
+      # 🔹 AGE-ADJUSTED CCI
+      # ======================================================
+  
+      cci_age = case_when(
+        Age < 50 ~ 0,
+        Age >= 50 & Age < 60 ~ 1,
+        Age >= 60 & Age < 70 ~ 2,
+        Age >= 70 & Age < 80 ~ 3,
+        Age >= 80 ~ 4
+      ),
+  
+      # Charlson Comorbidty Index 
+      # Add 6 to everyone for metastatic disease
+      cci_total = cci_1 + cci_2 + cci_3 + cci_age + 6
+    ) |>
+  select(-comorb)
+
 
 save(demographics, file = "../../data/clinical.rds")
 ```
