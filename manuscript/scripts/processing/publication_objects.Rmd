@@ -329,54 +329,37 @@ demographics <- demographics |>
         1, 0
       ),
   
-      # ======================================================
-      # 🔹 CHARLSON COMPONENTS
-      # ======================================================
+      # Charlson Comorbidity Index
+      cci_total =
+
+        # Weight 1 -
+        (
+          if_else(str_detect(comorb, "mi|myocardial infarction"), 1, 0) +
+          if_else(str_detect(comorb, "heart failure|chf"), 1, 0) +
+          if_else(str_detect(comorb, "pvd|peripheral vascular"), 1, 0) +
+          if_else(str_detect(comorb, "tia|stroke|cerebrovascular"), 1, 0) +
+          if_else(str_detect(comorb, "copd"), 1, 0) +
+          if_else(str_detect(comorb, "rheumatoid|lupus"), 1, 0) +
+          if_else(str_detect(comorb, "diabetes"), 1, 0)
+        ) +
   
-      # Weight = 1
-      cci_1 = if_else(
-        str_detect(comorb, paste(
-          "mi|myocardial infarction|",
-          "heart failure|chf|",
-          "pvd|peripheral vascular|",
-          "tia|stroke|cerebrovascular|",
-          "copd|",
-          "rheumatoid|lupus|",
-          "diabetes"
-        )),
-        1, 0
-      ),
+        # Weight 2 
+        (
+          if_else(str_detect(comorb, "ckd|chronic kidney|renal disease"), 2, 0) +
+          if_else(str_detect(comorb, "leukemia|lymphoma"), 2, 0)
+        ) +
   
-      # Weight = 2
-      cci_2 = if_else(
-        str_detect(comorb, paste(
-          "ckd|chronic kidney|renal disease|",
-          "leukemia|lymphoma"
-        )),
-        2, 0
-      ),
+        # Weight 3 
+        if_else(str_detect(comorb, "cirrhosis"), 3, 0) +
   
-      # Weight = 3
-      cci_3 = if_else(
-        str_detect(comorb, "cirrhosis"),
-        3, 0
-      ),
-  
-      # ======================================================
-      # 🔹 AGE-ADJUSTED CCI
-      # ======================================================
-  
-      cci_age = case_when(
-        Age < 50 ~ 0,
-        Age >= 50 & Age < 60 ~ 1,
-        Age >= 60 & Age < 70 ~ 2,
-        Age >= 70 & Age < 80 ~ 3,
-        Age >= 80 ~ 4
-      ),
-  
-      # Charlson Comorbidty Index 
-      # Add 6 to everyone for metastatic disease
-      cci_total = cci_1 + cci_2 + cci_3 + cci_age + 6
+        # Age adjustment 
+        case_when(
+          Age < 50 ~ 0,
+          Age < 60 ~ 1,
+          Age < 70 ~ 2,
+          Age < 80 ~ 3,
+          TRUE ~ 4
+        ) + 6 #everyone has metastatic disease,
     ) |>
   select(-comorb)
 
