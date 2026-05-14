@@ -130,6 +130,7 @@ core_list <- c("Patient Id","core.fraction")
 
 # irae mics + core
 irae_core_list <- c(irae_list, core_list[core_list != "Patient Id"])
+
 # response mics + core
 response_core_list <- c(response_list, core_list[core_list != "Patient Id"])
 

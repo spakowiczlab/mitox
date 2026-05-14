@@ -103,12 +103,14 @@ Model_Comparison_Plot <- df %>%
 ```{r}
 aucpr_box(pr_response_df)
 
-#ggsave("../../figures/corescore-AUCPR-boxplots-response.svg", height = 5, width = 5)
+ggsave("../../figures/corescore-AUCPR-boxplots-response.svg", height = 5, width = 5)
 #ggsave("../../figures/corescore-AUCPR-boxplots-response.png", height = 5, width = 5)
 ```
 
 ```{r}
 aucpr_box(pr_irae_df)
+ggsave("../../figures/corescore-AUCPR-boxplots-irae.svg", height = 5, width = 5)
+#ggsave("../../figures/corescore-AUCPR-boxplots-irae.png", height = 5, width = 5)
 ```
 
 Figure E and F - ROC curves for mitox 
