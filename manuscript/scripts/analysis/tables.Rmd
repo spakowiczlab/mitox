@@ -24,6 +24,7 @@ load("../../data/microbiome_metadata.rds")
 ```
 
 Remove participant without baseline sample 
+should we actually include this person? Since they are in the longitudinal analysis
 ```{r}
 baseline <- mic.meta %>%
   group_by(`Patient Id`) %>%
@@ -34,7 +35,8 @@ baseline <- mic.meta %>%
 
 demo.filt <- demographics %>%
   filter(`Patient Id` %in% baseline$`Patient Id`) %>%
-  mutate(Treatment = Treatment.bin)
+  mutate(Treatment = Treatment.bin,
+         ECOG = as.factor(ECOG))
 ```
 
 
@@ -60,23 +62,22 @@ pvalue <- function(x, ...) {
 ```
 
 Table 1 - strat by Response
-```{r}
-table1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response,
-       data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
-       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
 
-print(table1, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
+<!-- ```{r} -->
+<!-- table1 <- table1(~ Age + Sex + Race + Treatment + Stage + irAE  | Response, -->
+<!--        data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue),  -->
+<!--        render.missing=NULL, render.continuous=c(.="Mean (SD)")) -->
 
-html_file <- "../../figures/table1.html"
-save_html(table1, file = html_file)
-```
+<!-- print(table1, quote = FALSE, noSpaces = TRUE, printToggle = TRUE) -->
+
+<!-- html_file <- "../../figures/table1.html" -->
+<!-- save_html(table1, file = html_file) -->
+<!-- ``` -->
 
 
-
-If we decide to make our own version 
 ```{r}
 tab1 <- CreateTableOne(
-  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "irAE"),  # Variables
+  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "irAE", "Mel.type", "ECOG", "prior IO",  "LDH.(U/L)", "cci_total"),  # Variables
   strata = "Response",  # Stratification variable
   data = demo.filt,
   test = TRUE,  # Enables default p-value calculation
@@ -87,24 +88,24 @@ print(tab1)
 ```
 
 Table 2 - strat by irAE
-```{r}
-demo.filt <- demo.filt %>%
-    mutate(irAE = ifelse(irAE == "Yes", "irAE", "No irAE"))
 
-table2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE,
-       data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue), 
-       render.missing=NULL, render.continuous=c(.="Mean (SD)"))
+<!-- ```{r} -->
+<!-- demo.filt <- demo.filt %>% -->
+<!--     mutate(irAE = ifelse(irAE == "Yes", "irAE", "No irAE")) -->
 
-print(table2, quote = FALSE, noSpaces = TRUE, printToggle = TRUE)
+<!-- table2 <- table1(~ Age + Sex + Race + Treatment + Stage + Response  | irAE, -->
+<!--        data=demo.filt, overall="Total", extra.col=list(`P-value`=pvalue),  -->
+<!--        render.missing=NULL, render.continuous=c(.="Mean (SD)")) -->
 
-html_file <- "../../figures/table2.html"
-save_html(table2, file = html_file)
-```
+<!-- print(table2, quote = FALSE, noSpaces = TRUE, printToggle = TRUE) -->
 
+<!-- html_file <- "../../figures/table2.html" -->
+<!-- save_html(table2, file = html_file) -->
+<!-- ``` -->
 
 ```{r}
 tab2 <- CreateTableOne(
-  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "Response"),  # Variables
+  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "Mel.type", "ECOG", "prior IO", "cci_total", "LDH.(U/L)", "Response"),  # Variables
   strata = "irAE",  # Stratification variable
   data = demo.filt,
   test = TRUE,  # Enables default p-value calculation
