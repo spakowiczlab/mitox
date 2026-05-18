@@ -238,7 +238,7 @@ demographics <- demographics %>%
 # Now lets remove any column that we have present in the new df filled out by Anna
 demographics <- demographics |>
   select(-any_of(setdiff(intersect(names(demographics), names(more.clin)),"Patient Id"))) |>
-  left_join(more.clin) |>
+  left_join(more.clin, by = "Patient Id") |>
   mutate(
       comorb = tolower(Comorbidities),
       comorb = str_replace_all(comorb, "\\bmalignant\\b\\s*,?", ""),
@@ -359,13 +359,110 @@ demographics <- demographics |>
           Age < 70 ~ 2,
           Age < 80 ~ 3,
           TRUE ~ 4
-        ) + 6 #everyone has metastatic disease,
-    ) |>
-  select(-comorb)
+        ) + 6, #everyone has metastatic disease
+       Mel.type = Mel.type %>%
+        str_replace_all("\\s+", " ") %>%
+        str_trim(),
+      Mel.type = recode(Mel.type, 
+                        "Muscoal" = "Mucosal",
+                        "Uknown"  = "Unknown"),
+      Recurrence.Site.Cat = `Reccurence Site Categorized (See next sheet for details)` %>%
+        str_replace_all("\\s+", " ") %>%   # collapse weird whitespace
+        str_trim(),
+      `TMB (Muts/mb)` = coalesce(
+      suppressWarnings(as.numeric(`TMB (Muts/mb)`)),
+      suppressWarnings(as.numeric(`TMB.(muts/mb)`)))) |>
+    select(-c(comorb, Location, Recurrence.site, Recurrence.site.cat, `Reccurence Site Categorized (See next sheet for details)`, `TMB.(muts/mb)`)) |>
+    select(where(~ any(!is.na(.))))
+```
 
+# Order the demogrpahics vars 
+```{r}
+new_order <- c(
+
+  # IDs / indexing
+  "Patient Id",
+  "MDSC #",
+  
+  # Outcomes (core endpoint block)
+  "Response",
+  "Category",
+  "RECIST",
+  "irAE",
+  "6-month PFS",
+  "12-month PFS",
+
+  # Demographics
+  "Age",
+  "Sex",
+  "Race",
+  "Ethnicity",
+  "Religion",
+
+  # Body size / anthropometrics
+  "Patient.Height.(m)",
+  "Patient.Weight.(kg)",
+  "BMI.(kg/m2)",
+
+  # Baseline clinical status
+  "Stage",
+  "ECOG",
+  "LDH.(U/L)",
+  "Mel.type",
+
+  # Treatment / exposure
+  "Treatment",
+  "Treatment.bin",
+  "PD-1 Status",
+  "prior IO",
+  "prior_therapy",
+  "Antibiotics",
+  "Probiotics",
+  "Corticosteroids",
+  "PPI",
+  "Smoker",
+
+  # Molecular / tumor features
+  "BRAF",
+  "NRAS",
+  "NF1",
+  "TMB (Muts/mb)",
+
+  # Laboratory values
+  "Total.WBC.(K/µL)",
+  "Absolute.lymphocytes.(K/µL)",
+  "Relative.lymphocyte.count.(%)",
+  "Relative.eosinophil.count.(%)",
+
+  # Immune / inflammation / comorbidity structure
+  "Comorbidities",
+  "autoimmune",
+  "inflammatory",
+  "pulmonary",
+  "cardiovascular",
+  "metabolic",
+  "renal",
+  "hepatic_gi",
+  "neuro_psych",
+  "hematologic",
+  "heme_malignancy",
+  "prior_solid_cancer",
+  "skin_cancer",
+  "cci_total",
+
+  # Recurrence (keep both raw + categorized)
+  "Recurrence Site",
+  "Recurrence.Site.Cat",
+
+  # Sampling / technical
+  "Mic.Samp"
+)
+
+demographics <- demographics[, new_order]
 
 save(demographics, file = "../../data/clinical.rds")
 ```
+
 
 Blood data
 Rows are blood samples
