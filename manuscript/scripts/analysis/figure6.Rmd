@@ -55,22 +55,34 @@ demo.filt <- demographics %>%
   mutate(Response = factor(Response, levels = c("Non-Responder", "Responder")), 
          irAE = factor(irAE,     levels = c("No", "Yes"))) %>%
     rename(
-    BMI = `BMI.(kg/m2)`,
-    Absolute_lymphocytes = `Absolute.lymphocytes.(K/µL)`,
-    LDH = `LDH.(U/L)`,
-    Treatment.cat = Treatment, 
-    Treatment = Treatment.bin
-  )
+      BMI = `BMI.(kg/m2)`,
+      Absolute_lymphocytes = `Absolute.lymphocytes.(K/µL)`,
+      LDH = `LDH.(U/L)`,
+      Treatment.cat = Treatment, 
+      Treatment = Treatment.bin,
+      Prior_IO = `prior IO`,
+      TMB = `TMB (Muts/mb)`) %>%
+    mutate(
+      # Collapse to handle separation 
+      Melanoma_Type = ifelse(Mel.type == "Cutaneous", "Cutaneous",
+                               ifelse(Mel.type %in% c("Acral", "Mucosal", "Uveal"), "Non-Cutaneous", NA)),
+      # collapse liver, and bone into other
+      Recurrence_Site = ifelse(Recurrence.Site.Cat %in% c("Liver", "Bone"), "Other", Recurrence.Site.Cat),
+      # collapse smoker into binary
+      Smoking_Status = ifelse(Smoker == "Never", "Never", "Ever"),
+      Charlson_Comorbidity_Index = cci_total)
+    
 ```
 
 # Figure 6A - Forest plots of clinical variables 
 
 ## Check for complete separation 
 ```{r}
-cont_vars <- c("Age", "BMI", "Absolute_lymphocytes", "LDH")
+cont_vars <- c("Age", "BMI", "Absolute_lymphocytes", "LDH", "TMB", "Charlson_Comorbidity_Index", "ECOG")
 
 cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics",
-               "Corticosteroids", "Smoker")
+               "Corticosteroids", "Smoking_Status", "Melanoma_Type", "Prior_IO",
+               "BRAF", "NRAS", "NF1", "Recurrence_Site")
 
 check_separation <- function(data, outcome, cat_vars) {
   sapply(cat_vars, function(var) {
@@ -83,10 +95,13 @@ check_separation(demo.filt, "irAE", cat_vars)
 check_separation(demo.filt, "Response", cat_vars)
 ```
 
+
 ## Prepare
 ```{r}
-# remove smoker var
-cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics", "Corticosteroids")
+# remove NF1 and Recurrence 
+cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics",
+               "Corticosteroids", "Smoking_Status", "Melanoma_Type", "Prior_IO",
+               "BRAF", "NRAS")
 
 # demo.filt <- demo.filt %>%
 #   mutate(across(all_of(cat_vars), as.factor))
@@ -131,6 +146,14 @@ results_response <- results_response %>%
     term == "PPIYes" ~ "PPI (Yes vs No)",
     term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
     term == "CorticosteroidsYes" ~ "Corticosteroids (Yes vs No)",
+    term == "BRAF" ~ "BRAF (Yes vs No)",
+    term == "NRAS" ~ "NRAS (Yes vs No)",
+    term == "Charlson_Comorbidity_Index" ~ "Charlson Comorbidity Index",
+    term == "TMB" ~ "TMB (muts/mb)",
+    term == "ECOG" ~ "ECOG",
+    term == "Melanoma_TypeNon-Cutaneous" ~ "Non-Cutaneous vs Cutaneous Melanoma",
+    term == "Smoking_StatusNever" ~ "Never Smoker vs Ever Smoker",
+    term == "Prior_IOYes" ~ "Prior IO (Yes vs No)",
     TRUE ~ term
   )) %>%
   mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
@@ -147,6 +170,14 @@ results_irae <- results_irae %>%
     term == "PPIYes" ~ "PPI (Yes vs No)",
     term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
     term == "CorticosteroidsYes" ~ "Corticosteroids (Yes vs No)",
+    term == "BRAF" ~ "BRAF (Yes vs No)",
+    term == "NRAS" ~ "NRAS (Yes vs No)",
+    term == "Charlson_Comorbidity_Index" ~ "Charlson Comorbidity Index",
+    term == "TMB" ~ "TMB (muts/mb)",
+    term == "ECOG" ~ "ECOG",
+    term == "Melanoma_TypeNon-Cutaneous" ~ "Non-Cutaneous vs Cutaneous Melanoma",
+    term == "Smoking_StatusNever" ~ "Never Smoker vs Ever Smoker",
+    term == "Prior_IOYes" ~ "Prior IO (Yes vs No)",
     TRUE ~ term
   )) %>%
   mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
@@ -157,34 +188,40 @@ results_irae <- results_irae %>%
 
 ### Univariate Clinical Predictors of Response
 ```{r}
-ggplot(results_response, aes(x = OR, y = reorder(Label, OR))) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
-  theme_minimal() +
-  labs(
-    title = "Response",
-    x = "Odds Ratio (95% CI)",
-    y = NULL,
-  ) +
-  theme(text = element_text(size = 14))
+results_response |>
+  arrange(p.value) |>
+  slice_head(n = 10) |>
+  ggplot(aes(x = OR, y = reorder(Label, OR))) +
+    geom_point(size = 3) +
+    geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
+    geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
+    theme_minimal() +
+    labs(
+      title = "Response",
+      x = "Odds Ratio (95% CI)",
+      y = NULL,
+    ) +
+    theme(text = element_text(size = 14))
 
 ggsave("../../figures/Fig6A-Forestplot-irae.svg", height = 2.5, width = 4)
 ```
 
 ### Univariate Clinical Predictors of irAE
 ```{r}
-ggplot(results_irae, aes(x = OR, y = reorder(Label, OR))) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
-  theme_minimal() +
-  labs(
-    title = "irAE",
-    x = "Odds Ratio (95% CI)",
-    y = NULL
-  ) +
-  theme(text = element_text(size = 14))
+results_irae |>
+  arrange(p.value) |>
+  slice_head(n = 10) |>
+  ggplot(aes(x = OR, y = reorder(Label, OR))) +
+    geom_point(size = 3) +
+    geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
+    geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
+    theme_minimal() +
+    labs(
+      title = "irAE",
+      x = "Odds Ratio (95% CI)",
+      y = NULL
+    ) +
+    theme(text = element_text(size = 14))
 
 ggsave("../../figures/Fig6B-Forestplot-response.svg", height = 2.5, width = 4)
 ```
