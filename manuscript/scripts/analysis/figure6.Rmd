@@ -98,10 +98,12 @@ check_separation(demo.filt, "Response", cat_vars)
 
 ## Prepare
 ```{r}
-# remove NF1 and Recurrence 
+# remove NF1 due to complete separation 
+# Remove Recurrence and NRAS for visualization... neither is significant 
+
 cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics",
                "Corticosteroids", "Smoking_Status", "Melanoma_Type", "Prior_IO",
-               "BRAF", "NRAS")
+               "BRAF")
 
 # demo.filt <- demo.filt %>%
 #   mutate(across(all_of(cat_vars), as.factor))
@@ -141,7 +143,7 @@ results_response <- results_response %>%
     term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
     term == "LDH" ~ "LDH",
     term == "SexMale" ~ "Male vs Female",
-    term == "TreatmentAnti-PD-1" ~ "Anti PD-1 vs Anti-CTLA-4",
+    term == "TreatmentAnti-PD-1" ~ "*Anti PD-1 vs Anti-CTLA-4",
     term == "StageStage IV" ~ "Stage IV vs III",
     term == "PPIYes" ~ "PPI (Yes vs No)",
     term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
@@ -151,7 +153,7 @@ results_response <- results_response %>%
     term == "Charlson_Comorbidity_Index" ~ "Charlson Comorbidity Index",
     term == "TMB" ~ "TMB (muts/mb)",
     term == "ECOG" ~ "ECOG",
-    term == "Melanoma_TypeNon-Cutaneous" ~ "Non-Cutaneous vs Cutaneous Melanoma",
+    term == "Melanoma_TypeNon-Cutaneous" ~ "*Non-Cutaneous vs Cutaneous",
     term == "Smoking_StatusNever" ~ "Never Smoker vs Ever Smoker",
     term == "Prior_IOYes" ~ "Prior IO (Yes vs No)",
     TRUE ~ term
@@ -165,7 +167,7 @@ results_irae <- results_irae %>%
     term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
     term == "LDH" ~ "LDH",
     term == "SexMale" ~ "Male vs Female",
-    term == "TreatmentAnti-PD-1" ~ "Anti PD-1 vs Anti-CTLA-4",
+    term == "TreatmentAnti-PD-1" ~ "*Anti PD-1 vs Anti-CTLA-4",
     term == "StageStage IV" ~ "Stage IV vs III",
     term == "PPIYes" ~ "PPI (Yes vs No)",
     term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
@@ -175,7 +177,7 @@ results_irae <- results_irae %>%
     term == "Charlson_Comorbidity_Index" ~ "Charlson Comorbidity Index",
     term == "TMB" ~ "TMB (muts/mb)",
     term == "ECOG" ~ "ECOG",
-    term == "Melanoma_TypeNon-Cutaneous" ~ "Non-Cutaneous vs Cutaneous Melanoma",
+    term == "Melanoma_TypeNon-Cutaneous" ~ "Non-Cutaneous vs Cutaneous",
     term == "Smoking_StatusNever" ~ "Never Smoker vs Ever Smoker",
     term == "Prior_IOYes" ~ "Prior IO (Yes vs No)",
     TRUE ~ term
@@ -203,7 +205,7 @@ results_response |>
     ) +
     theme(text = element_text(size = 14))
 
-ggsave("../../figures/Fig6A-Forestplot-irae.svg", height = 2.5, width = 4)
+ggsave("../../figures/Fig6A-Forestplot-response.svg", height = 2.5, width = 4)
 ```
 
 ### Univariate Clinical Predictors of irAE
@@ -223,7 +225,7 @@ results_irae |>
     ) +
     theme(text = element_text(size = 14))
 
-ggsave("../../figures/Fig6B-Forestplot-response.svg", height = 2.5, width = 4)
+ggsave("../../figures/Fig6B-Forestplot-irae.svg", height = 2.5, width = 4)
 ```
 
 ### Boxplots with upset plot style x-axis made in illustrator
@@ -286,12 +288,14 @@ Model_Comparison_Plot <- df %>%
     axis.line = element_line(color = 'black', linewidth = 0.5),
     panel.background = element_rect(fill = 'white')
   ) +
-  scale_y_continuous(limits = c(0, 1.1), breaks = seq(0, 1, 0.1)) +
+  scale_y_continuous(
+  limits = c(0.2, 1.0),
+  breaks = seq(0.2, 1.0, 0.1)) +
   # annotate mean values below boxes
   annotate(
     geom = "text",
     x = seq_along(mean_order),
-    y = 0.03,
+    y = 0.22,
     label = round(Means$mean_aucpr, 3),
     color = "black",
     size = 4
@@ -304,15 +308,15 @@ Model_Comparison_Plot <- df %>%
 ```{r}
 aucpr_box(pr_response_df)
 
-ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 5, width = 5)
-ggsave("../../figures/Fig6C-AUCPR-boxplots-response.png", height = 5, width = 5)
+ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 4, width = 5)
+ggsave("../../figures/Fig6C-AUCPR-boxplots-response.png", height = 4, width = 5)
 ```
 
 ```{r}
 aucpr_box(pr_irae_df)
 
-ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 5, width = 5)
-ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.png", height = 5, width = 5)
+ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 4, width = 5)
+ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.png", height = 4, width = 5)
 ```
 
 Figure E and F - ROC curves for mitox 
@@ -362,7 +366,7 @@ roc_response_df %>%
   ylab("Sensitivity") +
   annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.614",
            color="darkgreen", size=4) +
-  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.562",
+  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.521",
            color="cornflowerblue", size=4) +
   theme(legend.position = "none")
 
@@ -385,7 +389,7 @@ roc_irae_df %>%
   ylab("Sensitivity") +
   annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.773",
            color="darkgreen", size=4) +
-  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.489",
+  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.510",
            color="cornflowerblue", size=4) +
   theme(legend.position = "none")
 
@@ -633,8 +637,8 @@ plot.in %>%
   labs(x = "", y = "Variable Importance") +
   theme_minimal() 
 
-ggsave("../../figures/Fig6J-varImp-response.svg", height = 4, width = 8)
-ggsave("../../figures/Fig6J-varImp-response.png", height = 4, width = 8)
+ggsave("../../figures/Fig6J-varImp-response.svg", height = 3.5, width = 8)
+ggsave("../../figures/Fig6J-varImp-response.png", height = 3.5, width = 8)
 ```
 
 ```{r}
@@ -656,6 +660,6 @@ plot.in %>%
   labs(x = "", y = "Variable Importance") +
   theme_minimal()
 
-ggsave("../../figures/Fig6K-varImp-irae.svg", height = 4, width = 7)
-ggsave("../../figures/Fig6K-varImp-irae.png", height = 4, width = 7)
+ggsave("../../figures/Fig6K-varImp-irae.svg", height = 3.5, width = 7)
+ggsave("../../figures/Fig6K-varImp-irae.png", height = 3.5, width = 7)
 ```
