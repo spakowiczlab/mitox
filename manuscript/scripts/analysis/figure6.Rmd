@@ -38,6 +38,8 @@ load("../../data/ANCOM-BC2_irae_baseline.RData")
 
 # core score
 load("../../data/core-score-min3.rds")
+load("../../data/randomforest-irae-corescore.rda")
+load("../../data/randomforest-response-corescore.rda")
 ```
 
 # Prepare data
@@ -231,7 +233,7 @@ ggsave("../../figures/Fig6B-Forestplot-irae.svg", height = 2.5, width = 4)
 ### Boxplots with upset plot style x-axis made in illustrator
 ```{r}
 # function to plot AUCPR boxplots 
-aucpr_box <- function(input){
+aucpr_box <- function(input, color.set){
   df <- input %>%
   select(Predictors, seed, AUCPR) %>%
   distinct()
@@ -279,7 +281,7 @@ Model_Comparison_Plot <- df %>%
   #   label.y = seq(0.95, by = 0.1, length.out = length(sig_list))
   # ) +
   labs(y = "AUCPR", x = NULL, title = NULL) +
-  scale_color_manual(values = c("firebrick4", "darkgoldenrod2", "cornflowerblue","salmon2","deeppink4", "cyan4","darkgreen")) +
+  scale_color_manual(values = color.set) +
   scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
   theme(
     axis.title = element_text(size = 16),
@@ -306,20 +308,21 @@ Model_Comparison_Plot <- df %>%
 ```
 
 ```{r}
-aucpr_box(pr_response_df)
+aucpr_box(pr_response_df, color.set = c("firebrick4", "darkgoldenrod2", "cornflowerblue","salmon2","deeppink4", "cyan4","darkgreen"))
 
 ggsave("../../figures/Fig6C-AUCPR-boxplots-response.svg", height = 4, width = 5)
 ggsave("../../figures/Fig6C-AUCPR-boxplots-response.png", height = 4, width = 5)
 ```
 
 ```{r}
-aucpr_box(pr_irae_df)
+aucpr_box(pr_irae_df, color.set = c("firebrick4", "darkgoldenrod2", "cornflowerblue","salmon2","deeppink4", "cyan4","darkgreen"))
 
 ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.svg", height = 4, width = 5)
 ggsave("../../figures/Fig6D-AUCPR-boxplots-irae.png", height = 4, width = 5)
 ```
 
-Figure E and F - ROC curves for mitox 
+# Examine AUPRC and AUROC
+
 ```{r}
 pr_irae_df %>%
   select(AUCPR, Predictors, seed) %>%
@@ -350,6 +353,137 @@ roc_response_df %>%
   arrange(avg.auc)
 ```
 
+# Figure 6E - Validation performance 
+
+## Examine the validation predictive performance
+
+### Response 
+
+```{r}
+val.r.aucpr %>%
+  select(seed, AUCPR, Group) %>% 
+  distinct() %>% 
+  group_by(Group) %>% 
+  summarize(avg.aucpr = mean(AUCPR)) %>%
+  arrange(avg.aucpr)
+
+val.r.aucroc %>%
+  select(seed, AUCROC, Group) %>% 
+  distinct() %>% 
+  group_by(Group) %>% 
+  summarize(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
+```
+
+### irAE
+```{r}
+val.i.aucpr %>%
+  select(seed, AUCPR, Group) %>% 
+  distinct() %>% 
+  group_by(Group) %>% 
+  summarize(avg.aucpr = mean(AUCPR)) %>%
+  arrange(avg.aucpr)
+
+val.i.aucroc %>%
+  select(seed, AUCROC, Group) %>% 
+  distinct() %>% 
+  group_by(Group) %>% 
+  summarize(avg.auc = mean(AUCROC)) %>%
+  arrange(avg.auc)
+```
+
+```{r}
+val.r.aucroc %>%
+  #filter(Group != "Validation - All") %>%
+  mutate(Group = gsub("Validation - ", "", Group)) %>%
+  ggplot(aes(FalsePositive, TruePositive,
+             colour = Group)) +
+  geom_line(aes(group =  interaction(seed, Group)),
+            alpha = 0.1, 
+            linewidth = 0.4) +
+  geom_smooth(se = FALSE, 
+              linewidth = 1.2) +
+  scale_color_manual(values = c("tomato2","#E1AF00", "orange3", "#5A7247", "#3B9AB2","brown4")) + 
+  theme_minimal() +
+  xlab("1 - Specificity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.8, y=0.25, label="AUC = 0.741, AUPRC = 0.740",
+           color="brown4", size=4) +
+      annotate(geom="text", x=0.8, y=0.20, label="AUC = 0.642, AUPRC = 0.737",
+           color="#E1AF00", size=4) +
+      annotate(geom="text", x=0.8, y=0.15, label="AUC = 0.589, AUPRC = 0.636",
+           color="tomato2", size=4) +
+    annotate(geom="text", x=0.8, y=0.10, label="AUC = 0.530, AUPRC = 0.725",
+           color="#3B9AB2", size=4) +
+    annotate(geom="text", x=0.8, y=0.05, label="AUC = 0.508, AUPRC = 0.501",
+           color="#5A7247", size=4) +
+    annotate(geom="text", x=0.8, y=0.00, label="AUC = 0.487, AUPRC = 0.574",
+           color="orange3", size=4) +
+  theme(legend.position = "top")
+
+ggsave("../../figures/Fig6I-combined.svg", height = 4, width = 5.5)
+ggsave("../../figures/Fig6I-combined.png", height = 4, width = 5.5)
+```
+# Fig F - Predictive performance of the core score on a subset of samples 
+
+```{r}
+aucpr_box(pr_irae_df.cor, color.set = c("cornflowerblue", "#8C9D57FF", "#660000", "cyan4","#FCBA65FF", "#be5103","darkgreen"))
+ggsave("../../figures/corescore-AUCPR-boxplots-irae.svg", height = 4, width = 5)
+```
+
+
+# Fig G - Variable Importance Plots for validation - Response
+
+```{r}
+plot.in <- val.r.vars %>%
+  group_by(Factors) %>%
+  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
+  arrange(desc(meanGini)) %>%
+  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
+  left_join(res.recist) %>%
+  mutate(`Effect Direction` = ifelse(lfc_ResponseResponder < 0, "Depleted", "Enriched"),
+         taxon = gsub("_", " ", taxon))
+
+plot.in %>%
+  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini, 
+             fill = `Effect Direction`)) +
+  scale_fill_manual(values = c("#91BFDB", "#c04657")) + 
+  geom_col() +
+  coord_flip() +
+  labs(x = "", y = "Variable Importance") +
+  theme_minimal() 
+
+ggsave("../../figures/Fig6J-varImp-response.svg", height = 3.25, width = 8)
+ggsave("../../figures/Fig6J-varImp-response.png", height = 3, width = 8)
+```
+
+# Fig H - Variable Importance Plots for validation - irAE
+
+```{r}
+plot.in <- val.i.vars %>%
+  group_by(Factors) %>%
+  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
+  arrange(desc(meanGini)) %>%
+  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
+  left_join(res.irae) %>%
+  mutate(`Effect Direction` = ifelse(lfc_irAEYes < 0, "Depleted", "Enriched"),
+         taxon = gsub("_", " ", taxon))
+
+plot.in %>%
+  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini, 
+             fill = `Effect Direction`)) +
+  scale_fill_manual(values = c("#91BFDB", "#c04657")) + 
+  geom_col() +
+  coord_flip() +
+  labs(x = "", y = "Variable Importance") +
+  theme_minimal()
+
+ggsave("../../figures/Fig6K-varImp-irae.svg", height = 3.25, width = 7)
+ggsave("../../figures/Fig6K-varImp-irae.png", height = 3, width = 7)
+```
+
+
+### supplemental? 
 
 ```{r}
 roc_response_df %>% 
@@ -397,30 +531,6 @@ ggsave("../../figures/Fig6F-ROC-irae.svg", height = 3, width = 3)
 ggsave("../../figures/Fig6F-ROC-irae.png", height = 3, width = 3)
 ```
 
-Alternative is to show the PR-curves as represented by the AUCPR, but the plots 
-don't look that good
-
-
-# Figure G and H - ROC validation 
-
-## Response 
-
-```{r}
-val.r.aucpr %>%
-  select(seed, AUCPR, Group) %>% 
-  distinct() %>% 
-  group_by(Group) %>% 
-  summarize(avg.aucpr = mean(AUCPR)) %>%
-  arrange(avg.aucpr)
-
-val.r.aucroc %>%
-  select(seed, AUCROC, Group) %>% 
-  distinct() %>% 
-  group_by(Group) %>% 
-  summarize(avg.auc = mean(AUCROC)) %>%
-  arrange(avg.auc)
-```
-
 ```{r}
 val.r.aucroc %>%
   filter(Group == "Validation - All") %>%
@@ -443,22 +553,6 @@ ggsave("../../figures/Fig6G-valROC-response.svg", height = 3, width = 3)
 ggsave("../../figures/Fig6G-valROC-response.png", height = 3, width = 3)
 ```
 
-## irAE
-```{r}
-val.i.aucpr %>%
-  select(seed, AUCPR, Group) %>% 
-  distinct() %>% 
-  group_by(Group) %>% 
-  summarize(avg.aucpr = mean(AUCPR)) %>%
-  arrange(avg.aucpr)
-
-val.i.aucroc %>%
-  select(seed, AUCROC, Group) %>% 
-  distinct() %>% 
-  group_by(Group) %>% 
-  summarize(avg.auc = mean(AUCROC)) %>%
-  arrange(avg.auc)
-```
 
 ```{r}
 val.i.aucroc %>%
@@ -481,6 +575,14 @@ ggsave("../../figures/Fig6H-valROC-irae.svg", height = 3, width = 3)
 ggsave("../../figures/Fig6H-valROC-irae.png", height = 3, width = 3)
 ```
 
+```{r}
+aucpr_box(pr_response_df.cor, color.set = c("cornflowerblue", "#8C9D57FF", "#660000", "cyan4","#FCBA65FF", "#be5103","darkgreen"))
+ggsave("../../figures/corescore-AUCPR-boxplots-response.svg", height = 5, width = 5)
+```
+
+
+
+# Not used
 # Fig I - validation by study
 
 Group         avg.aucpr
@@ -578,88 +680,4 @@ val.r.aucroc %>%
 
 ggsave("../../figures/Fig6I-valROC-by-study.svg", height = 4, width = 5.5)
 ggsave("../../figures/Fig6I-valROC-by-study.png", height = 4, width = 5.5)
-```
-
-
-# Combined version G and I
-```{r}
-val.r.aucroc %>%
-  #filter(Group != "Validation - All") %>%
-  mutate(Group = gsub("Validation - ", "", Group)) %>%
-  ggplot(aes(FalsePositive, TruePositive,
-             colour = Group)) +
-  geom_line(aes(group =  interaction(seed, Group)),
-            alpha = 0.1, 
-            linewidth = 0.4) +
-  geom_smooth(se = FALSE, 
-              linewidth = 1.2) +
-  scale_color_manual(values = c("tomato2","#E1AF00", "orange3", "#5A7247", "#3B9AB2","brown4")) + 
-  theme_minimal() +
-  xlab("1 - Specificity") +
-  ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.25, label="AUC = 0.741, AUPRC = 0.740",
-           color="brown4", size=4) +
-      annotate(geom="text", x=0.8, y=0.20, label="AUC = 0.642, AUPRC = 0.737",
-           color="#E1AF00", size=4) +
-      annotate(geom="text", x=0.8, y=0.15, label="AUC = 0.589, AUPRC = 0.636",
-           color="tomato2", size=4) +
-    annotate(geom="text", x=0.8, y=0.10, label="AUC = 0.530, AUPRC = 0.725",
-           color="#3B9AB2", size=4) +
-    annotate(geom="text", x=0.8, y=0.05, label="AUC = 0.508, AUPRC = 0.501",
-           color="#5A7247", size=4) +
-    annotate(geom="text", x=0.8, y=0.00, label="AUC = 0.487, AUPRC = 0.574",
-           color="orange3", size=4) +
-  theme(legend.position = "top")
-
-ggsave("../../figures/Fig6I-combined.svg", height = 4, width = 5.5)
-ggsave("../../figures/Fig6I-combined.png", height = 4, width = 5.5)
-```
-
-
-# Fig J - Variable Importance Plots for validation 
-
-```{r}
-plot.in <- val.r.vars %>%
-  group_by(Factors) %>%
-  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
-  arrange(desc(meanGini)) %>%
-  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
-  left_join(res.recist) %>%
-  mutate(`Effect Direction` = ifelse(lfc_ResponseResponder < 0, "Depleted", "Enriched"),
-         taxon = gsub("_", " ", taxon))
-
-plot.in %>%
-  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini, 
-             fill = `Effect Direction`)) +
-  scale_fill_manual(values = c("#91BFDB", "#FC8D59")) + 
-  geom_col() +
-  coord_flip() +
-  labs(x = "", y = "Variable Importance") +
-  theme_minimal() 
-
-ggsave("../../figures/Fig6J-varImp-response.svg", height = 3.5, width = 8)
-ggsave("../../figures/Fig6J-varImp-response.png", height = 3.5, width = 8)
-```
-
-```{r}
-plot.in <- val.i.vars %>%
-  group_by(Factors) %>%
-  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
-  arrange(desc(meanGini)) %>%
-  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
-  left_join(res.irae) %>%
-  mutate(`Effect Direction` = ifelse(lfc_irAEYes < 0, "Depleted", "Enriched"),
-         taxon = gsub("_", " ", taxon))
-
-plot.in %>%
-  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini, 
-             fill = `Effect Direction`)) +
-  scale_fill_manual(values = c("#91BFDB", "#FC8D59")) + 
-  geom_col() +
-  coord_flip() +
-  labs(x = "", y = "Variable Importance") +
-  theme_minimal()
-
-ggsave("../../figures/Fig6K-varImp-irae.svg", height = 3.5, width = 7)
-ggsave("../../figures/Fig6K-varImp-irae.png", height = 3.5, width = 7)
 ```

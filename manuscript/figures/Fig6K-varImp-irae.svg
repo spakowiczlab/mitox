@@ -1,88 +1,110 @@
-<?xml version='1.0' encoding='UTF-8' ?>
-<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='504.00pt' height='288.00pt' viewBox='0 0 504.00 288.00'>
-<g class='svglite'>
-<defs>
-  <style type='text/css'><![CDATA[
-    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
-      fill: none;
-      stroke: #000000;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-miterlimit: 10.00;
-    }
-    .svglite text {
-      white-space: pre;
-    }
-    .svglite g.glyphgroup path {
-      fill: inherit;
-      stroke: none;
-    }
-  ]]></style>
-</defs>
-<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
-<defs>
-  <clipPath id='cpMC4wMHw1MDQuMDB8MC4wMHwyODguMDA='>
-    <rect x='0.00' y='0.00' width='504.00' height='288.00' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwyODguMDA=)'>
-<rect x='0.00' y='0.00' width='504.00' height='288.00' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-</g>
-<defs>
-  <clipPath id='cpMTE1Ljc1fDQwMi4xOHw1LjQ4fDI1Ni41MA=='>
-    <rect x='115.75' y='5.48' width='286.43' height='251.02' />
-  </clipPath>
-</defs>
-<g clip-path='url(#cpMTE1Ljc1fDQwMi4xOHw1LjQ4fDI1Ni41MA==)'>
-<polyline points='160.87,256.50 160.87,5.48 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='225.06,256.50 225.06,5.48 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='289.26,256.50 289.26,5.48 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='353.45,256.50 353.45,5.48 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,240.13 402.18,240.13 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,212.85 402.18,212.85 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,185.56 402.18,185.56 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,158.28 402.18,158.28 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,130.99 402.18,130.99 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,103.71 402.18,103.71 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,76.42 402.18,76.42 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,49.14 402.18,49.14 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='115.75,21.85 402.18,21.85 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='128.77,256.50 128.77,5.48 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='192.97,256.50 192.97,5.48 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='257.16,256.50 257.16,5.48 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='321.36,256.50 321.36,5.48 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<polyline points='385.55,256.50 385.55,5.48 ' style='stroke-width: 1.07; stroke: #EBEBEB; stroke-linecap: butt;' />
-<rect x='128.77' y='9.57' width='260.39' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='36.86' width='176.09' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='64.14' width='148.91' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='91.43' width='116.44' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='118.71' width='99.16' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='146.00' width='95.65' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #FC8D59;' />
-<rect x='128.77' y='173.28' width='89.24' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='200.57' width='88.34' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='128.77' y='227.85' width='68.48' height='24.56' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-</g>
-<g clip-path='url(#cpMC4wMHw1MDQuMDB8MC4wMHwyODguMDA=)'>
-<text x='110.82' y='243.28' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='89.50px' lengthAdjust='spacingAndGlyphs'>GGB33512 SGB15201</text>
-<text x='110.82' y='216.00' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='47.92px' lengthAdjust='spacingAndGlyphs'>Longicatena</text>
-<text x='110.82' y='188.71' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='92.41px' lengthAdjust='spacingAndGlyphs'>Longicatena caecimuris</text>
-<text x='110.82' y='161.43' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='39.12px' lengthAdjust='spacingAndGlyphs'>GGB9708</text>
-<text x='110.82' y='134.14' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='91.91px' lengthAdjust='spacingAndGlyphs'>Anaerotignum faecicola</text>
-<text x='110.82' y='106.86' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='62.59px' lengthAdjust='spacingAndGlyphs'>Barnesiellaceae</text>
-<text x='110.82' y='79.57' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='45.48px' lengthAdjust='spacingAndGlyphs'>Escherichia</text>
-<text x='110.82' y='52.29' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='54.75px' lengthAdjust='spacingAndGlyphs'>Anaerotignum</text>
-<text x='110.82' y='25.00' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='80.17px' lengthAdjust='spacingAndGlyphs'>Pseudoflavonifractor</text>
-<text x='128.77' y='267.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>0</text>
-<text x='192.97' y='267.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>1</text>
-<text x='257.16' y='267.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>2</text>
-<text x='321.36' y='267.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>3</text>
-<text x='385.55' y='267.74' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Arial";' textLength='4.89px' lengthAdjust='spacingAndGlyphs'>4</text>
-<text x='258.97' y='280.20' text-anchor='middle' style='font-size: 11.00px; font-family: "Arial";' textLength='97.69px' lengthAdjust='spacingAndGlyphs'>Variable Importance</text>
-<text x='418.62' y='114.91' style='font-size: 11.00px; font-family: "Arial";' textLength='74.42px' lengthAdjust='spacingAndGlyphs'>Effect Direction</text>
-<rect x='419.33' y='122.26' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #91BFDB;' />
-<rect x='419.33' y='139.54' width='15.86' height='15.86' style='stroke-width: 1.07; stroke: none; stroke-linecap: butt; stroke-linejoin: miter; fill: #FC8D59;' />
-<text x='441.38' y='133.34' style='font-size: 8.80px; font-family: "Arial";' textLength='35.20px' lengthAdjust='spacingAndGlyphs'>Depleted</text>
-<text x='441.38' y='150.62' style='font-size: 8.80px; font-family: "Arial";' textLength='34.72px' lengthAdjust='spacingAndGlyphs'>Enriched</text>
-</g>
-</g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 504 234">
+  <!-- Generator: Adobe Illustrator 29.0.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 186)  -->
+  <defs>
+    <style>
+      .st0, .st1, .st2 {
+        fill: none;
+      }
+
+      .st3 {
+        font-family: Arial-ItalicMT, Arial;
+        font-style: italic;
+      }
+
+      .st3, .st4 {
+        fill: #4d4d4d;
+        font-size: 8.8px;
+        isolation: isolate;
+      }
+
+      .st5 {
+        fill: #91bfdb;
+      }
+
+      .st6 {
+        fill: #c04657;
+      }
+
+      .st7 {
+        clip-path: url(#clippath-1);
+      }
+
+      .st4 {
+        font-family: ArialMT, Arial;
+      }
+
+      .st1 {
+        stroke-width: 1.1px;
+      }
+
+      .st1, .st2 {
+        stroke: #ebebeb;
+        stroke-linejoin: round;
+      }
+
+      .st8 {
+        clip-path: url(#clippath);
+      }
+
+      .st2 {
+        stroke-width: .5px;
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="st0" x="115.8" y="5.5" width="286.4" height="197"/>
+    </clipPath>
+    <clipPath id="clippath-1">
+      <rect class="st0" width="504" height="234"/>
+    </clipPath>
+  </defs>
+  <g class="st8">
+    <g>
+      <line class="st2" x1="160.9" y1="202.5" x2="160.9" y2="5.5"/>
+      <line class="st2" x1="225.1" y1="202.5" x2="225.1" y2="5.5"/>
+      <line class="st2" x1="289.3" y1="202.5" x2="289.3" y2="5.5"/>
+      <line class="st2" x1="353.5" y1="202.5" x2="353.5" y2="5.5"/>
+      <line class="st1" x1="115.8" y1="189.6" x2="402.2" y2="189.6"/>
+      <line class="st1" x1="115.8" y1="168.2" x2="402.2" y2="168.2"/>
+      <line class="st1" x1="115.8" y1="146.8" x2="402.2" y2="146.8"/>
+      <line class="st1" x1="115.8" y1="125.4" x2="402.2" y2="125.4"/>
+      <line class="st1" x1="115.8" y1="104" x2="402.2" y2="104"/>
+      <line class="st1" x1="115.8" y1="82.6" x2="402.2" y2="82.6"/>
+      <line class="st1" x1="115.8" y1="61.2" x2="402.2" y2="61.2"/>
+      <line class="st1" x1="115.8" y1="39.7" x2="402.2" y2="39.7"/>
+      <line class="st1" x1="115.8" y1="18.3" x2="402.2" y2="18.3"/>
+      <line class="st1" x1="128.8" y1="202.5" x2="128.8" y2="5.5"/>
+      <line class="st1" x1="193" y1="202.5" x2="193" y2="5.5"/>
+      <line class="st1" x1="257.2" y1="202.5" x2="257.2" y2="5.5"/>
+      <line class="st1" x1="321.4" y1="202.5" x2="321.4" y2="5.5"/>
+      <line class="st1" x1="385.5" y1="202.5" x2="385.5" y2="5.5"/>
+      <rect class="st5" x="128.8" y="8.7" width="260.4" height="19.3"/>
+      <rect class="st5" x="128.8" y="30.1" width="176.1" height="19.3"/>
+      <rect class="st5" x="128.8" y="51.5" width="148.9" height="19.3"/>
+      <rect class="st5" x="128.8" y="72.9" width="116.4" height="19.3"/>
+      <rect class="st5" x="128.8" y="94.3" width="99.2" height="19.3"/>
+      <rect class="st6" x="128.8" y="115.8" width="95.7" height="19.3"/>
+      <rect class="st5" x="128.8" y="137.2" width="89.2" height="19.3"/>
+      <rect class="st5" x="128.8" y="158.6" width="88.3" height="19.3"/>
+      <rect class="st5" x="128.8" y="180" width="68.5" height="19.3"/>
+    </g>
+  </g>
+  <g class="st7">
+    <g>
+      <text class="st3" transform="translate(21.3 192.8)"><tspan x="0" y="0">GGB33512 SGB15201</tspan></text>
+      <text class="st3" transform="translate(62.9 171.4)"><tspan x="0" y="0">Longicatena</tspan></text>
+      <text class="st3" transform="translate(18.4 150)"><tspan x="0" y="0">Longicatena caecimuris</tspan></text>
+      <text class="st3" transform="translate(71.7 128.6)"><tspan x="0" y="0">GGB9708</tspan></text>
+      <text class="st3" transform="translate(18.9 107.1)"><tspan x="0" y="0">Anaerotignum faecicola</tspan></text>
+      <text class="st3" transform="translate(48.2 85.7)"><tspan x="0" y="0">Barnesiellaceae</tspan></text>
+      <text class="st3" transform="translate(65.3 64.3)"><tspan x="0" y="0">Escherichia</tspan></text>
+      <text class="st3" transform="translate(56 42.9)"><tspan x="0" y="0">Anaerotignum</tspan></text>
+      <text class="st3" transform="translate(30.6 21.5)"><tspan x="0" y="0">Pseudoflavonifractor</tspan></text>
+      <text class="st4" transform="translate(126.3 213.7)"><tspan x="0" y="0">0</tspan></text>
+      <text class="st4" transform="translate(190.5 213.7)"><tspan x="0" y="0">1</tspan></text>
+      <text class="st4" transform="translate(254.7 213.7)"><tspan x="0" y="0">2</tspan></text>
+      <text class="st4" transform="translate(318.9 213.7)"><tspan x="0" y="0">3</tspan></text>
+      <text class="st4" transform="translate(383.1 213.7)"><tspan x="0" y="0">4</tspan></text>
+    </g>
+  </g>
 </svg>
