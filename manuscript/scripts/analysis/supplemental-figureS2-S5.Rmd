@@ -1,0 +1,208 @@
+---
+title: "Supplement - Predictive Modeling"
+author: "Caroline Dravillas"
+date: "2026-05-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(broom)
+library(dplyr)
+library(purrr)
+library(forcats)
+library(ggpubr)
+library(MESS)
+```
+
+# Load data 
+```{r}
+# data for forest plot
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+
+# random forest output
+load("../../data/randomforest-irae.rda")
+load("../../data/randomforest-response.rda")
+
+# validation microbes only
+load("../../data/validation-response.rda")
+load("../../data/validation-irae.rda")
+
+# ANCOM results to examine direction of effect
+load("../../data/ANCOM-BC2_response_baseline.Rdata")
+load("../../data/ANCOM-BC2_irae_baseline.RData") 
+
+# core score
+load("../../data/core-score-min3.rds")
+load("../../data/randomforest-irae-corescore.rda")
+load("../../data/randomforest-response-corescore.rda")
+```
+
+# Prepare data
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+# drops one person who does not have a baseline sample
+demo.filt <- demographics %>%
+  filter(`Patient Id` %in% baseline$`Patient Id`) %>%
+  mutate(Response = factor(Response, levels = c("Non-Responder", "Responder")), 
+         irAE = factor(irAE,     levels = c("No", "Yes"))) %>%
+    rename(
+      BMI = `BMI.(kg/m2)`,
+      Absolute_lymphocytes = `Absolute.lymphocytes.(K/µL)`,
+      LDH = `LDH.(U/L)`,
+      Treatment.cat = Treatment, 
+      Treatment = Treatment.bin,
+      Prior_IO = `prior IO`,
+      TMB = `TMB (Muts/mb)`) %>%
+    mutate(
+      # Collapse to handle separation 
+      Melanoma_Type = ifelse(Mel.type == "Cutaneous", "Cutaneous",
+                               ifelse(Mel.type %in% c("Acral", "Mucosal", "Uveal"), "Non-Cutaneous", NA)),
+      # collapse liver, and bone into other
+      Recurrence_Site = ifelse(Recurrence.Site.Cat %in% c("Liver", "Bone"), "Other", Recurrence.Site.Cat),
+      # collapse smoker into binary
+      Smoking_Status = ifelse(Smoker == "Never", "Never", "Ever"),
+      Charlson_Comorbidity_Index = cci_total)
+    
+```
+
+# Figure 6A - Forest plots of clinical variables 
+
+## variable sets
+```{r}
+cont_vars <- c("Age", "BMI", "Absolute_lymphocytes", "LDH", "TMB", "Charlson_Comorbidity_Index", "ECOG")
+
+cat_vars  <- c("Sex", "Treatment", "Stage", "PPI", "Antibiotics",
+               "Corticosteroids", "Smoking_Status", "Melanoma_Type", "Prior_IO",
+               "BRAF", "NRAS", "Recurrence_Site")
+
+```
+
+
+## Run univariate models 
+```{r}
+run_univariate <- function(outcome, data, cont_vars, cat_vars) {
+  
+  # continuous predictors
+  cont_results <- map_dfr(cont_vars, ~ {
+    formula <- as.formula(paste(outcome, "~", .x))
+    tidy(glm(formula, data = data, family = binomial), conf.int = TRUE, exponentiate = TRUE) %>%
+      filter(term != "(Intercept)") %>%
+      mutate(Variable = .x)
+  })
+  
+  # categorical predictors (each level vs reference)
+  cat_results <- map_dfr(cat_vars, ~ {
+    formula <- as.formula(paste(outcome, "~", .x))
+    tidy(glm(formula, data = data, family = binomial), conf.int = TRUE, exponentiate = TRUE) %>%
+      filter(term != "(Intercept)") %>%
+      mutate(Variable = .x)
+  })
+  
+  bind_rows(cont_results, cat_results) %>%
+    rename(OR = estimate, CI_low = conf.low, CI_high = conf.high)
+}
+
+results_response <- run_univariate("Response", demo.filt, cont_vars, cat_vars)
+results_irae     <- run_univariate("irAE",     demo.filt, cont_vars, cat_vars)
+```
+
+## Create Labels
+```{r}
+results_response <- results_response %>%
+  mutate(Label = case_when(
+    term == "Age" ~ "Age (years)",
+    term == "BMI" ~ "BMI (kg/m2)",
+    term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
+    term == "LDH" ~ "LDH",
+    term == "SexMale" ~ "Male vs Female",
+    term == "TreatmentAnti-PD-1" ~ "*Anti PD-1 vs Anti-CTLA-4",
+    term == "StageStage IV" ~ "Stage IV vs III",
+    term == "PPIYes" ~ "PPI (Yes vs No)",
+    term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
+    term == "CorticosteroidsYes" ~ "Corticosteroids (Yes vs No)",
+    term == "BRAF" ~ "BRAF (Yes vs No)",
+    term == "NRAS" ~ "NRAS (Yes vs No)",
+    term == "Charlson_Comorbidity_Index" ~ "Charlson Comorbidity Index",
+    term == "TMB" ~ "TMB (muts/mb)",
+    term == "ECOG" ~ "ECOG",
+    term == "Melanoma_TypeNon-Cutaneous" ~ "*Non-Cutaneous vs Cutaneous",
+    term == "Smoking_StatusNever" ~ "Never Smoker vs Ever Smoker",
+    term == "Prior_IOYes" ~ "Prior IO (Yes vs No)",
+    TRUE ~ term
+  )) %>%
+  mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
+
+results_irae <- results_irae %>%
+  mutate(Label = case_when(
+    term == "Age" ~ "Age (years)",
+    term == "BMI" ~ "BMI (kg/m2)",
+    term == "Absolute_lymphocytes" ~ "Absolute lymphocytes",
+    term == "LDH" ~ "LDH",
+    term == "SexMale" ~ "Male vs Female",
+    term == "TreatmentAnti-PD-1" ~ "*Anti PD-1 vs Anti-CTLA-4",
+    term == "StageStage IV" ~ "Stage IV vs III",
+    term == "PPIYes" ~ "PPI (Yes vs No)",
+    term == "AntibioticsYes" ~ "Antibiotics (Yes vs No)",
+    term == "CorticosteroidsYes" ~ "Corticosteroids (Yes vs No)",
+    term == "BRAF" ~ "BRAF (Yes vs No)",
+    term == "NRAS" ~ "NRAS (Yes vs No)",
+    term == "Charlson_Comorbidity_Index" ~ "Charlson Comorbidity Index",
+    term == "TMB" ~ "TMB (muts/mb)",
+    term == "ECOG" ~ "ECOG",
+    term == "Melanoma_TypeNon-Cutaneous" ~ "Non-Cutaneous vs Cutaneous",
+    term == "Smoking_StatusNever" ~ "Never Smoker vs Ever Smoker",
+    term == "Prior_IOYes" ~ "Prior IO (Yes vs No)",
+    TRUE ~ term
+  )) %>%
+  mutate(Significant = ifelse(CI_low > 1 | CI_high < 1, TRUE, FALSE))
+```
+
+
+## Plot
+
+### Univariate Clinical Predictors of Response
+```{r}
+results_response |>
+  ggplot(aes(x = OR, y = reorder(Label, OR))) +
+    geom_point(size = 3) +
+    geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
+    geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
+    theme_minimal() +
+    labs(
+      title = "Response",
+      x = "Odds Ratio (95% CI)",
+      y = NULL,
+    ) +
+    theme(text = element_text(size = 14))
+
+ggsave("../../figures/supplemental-figuresS2A.png", height = 4, width = 6)
+```
+
+### Univariate Clinical Predictors of irAE
+```{r}
+results_irae |>
+  ggplot(aes(x = OR, y = reorder(Label, OR))) +
+    geom_point(size = 3) +
+    geom_errorbarh(aes(xmin = CI_low, xmax = CI_high), height = 0.25) +
+    geom_vline(xintercept = 1, linetype = "dashed", color = "deeppink4") +
+    theme_minimal() +
+    labs(
+      title = "irAE",
+      x = "Odds Ratio (95% CI)",
+      y = NULL
+    ) +
+    theme(text = element_text(size = 14))
+
+ggsave("../../figures/supplemental-figureS2B.png", height = 4, width = 6)
+```
