@@ -531,11 +531,24 @@ i.vars
 
 intersect(r.vars, i.vars)
 ```
+# Rename so they are corescore specific
+
+```{r}
+i.vars.cor <- i.vars
+imp_irae_list.cor <- imp_irae_list
+imp_response_list.cor <- imp_response_list
+pr_irae_df.cor <- pr_irae_df
+pr_response_df.cor <- pr_response_df
+r.vars.cor <- r.vars
+roc_irae_df.cor <- roc_irae_df
+roc_response_df.cor <- roc_response_df
+```
 
 # save objects
+
 ```{r}
-save(roc_irae_df, pr_irae_df, i.vars, imp_irae_list, file = "../../data/randomforest-irae-corescore.rda")
-save(roc_response_df, pr_response_df, r.vars, imp_response_list, file = "../../data/randomforest-response-corescore.rda")
+save(roc_irae_df.cor, pr_irae_df.cor, i.vars.cor, imp_irae_list.cor, file = "../../data/randomforest-irae-corescore.rda")
+save(roc_response_df.cor, pr_response_df.cor, r.vars.cor, imp_response_list.cor, file = "../../data/randomforest-response-corescore.rda")
 ```
 
 Examine averages
