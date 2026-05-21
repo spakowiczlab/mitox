@@ -76,7 +76,7 @@ Model_Comparison_Plot <- df %>%
   #   label.y = seq(0.95, by = 0.1, length.out = length(sig_list))
   # ) +
   labs(y = "AUCPR", x = NULL, title = NULL) +
-  scale_color_manual(values = c("cornflowerblue", "#EC8FA3FF", "#855C75FF", "cyan4","#FCBA65FF", "#8C9D57FF","darkgreen")) +
+  scale_color_manual(values = c("cornflowerblue", "#8C9D57FF", "#660000", "cyan4","#FCBA65FF", "#be5103","darkgreen")) +
   scale_y_continuous(limits = c(0, max(df$AUCPR, na.rm = TRUE) + 0.1)) +
   theme(
     axis.title = element_text(size = 16),
@@ -223,37 +223,4 @@ plot_list_titled <- lapply(names(plot_list), function(nm) {
 })
 wrap_plots(plot_list_titled, ncol = 3)
 ```
-```{r}
-plot_data_list <- lapply(imp_response_list, function(val.r.vars) {
 
-  val.r.vars %>%
-    group_by(Factors) %>%
-    summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
-    arrange(desc(meanGini)) %>%
-    mutate(taxon = gsub("^[a-z]__", "", Factors)) 
-    #left_join(res.recist, by = "Factors") %>%
-    # mutate(
-    #   `Effect Direction` = ifelse(lfc_ResponseResponder < 0, "Depleted", "Enriched"),
-    #   taxon = gsub("_", " ", taxon)
-    # )
-})
-
-plot_list <- lapply(plot_data_list, function(plot.in) {
-
-  ggplot(plot.in,
-         aes(x = reorder(taxon, meanGini),
-             y = meanGini)) +
-    #scale_fill_manual(values = c("#91BFDB", "#FC8D59")) +
-    geom_col() +
-    coord_flip() +
-    labs(x = "", y = "Variable Importance") +
-    theme_minimal()
-})
-
-plot_list_titled <- lapply(names(plot_list), function(nm) {
-
-  plot_list[[nm]] +
-    ggtitle(nm)
-})
-wrap_plots(plot_list_titled, ncol = 3)
-```
