@@ -12,6 +12,8 @@ library(tidyverse)
 ```
 
 ```{r}
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
 load("../../data/ANCOM-BC2_response_baseline.RData")
 load("../../data/ANCOM-BC2_irae_baseline.RData")
 load("../../data/ANCOM-BC2_respondersig.RData")
@@ -45,5 +47,23 @@ write.csv(gmm.out %>% select(-group), row.names = F, file = "../../figures/suppl
 Table S6
 ```{r}
 write.csv(gmm.out.mic %>% select(-group), row.names = F, file = "../../figures/supplemental-table6.csv")
+```
+
+Table S7
+```{r}
+baseline <- mic.meta %>%
+  group_by(`Patient Id`) %>%
+  arrange(Days) %>%
+  slice_head(n = 1) %>%
+  ungroup() %>%
+  filter(abs(Days) <= 10)
+
+demo <- demographics %>%
+  select(-c(`MDSC #`, `Mel.type`, `prior_therapy`, `Mic.Samp`, `Recurrence Site`, `Comorbidities`), -c(40:51)) |>
+  rename(CCI = cci_total,
+         `Recurrence Site` = Recurrence.Site.Cat) |>
+  mutate(Baseline.Analysis = ifelse(`Patient Id` %in% baseline$`Patient Id`, "Yes", "No"))
+
+write.csv(demo, row.names = F, file = "../../figures/supplemental-table7.csv")
 ```
 
