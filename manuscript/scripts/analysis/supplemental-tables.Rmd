@@ -59,9 +59,10 @@ baseline <- mic.meta %>%
   filter(abs(Days) <= 10)
 
 demo <- demographics %>%
-  select(-c(`MDSC #`, `Mel.type`, `prior_therapy`, `Mic.Samp`, `Recurrence Site`, `Comorbidities`), -c(40:51)) |>
+  select(-c(`MDSC #`, `prior_therapy`, `Mic.Samp`, `Recurrence Site`, `Comorbidities`), -c(40:51)) |>
   rename(CCI = cci_total,
-         `Recurrence Site` = Recurrence.Site.Cat) |>
+         `Recurrence Site` = Recurrence.Site.Cat,
+         `Melanoma Type` = Mel.type) |>
   mutate(Baseline.Analysis = ifelse(`Patient Id` %in% baseline$`Patient Id`, "Yes", "No"))
 
 write.csv(demo, row.names = F, file = "../../figures/supplemental-table7.csv")
