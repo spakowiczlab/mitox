@@ -269,3 +269,67 @@ roc_irae_df %>%
 ggsave("../../figures/supplemental-figureS4.svg", height = 3, width = 3)
 ggsave("../../figures/supplemental-figureS4.png", height = 3, width = 3)
 ```
+
+
+
+## Lets look at the variable importance when predicting with core score
+
+```{r}
+# Core score is number 2
+imp_irae_list.cor[["biome_core"]] %>%
+  group_by(Factors) %>%
+  summarise(meanGini = mean(MeanDecreaseGini, na.rm = TRUE)) %>%
+  arrange(desc(meanGini)) %>%
+  mutate(taxon = gsub("^[a-z]__", "", Factors)) %>%
+  ggplot(aes(x = reorder(taxon, meanGini), y = meanGini)) +
+  geom_col() +
+  coord_flip() +
+  labs(x = "", y = "Variable Importance") +
+  theme_minimal()
+
+ggsave("../../figures/supplemental-figureS5.png", height = 4, width = 6)
+```
+
+# Supplmental Figure S6
+
+```{r}
+val.r.aucroc %>%
+  filter(Group == "Validation - All") %>%
+  ggplot(aes(FalsePositive, TruePositive)) +
+  geom_line(aes(group = seed),
+            alpha = 0.1, 
+            linewidth = 0.4,
+            color = "honeydew4") +
+  geom_smooth(se = FALSE, 
+              linewidth = 1.2,
+              color = "darkgreen") +
+  theme_minimal() +
+  xlab("1 - Specificity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.589",
+           color="darkgreen", size=4) +
+  theme(legend.position = "none")
+
+ggsave("../../figures/supplemental-figureS6.png", height = 3, width = 3)
+```
+
+
+```{r}
+val.i.aucroc %>%
+  ggplot(aes(FalsePositive, TruePositive)) +
+  geom_line(aes(group = seed),
+            alpha = 0.1, 
+            linewidth = 0.4,
+            color = "honeydew4") +
+  geom_smooth(se = FALSE, 
+              linewidth = 1.2,
+              color = "#3B9AB2") +
+  theme_minimal() +
+  xlab("1 - Specificity") +
+  ylab("Sensitivity") +
+  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.544, AUCPR = 0.754",
+           color="#3B9AB2", size=4) +
+  theme(legend.position = "none")
+
+ggsave("../../figures/supplemental-figureS7.png", height = 3, width = 3)
+```

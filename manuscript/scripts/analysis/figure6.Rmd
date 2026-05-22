@@ -428,7 +428,8 @@ ggsave("../../figures/Fig6I-combined.png", height = 4, width = 5.5)
 
 ```{r}
 aucpr_box(pr_irae_df.cor, color.set = c("cornflowerblue", "#8C9D57FF", "#660000", "cyan4","#FCBA65FF", "#be5103","darkgreen"))
-ggsave("../../figures/corescore-AUCPR-boxplots-irae.svg", height = 4, width = 5)
+ggsave("../../figures/Fig6E-corescore-AUCPR-boxplots-irae.svg", height = 4, width = 5)
+ggsave("../../figures/Fig6E-corescore-AUCPR-boxplots-irae.png", height = 4, width = 5)
 ```
 
 
@@ -481,60 +482,6 @@ plot.in %>%
 ggsave("../../figures/Fig6K-varImp-irae.svg", height = 3.25, width = 7)
 ggsave("../../figures/Fig6K-varImp-irae.png", height = 3, width = 7)
 ```
-
-
-### supplemental
-
-```{r}
-val.r.aucroc %>%
-  filter(Group == "Validation - All") %>%
-  ggplot(aes(FalsePositive, TruePositive)) +
-  geom_line(aes(group = seed),
-            alpha = 0.1, 
-            linewidth = 0.4,
-            color = "honeydew4") +
-  geom_smooth(se = FALSE, 
-              linewidth = 1.2,
-              color = "darkgreen") +
-  theme_minimal() +
-  xlab("1 - Specificity") +
-  ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.589",
-           color="darkgreen", size=4) +
-  theme(legend.position = "none")
-
-ggsave("../../figures/Fig6G-valROC-response.svg", height = 3, width = 3)
-ggsave("../../figures/Fig6G-valROC-response.png", height = 3, width = 3)
-```
-
-
-```{r}
-val.i.aucroc %>%
-  ggplot(aes(FalsePositive, TruePositive)) +
-  geom_line(aes(group = seed),
-            alpha = 0.1, 
-            linewidth = 0.4,
-            color = "honeydew4") +
-  geom_smooth(se = FALSE, 
-              linewidth = 1.2,
-              color = "#3B9AB2") +
-  theme_minimal() +
-  xlab("1 - Specificity") +
-  ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.544, AUCPR = 0.754",
-           color="#3B9AB2", size=4) +
-  theme(legend.position = "none")
-
-ggsave("../../figures/Fig6H-valROC-irae.svg", height = 3, width = 3)
-ggsave("../../figures/Fig6H-valROC-irae.png", height = 3, width = 3)
-```
-
-```{r}
-aucpr_box(pr_response_df.cor, color.set = c("cornflowerblue", "#8C9D57FF", "#660000", "cyan4","#FCBA65FF", "#be5103","darkgreen"))
-ggsave("../../figures/corescore-AUCPR-boxplots-response.svg", height = 5, width = 5)
-```
-
-
 
 # Not used
 # Fig I - validation by study
