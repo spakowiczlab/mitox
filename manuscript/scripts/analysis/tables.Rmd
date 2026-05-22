@@ -33,10 +33,29 @@ baseline <- mic.meta %>%
   ungroup() %>%
   filter(abs(Days) <= 10)
 
+# drops one person who does not have a baseline sample
 demo.filt <- demographics %>%
   filter(`Patient Id` %in% baseline$`Patient Id`) %>%
-  mutate(Treatment = Treatment.bin,
-         ECOG = as.factor(ECOG))
+  mutate(Response = factor(Response, levels = c("Non-Responder", "Responder")), 
+         irAE = factor(irAE,     levels = c("No", "Yes"))) %>%
+    rename(
+      BMI = `BMI.(kg/m2)`,
+      Absolute_lymphocytes = `Absolute.lymphocytes.(K/µL)`,
+      LDH = `LDH.(U/L)`,
+      Treatment.cat = Treatment, 
+      Treatment = Treatment.bin,
+      Prior_IO = `prior IO`,
+      TMB = `TMB (Muts/mb)`) %>%
+    mutate(
+      # Collapse to handle separation 
+      Melanoma_Type = ifelse(Mel.type == "Cutaneous", "Cutaneous",
+                               ifelse(Mel.type %in% c("Acral", "Mucosal", "Uveal"), "Non-Cutaneous", NA)),
+      # collapse liver, and bone into other
+      Recurrence_Site = ifelse(Recurrence.Site.Cat %in% c("Liver", "Bone"), "Other", Recurrence.Site.Cat),
+      # collapse smoker into binary
+      Smoking_Status = ifelse(Smoker == "Never", "Never", "Ever"),
+      Charlson_Comorbidity_Index = cci_total,
+      ECOG = as.factor(ECOG))
 ```
 
 
@@ -74,10 +93,11 @@ Table 1 - strat by Response
 <!-- save_html(table1, file = html_file) -->
 <!-- ``` -->
 
+ corticosteroid use,
 
 ```{r}
 tab1 <- CreateTableOne(
-  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "irAE", "Mel.type", "ECOG", "prior IO",  "LDH.(U/L)", "cci_total"),  # Variables
+  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "Melanoma_Type", "BMI", "ECOG", "Prior_IO",  "LDH", "cci_total", "Smoking_Status", "TMB", "Recurrence_Site"),  # Variables
   strata = "Response",  # Stratification variable
   data = demo.filt,
   test = TRUE,  # Enables default p-value calculation
@@ -105,7 +125,7 @@ Table 2 - strat by irAE
 
 ```{r}
 tab2 <- CreateTableOne(
-  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "Mel.type", "ECOG", "prior IO", "cci_total", "LDH.(U/L)", "Response"),  # Variables
+  vars = c("Age", "Sex", "Race", "Treatment", "Stage", "Melanoma_Type", "BMI", "ECOG", "Prior_IO",  "LDH", "cci_total", "Smoking_Status", "TMB", "Recurrence_Site"),  # Variables
   strata = "irAE",  # Stratification variable
   data = demo.filt,
   test = TRUE,  # Enables default p-value calculation
