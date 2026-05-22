@@ -483,53 +483,7 @@ ggsave("../../figures/Fig6K-varImp-irae.png", height = 3, width = 7)
 ```
 
 
-### supplemental? 
-
-```{r}
-roc_response_df %>% 
-  filter(Predictors %in% c("Microbiome", "Clinical")) %>%
-  ggplot(aes(FalsePositive, TruePositive,
-             colour = Predictors)) +
-  geom_line(aes(group = interaction(seed, Predictors)),
-            alpha = 0.1, linewidth = 0.4) +
-  geom_smooth(aes(group = Predictors),
-              se = FALSE, linewidth = 1.2) +
-  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
-  theme_minimal() +
-  xlab("1 - Specificity") +
-  ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.614",
-           color="darkgreen", size=4) +
-  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.521",
-           color="cornflowerblue", size=4) +
-  theme(legend.position = "none")
-
-ggsave("../../figures/Fig6E-ROC-response.svg", height = 3, width = 3)
-ggsave("../../figures/Fig6E-ROC-response.png", height = 3, width = 3)
-```
-
-```{r}
-roc_irae_df %>% 
-  filter(Predictors %in% c("Microbiome", "Clinical")) %>%
-  ggplot(aes(FalsePositive, TruePositive,
-             colour = Predictors)) +
-  geom_line(aes(group = interaction(seed, Predictors)),
-            alpha = 0.1, linewidth = 0.4) +
-  geom_smooth(aes(group = Predictors),
-              se = FALSE, linewidth = 1.2) +
-  scale_color_manual(values = c("cornflowerblue", "darkgreen")) +
-  theme_minimal() +
-  xlab("1 - Specificity") +
-  ylab("Sensitivity") +
-  annotate(geom="text", x=0.8, y=0.26, label="AUC = 0.773",
-           color="darkgreen", size=4) +
-  annotate(geom="text", x=0.8, y=0.16, label="AUC = 0.510",
-           color="cornflowerblue", size=4) +
-  theme(legend.position = "none")
-
-ggsave("../../figures/Fig6F-ROC-irae.svg", height = 3, width = 3)
-ggsave("../../figures/Fig6F-ROC-irae.png", height = 3, width = 3)
-```
+### supplemental
 
 ```{r}
 val.r.aucroc %>%
