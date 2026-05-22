@@ -70,7 +70,7 @@ write.csv(demo, row.names = F, file = "../../figures/supplemental-table7.csv")
 Table S8
 ```{r}
 meta <- mic.meta %>%
-  select(sample_id)
+  select(-sample_id)
 
 write.csv(meta, row.names = F, file = "../../figures/supplemental-table8.csv")
 ```
