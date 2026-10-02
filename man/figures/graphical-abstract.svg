@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Graphical abstract: longitudinal microbiome stability and a core score predict irAEs">
+  <title>Longitudinal microbiome stability and a core score predict irAEs</title>
+  <rect width="1600" height="900" fill="#F7F4EC"/>
+
+  <text x="800" y="58" text-anchor="middle" fill="#154555" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="28" font-weight="700">Longitudinal microbiome stability and a core score predict irAEs</text>
+  <text x="800" y="90" text-anchor="middle" fill="#3B9AB2" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="17">Metastatic melanoma treated with ICI | NCT05102773</text>
+
+  <rect x="40" y="118" width="480" height="638" rx="26" fill="#FFFFFF" stroke="#D9E3E6" stroke-width="2"/>
+  <rect x="560" y="118" width="480" height="638" rx="26" fill="#FFFFFF" stroke="#D9E3E6" stroke-width="2"/>
+  <rect x="1080" y="118" width="480" height="638" rx="26" fill="#FFFFFF" stroke="#D9E3E6" stroke-width="2"/>
+
+  <line x1="528" y1="437" x2="548" y2="437" stroke="#3B9AB2" stroke-width="5" stroke-linecap="round"/>
+  <polygon points="564,437 546,424 546,450" fill="#3B9AB2"/>
+  <line x1="1048" y1="437" x2="1068" y2="437" stroke="#3B9AB2" stroke-width="5" stroke-linecap="round"/>
+  <polygon points="1084,437 1066,424 1066,450" fill="#3B9AB2"/>
+
+  <!-- Panel 1: longitudinal, irAE-timed sampling -->
+  <text x="280" y="168" text-anchor="middle" fill="#154555" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Longitudinal sampling</text>
+
+  <g transform="translate(150 280)">
+    <circle cx="0" cy="-70" r="22" fill="#154555"/>
+    <rect x="-28" y="-42" width="56" height="100" rx="28" fill="#154555"/>
+    <rect x="-52" y="-22" width="20" height="12" rx="6" fill="#154555"/>
+    <rect x="32" y="-22" width="20" height="12" rx="6" fill="#154555"/>
+    <circle cx="52" cy="-28" r="7" fill="#E69F00"/>
+    <rect x="-20" y="54" width="15" height="62" rx="7" fill="#154555"/>
+    <rect x="5" y="54" width="15" height="62" rx="7" fill="#154555"/>
+  </g>
+  <g transform="translate(230 214)">
+    <line x1="16" y1="0" x2="16" y2="132" stroke="#154555" stroke-width="3" stroke-linecap="round"/>
+    <line x1="6" y1="0" x2="26" y2="0" stroke="#154555" stroke-width="3" stroke-linecap="round"/>
+    <rect x="4" y="28" width="24" height="38" rx="5" fill="#3B9AB2"/>
+    <text x="16" y="53" text-anchor="middle" fill="#FFFFFF" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="10" font-weight="700">ICI</text>
+  </g>
+
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+    <line x1="86" y1="470" x2="474" y2="470" stroke="#154555" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="130" cy="470" r="11" fill="#154555"/>
+    <circle cx="280" cy="470" r="16" fill="#E69F00" stroke="#154555" stroke-width="3"/>
+    <circle cx="430" cy="470" r="11" fill="#3B9AB2"/>
+    <text x="130" y="510" text-anchor="middle" fill="#154555" font-size="15" font-weight="700">Baseline</text>
+    <text x="280" y="510" text-anchor="middle" fill="#154555" font-size="15" font-weight="700">irAE event</text>
+    <text x="430" y="510" text-anchor="middle" fill="#154555" font-size="15" font-weight="700">12 weeks</text>
+    <rect x="196" y="534" width="168" height="28" rx="14" fill="#FBF3DE" stroke="#E69F00" stroke-width="1.5"/>
+    <text x="280" y="554" text-anchor="middle" fill="#154555" font-size="13" font-weight="700">irAE-timed stool</text>
+  </g>
+  <text x="280" y="700" text-anchor="middle" fill="#154555" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Serial collection, not calendar-only</text>
+  <text x="280" y="726" text-anchor="middle" fill="#5A6F75" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14">Samples keyed to toxicity events</text>
+
+  <!-- Panel 2: stability / core score -->
+  <text x="800" y="168" text-anchor="middle" fill="#154555" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Within-patient stability</text>
+  <text x="800" y="206" text-anchor="middle" fill="#5A6F75" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14">Core score = taxa in every sample / taxa in any sample</text>
+
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">
+    <text x="800" y="248" fill="#154555">Stable (no irAE)</text>
+    <g transform="translate(660 290)">
+      <rect x="0" y="0" width="70" height="110" rx="12" fill="#EEF3F4" stroke="#154555" stroke-width="1.5"/>
+      <rect x="16" y="16" width="38" height="12" rx="6" fill="#E69F00"/>
+      <rect x="16" y="36" width="38" height="12" rx="6" fill="#3B9AB2"/>
+      <rect x="16" y="56" width="38" height="12" rx="6" fill="#154555"/>
+      <circle cx="35" cy="86" r="6" fill="#CC6677"/>
+    </g>
+    <g transform="translate(765 290)">
+      <rect x="0" y="0" width="70" height="110" rx="12" fill="#EEF3F4" stroke="#154555" stroke-width="1.5"/>
+      <rect x="16" y="16" width="38" height="12" rx="6" fill="#E69F00"/>
+      <rect x="16" y="36" width="38" height="12" rx="6" fill="#3B9AB2"/>
+      <rect x="16" y="56" width="38" height="12" rx="6" fill="#154555"/>
+      <circle cx="35" cy="86" r="6" fill="#CC6677"/>
+    </g>
+    <g transform="translate(870 290)">
+      <rect x="0" y="0" width="70" height="110" rx="12" fill="#EEF3F4" stroke="#154555" stroke-width="1.5"/>
+      <rect x="16" y="16" width="38" height="12" rx="6" fill="#E69F00"/>
+      <rect x="16" y="36" width="38" height="12" rx="6" fill="#3B9AB2"/>
+      <rect x="16" y="56" width="38" height="12" rx="6" fill="#154555"/>
+      <circle cx="35" cy="86" r="6" fill="#CC6677"/>
+    </g>
+    <text x="695" y="422" fill="#5A6F75">t1</text>
+    <text x="800" y="422" fill="#5A6F75">t2</text>
+    <text x="905" y="422" fill="#5A6F75">t3</text>
+    <text x="800" y="446" fill="#3B9AB2">Same taxa persist</text>
+
+    <text x="800" y="490" fill="#154555">Unstable (irAE)</text>
+    <g transform="translate(660 512)">
+      <rect x="0" y="0" width="70" height="110" rx="12" fill="#EEF3F4" stroke="#CC6677" stroke-width="1.5"/>
+      <rect x="16" y="16" width="38" height="12" rx="6" fill="#E69F00"/>
+      <rect x="16" y="36" width="38" height="12" rx="6" fill="#7EB8C9"/>
+      <circle cx="35" cy="64" r="6" fill="#CC6677"/>
+      <rect x="16" y="80" width="38" height="12" rx="6" fill="#C4B48A"/>
+    </g>
+    <g transform="translate(765 512)">
+      <rect x="0" y="0" width="70" height="110" rx="12" fill="#EEF3F4" stroke="#CC6677" stroke-width="1.5"/>
+      <rect x="16" y="16" width="38" height="12" rx="6" fill="#3B9AB2"/>
+      <circle cx="35" cy="44" r="6" fill="#154555"/>
+      <rect x="16" y="60" width="38" height="12" rx="6" fill="#E69F00"/>
+      <rect x="16" y="80" width="38" height="12" rx="6" fill="#CC6677"/>
+    </g>
+    <g transform="translate(870 512)">
+      <rect x="0" y="0" width="70" height="110" rx="12" fill="#EEF3F4" stroke="#CC6677" stroke-width="1.5"/>
+      <circle cx="35" cy="24" r="6" fill="#7EB8C9"/>
+      <rect x="16" y="40" width="38" height="12" rx="6" fill="#C4B48A"/>
+      <rect x="16" y="60" width="38" height="12" rx="6" fill="#154555"/>
+      <rect x="16" y="80" width="38" height="12" rx="6" fill="#3B9AB2"/>
+    </g>
+    <text x="695" y="644" fill="#5A6F75">t1</text>
+    <text x="800" y="644" fill="#5A6F75">t2</text>
+    <text x="905" y="644" fill="#5A6F75">t3</text>
+    <text x="800" y="670" fill="#CC6677">Few shared taxa</text>
+  </g>
+  <text x="800" y="710" text-anchor="middle" fill="#154555" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="16" font-weight="600">Higher core score = more stable community</text>
+  <text x="800" y="736" text-anchor="middle" fill="#5A6F75" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14">No irAE 0.58 vs irAE 0.43</text>
+
+  <!-- Panel 3: core score predicts irAE -->
+  <text x="1320" y="168" text-anchor="middle" fill="#154555" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="24" font-weight="700">Core score predicts irAE</text>
+  <text x="1320" y="206" text-anchor="middle" fill="#5A6F75" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14">Better than individual microbes</text>
+
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+    <text x="1130" y="268" fill="#154555" font-size="16" font-weight="700">Core score</text>
+    <text x="1130" y="318" fill="#154555" font-size="15">No irAE</text>
+    <rect x="1210" y="298" width="250" height="28" rx="8" fill="#3B9AB2"/>
+    <text x="1335" y="318" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="700">0.58</text>
+    <text x="1130" y="368" fill="#154555" font-size="15">irAE</text>
+    <rect x="1210" y="348" width="185" height="28" rx="8" fill="#CC6677"/>
+    <text x="1302" y="368" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="700">0.43</text>
+
+    <rect x="1130" y="420" width="380" height="168" rx="16" fill="#E7F3F6" stroke="#3B9AB2" stroke-width="2"/>
+    <text x="1320" y="458" text-anchor="middle" fill="#154555" font-size="16" font-weight="700">Random-forest prediction</text>
+    <text x="1320" y="492" text-anchor="middle" fill="#154555" font-size="15">Core score</text>
+    <text x="1320" y="518" text-anchor="middle" fill="#3B9AB2" font-size="22" font-weight="700">&gt; individual microbes</text>
+    <text x="1320" y="554" text-anchor="middle" fill="#5A6F75" font-size="14">for irAE risk</text>
+
+    <rect x="1130" y="612" width="380" height="88" rx="16" fill="#FBF3DE" stroke="#E69F00" stroke-width="2"/>
+    <text x="1320" y="650" text-anchor="middle" fill="#154555" font-size="15" font-weight="700">Stability is the signal</text>
+    <text x="1320" y="676" text-anchor="middle" fill="#5A6F75" font-size="14">Community persistence, not one taxon</text>
+  </g>
+
+  <rect x="0" y="790" width="1600" height="110" fill="#154555"/>
+  <g fill="#F7F4EC" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="600" text-anchor="middle">
+    <text x="280" y="854">irAE-timed sampling</text>
+    <text x="800" y="854">Core score</text>
+    <text x="1320" y="854">irAE prediction</text>
+  </g>
+</svg>

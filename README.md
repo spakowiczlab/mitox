@@ -1,9 +1,15 @@
+<img src="man/figures/logo.svg" align="right" height="139" alt="mitox hex sticker" />
+
 # mitox [![DOI](https://zenodo.org/badge/190498356.svg)](https://zenodo.org/badge/latestdoi/190498356)
 
 Supportive scripts for the clinical trial, "A Pilot Study of the Effect of the Microbiome on Immune Checkpoint Inhibitor Response in Melanoma ([NCT05102773](https://clinicaltrials.gov/study/NCT05102773?term=spakowicz%20melanoma&rank=1), "OSU-19125)". The goal of the study is to predict which melanoma patients will respond to immunotherapy or experience immune-related adverse events using the gut microbiome and other biomarkers.
 
 These analyses are reported in:
-> Dravillas CE, Coleman SS IV, Hoyd R, Caryotakis G, Denko L, Chan CHF, et al. The Tumor Microbiome as a Predictor of Outcomes in Patients with Metastatic Melanoma Treated with Immune Checkpoint Inhibitors. Cancer Research Communications 2024;4:1978–90. https://doi.org/10.1158/2767-9764.CRC-23-0170.
+> Dravillas C, Williams N, Husain M, Hoyd R, Hussein A, Meara A, et al. The Association of the Microbiome with Melanoma Tumor Response to Immune Checkpoint Inhibitor Treatment and Immune-Related Adverse Events (NCT05102773). medRxiv 2025. https://doi.org/10.1101/2025.01.30.25321413. [PubMed](https://pubmed.ncbi.nlm.nih.gov/39974142/)
+
+<p align="center">
+  <img src="man/figures/graphical-abstract.svg" alt="Graphical abstract: longitudinal sampling, microbiome stability, and a core score that predicts irAEs" width="820" />
+</p>
 
 Code to support the protocol submission, including power calculations, sample size estimates, estimated accrual dates, etc., can be found at:
 
