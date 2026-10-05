@@ -1,6 +1,4 @@
-<img src="man/figures/logo.svg" align="right" height="139" alt="mitox hex sticker" />
-
-# mitox [![DOI](https://zenodo.org/badge/190498356.svg)](https://zenodo.org/badge/latestdoi/190498356)
+# mitox [![DOI](https://zenodo.org/badge/190498356.svg)](https://zenodo.org/badge/latestdoi/190498356) <img src="man/figures/logo.svg" align="right" height="139" alt="mitox hex sticker" />
 
 Supportive scripts for the clinical trial, "A Pilot Study of the Effect of the Microbiome on Immune Checkpoint Inhibitor Response in Melanoma ([NCT05102773](https://clinicaltrials.gov/study/NCT05102773?term=spakowicz%20melanoma&rank=1), "OSU-19125)". The goal of the study is to predict which melanoma patients will respond to immunotherapy or experience immune-related adverse events using the gut microbiome and other biomarkers.
 
