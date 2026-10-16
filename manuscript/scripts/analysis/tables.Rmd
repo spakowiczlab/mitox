@@ -49,7 +49,7 @@ demo.filt <- demographics %>%
     mutate(
       # Collapse to handle separation 
       Melanoma_Type = ifelse(Mel.type == "Cutaneous", "Cutaneous",
-                               ifelse(Mel.type %in% c("Acral", "Mucosal", "Uveal"), "Non-Cutaneous", NA)),
+                               ifelse(Mel.type %in% c("Acral", "Mucosal", "Uveal"), "Non-Cutaneous", "Unknown")),
       # collapse liver, and bone into other
       Recurrence_Site = ifelse(Recurrence.Site.Cat %in% c("Liver", "Bone"), "Other", Recurrence.Site.Cat),
       # collapse smoker into binary
