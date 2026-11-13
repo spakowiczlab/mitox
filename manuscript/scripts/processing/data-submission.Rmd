@@ -1,0 +1,42 @@
+---
+title: "Prepare data for submission"
+author: "Caroline Dravillas"
+date: "2026-11-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+```{r}
+load("../../data/clinical.rds")
+load("../../data/microbiome_metadata.rds")
+
+# need sample year information 
+```
+
+```{r}
+df <- mic.meta |>
+  left_join(demographics) |>
+  mutate(sample_name = sample,
+         sample_title = paste0("MITOX stool metagenome from ", `Patient Id`),
+         bioproject_accession = sample,
+         organism = "gut metagenome",
+         collection_date = "",
+         env_broad_scale = "missing	urban biome [ENVO:01000249]",
+         env_local_scale = "intestine environment [ENVO:2100002]",
+         env_medium = "fecal material [ENVO:00002003]", 
+         geo_loc_name = "USA:Ohio",
+         host = "Homo sapiens", 
+         # generic ohio
+         lat_lon = "40.3674 N, 82.9962 W",
+         
+         ) |>
+  select(sample_name, sample_title, bioproject_accession, organism, 
+         collection_date, env_broad_scale, env_local_scale, env_medium, 
+         geo_loc_name, host, lat_lon)
+```
+
