@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(lubridate)
 ```
 
 ```{r}
@@ -16,16 +17,37 @@ load("../../data/clinical.rds")
 load("../../data/microbiome_metadata.rds")
 
 # need sample year information 
+samps <- read_xlsx( file.path(paths$onedrive, "/data/onecodex/2021-10-27_mitox_One Codex Sample Registration.xlsx"))
+samps2 <- read_xlsx( file.path(paths$onedrive, "/data/onecodex/2022-07-27_mitox_remaining_One Codex Sample Registration.xlsx")) %>%
+   select(-`Specimen Type`)
+samps <- rbind(samps, samps2) 
 ```
+
+# Get sample year 
+```{r}
+samp.year  <- samps %>%
+  select("Barcode ID", "Name") %>%
+  mutate(sample_id = gsub("_", ".", Name)) %>%
+  mutate(sample_id = gsub(" ", ".", sample_id)) %>%
+  select(-Name) %>%
+  rename("sample" = "Barcode ID") |>
+  mutate(year = case_when(grepl(".20", sample_id) ~ 2020,
+                          grepl(".21", sample_id) ~ 2021,
+                          grepl(".22", sample_id) ~ 2022,
+                          .default = NA)) |>
+  select(sample, year)
+```
+
 
 ```{r}
 df <- mic.meta |>
   left_join(demographics) |>
+  left_join(samp.year) |>
   mutate(sample_name = sample,
          sample_title = paste0("MITOX stool metagenome from ", `Patient Id`),
          bioproject_accession = sample,
          organism = "gut metagenome",
-         collection_date = "",
+         collection_date = year,
          env_broad_scale = "missing	urban biome [ENVO:01000249]",
          env_local_scale = "intestine environment [ENVO:2100002]",
          env_medium = "fecal material [ENVO:00002003]", 
@@ -33,10 +55,26 @@ df <- mic.meta |>
          host = "Homo sapiens", 
          # generic ohio
          lat_lon = "40.3674 N, 82.9962 W",
-         
+         response = Response,
+         recist = Category,
+         irae = irAE,
+         pfs_6m = `6-month PFS`,
+         age = Age,
+         sex = Sex,
+         race = Race,
+         bmi = `BMI.(kg/m2)`,
+         stage = Stage,
+         melanoma_type  = Mel.type, 
+         immunotherapy = Treatment, 
+         charlson_comorbidity = cci_total,
+         recurrence_site = Recurrence.Site.Cat
          ) |>
   select(sample_name, sample_title, bioproject_accession, organism, 
          collection_date, env_broad_scale, env_local_scale, env_medium, 
-         geo_loc_name, host, lat_lon)
+         geo_loc_name, host, lat_lon, 
+         response ,recist, irae, pfs_6m, age, sex, race, bmi, stage,
+         melanoma_type, immunotherapy, charlson_comorbidity, recurrence_site)
 ```
+
+
 
